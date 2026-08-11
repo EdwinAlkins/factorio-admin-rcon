@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ground: #14161a;
+  --color-surface: #1b1f26;
+  --color-raised: #232935;
+  --color-line: #333b47;
+  --color-ink: #e6e8ec;
+  --color-muted: #98a1b0;
+  --color-accent: #f5a623;
+  --color-accent-ink: #1a1206;
+  --color-danger: #e5484d;
+  --color-ok: #3dd68c;
+
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Champs de saisie : un style unique pour tout le panneau. */
+.field {
+  @apply w-full rounded border border-line bg-ground px-3 py-2 text-sm text-ink
+         placeholder:text-muted/60 focus:border-accent focus:outline-none;
+}
+
+.btn {
+  @apply rounded border border-line bg-raised px-3 py-1.5 text-sm text-ink transition-colors
+         hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40
+         disabled:hover:border-line disabled:hover:text-ink;
+}
+
+.btn-primary {
+  @apply rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition-opacity
+         hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40;
+}

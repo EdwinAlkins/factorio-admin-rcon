@@ -1,0 +1,87 @@
+version: "2"
+services:
+  factorio:
+    container_name: factorio-server
+    image: factoriotools/factorio:stable
+    restart: unless-stopped
+    ports:
+      - "34197:34197/udp"
+      - "27015:27015/tcp"
+    volumes:
+      - ./data:/factorio
+    environment:
+      - UPDATE_MODS_ON_START=true
+      # - DLC_SPACE_AGE=false
+      # Uncomment to skip updating specific mods
+      # - UPDATE_IGNORE=mod1,mod2,mod3
+    
+    # Uncomment to enable autoupdate via watchtower
+    #labels:
+    #  # Labels to allow watchtower autoupdate only if no players are online
+    #  - com.centurylinklabs.watchtower.enable=true
+    #  - com.centurylinklabs.watchtower.scope=factorio
+    #  - com.centurylinklabs.watchtower.lifecycle.pre-update="/players-online.sh"
+
+  # Web admin panel (Next.js) to run RCON commands - see admin/README.md
+  factorio-admin:
+    container_name: factorio-admin-panel
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - factorio
+    ports:
+      # Bound to localhost only: the panel gives full RCON access.
+      # Both stacks, so browsers resolving "localhost" to ::1 also reach it.
+      - "127.0.0.1:3010:3000"
+      - "[::1]:3010:3000"
+    volumes:
+      # Mounts the directory (not the file) so a regenerated rconpw is picked up
+      - ./data/config:/factorio-config:ro
+      # Sessions and audit log (SQLite)
+      - factorio-admin-data:/data
+    environment:
+      - RCON_HOST=factorio
+      - RCON_PORT=27015
+      - RCON_PASSWORD_FILE=/factorio-config/rconpw
+      # Passwords: one per role. Set them in a .env file next to this compose file.
+      # With none set, the panel starts but refuses every login.
+      # ADMIN_PASSWORD grants full access, including the raw RCON console.
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - MODERATOR_PASSWORD=${MODERATOR_PASSWORD:-}
+      - VIEWER_PASSWORD=${VIEWER_PASSWORD:-}
+      - SESSION_SECRET=${SESSION_SECRET:-}
+      # auto = secure cookie as soon as the request arrives over HTTPS
+      - COOKIE_SECURE=${COOKIE_SECURE:-auto}
+      # Only enable behind a reverse proxy you control: it makes the panel
+      # trust X-Forwarded-For for per-IP rate limiting.
+      - TRUST_PROXY=${TRUST_PROXY:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Tunables (see admin/.env.example for defaults)
+      - SESSION_TTL_HOURS=${SESSION_TTL_HOURS:-}
+      - RCON_MAX_QUEUE=${RCON_MAX_QUEUE:-}
+      - RCON_MAX_PER_MINUTE=${RCON_MAX_PER_MINUTE:-}
+      - RCON_TIMEOUT_MS=${RCON_TIMEOUT_MS:-}
+      - STATUS_CACHE_MS=${STATUS_CACHE_MS:-}
+      - AUDIT_RETENTION_DAYS=${AUDIT_RETENTION_DAYS:-}
+
+  # Uncomment the following files to use watchtower for updating the factorio container
+  # Full documentation of watchtower: https://github.com/containrrr/watchtower
+  #watchtower:
+  #  container_name: watchtower_factorio
+  #  image: ghcr.io/nicholas-fedor/watchtower:latest
+  #  restart: unless-stopped
+  #  volumes:
+  #   - /var/run/docker.sock:/var/run/docker.sock
+  #  environment:
+  #    # Only update containers which have the option 'watchtower.enable=true' set
+  #    - WATCHTOWER_TIMEOUT=30s
+  #    - WATCHTOWER_LABEL_ENABLE=true
+  #    - WATCHTOWER_POLL_INTERVAL=3600
+  #    - WATCHTOWER_LIFECYCLE_HOOKS=true
+  #    - WATCHTOWER_SCOPE=factorio
+  #  labels:
+  #    - com.centurylinklabs.watchtower.scope=factorio
+
+volumes:
+  # Sessions and audit log of the admin panel
+  factorio-admin-data:

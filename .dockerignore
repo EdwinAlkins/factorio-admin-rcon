@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+npm-debug.log*
+Dockerfile
+.dockerignore
+# Hors du contexte de build : sinon une retouche de doc ou de CI invalide la
+# couche `COPY . .` et force un rebuild complet à chaque release.
+.github
+.releaserc.json
+*.md
+tests
+coverage

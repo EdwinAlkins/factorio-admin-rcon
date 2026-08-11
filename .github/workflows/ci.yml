@@ -1,0 +1,56 @@
+name: CI
+
+# Deux usages :
+#   - déclenché seul sur chaque pull request ;
+#   - appelé par release.yml (`workflow_call`) comme garde-fou avant publication.
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # On annule les runs obsolètes d'une PR, jamais ceux du chemin de release.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality:
+    name: Lint · types · tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          # Aligné sur le `node:24-alpine` du Dockerfile.
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+  image:
+    name: Build image (sans push)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Valide le Dockerfile sans rien publier. `amd64` seul : on cherche une
+      # erreur de build, pas une image livrable — et le cache produit ici est
+      # réutilisé par le push multi-arch de release.yml.
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

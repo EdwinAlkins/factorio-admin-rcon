@@ -1,0 +1,55 @@
+{
+  "name": "factorio-admin-rcon",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Factorio Admin RCON Panel",
+  "author": "Edwin Alkins",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/edwinalkins/factorio-admin-rcon"
+  },
+  "homepage": "https://github.com/edwinalkins/factorio-admin-rcon",
+  "bugs": {
+    "url": "https://github.com/edwinalkins/factorio-admin-rcon/issues"
+  },
+  "keywords": [
+    "factorio",
+    "admin",
+    "rcon",
+    "panel",
+    "web",
+    "management"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "next": "16.3.0",
+    "rcon-client": "^4.2.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  }
+}

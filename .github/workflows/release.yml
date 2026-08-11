@@ -1,0 +1,125 @@
+name: Release
+
+on:
+  push:
+    # `beta` est optionnelle : elle publie des préversions (1.5.0-beta.1) qui
+    # ne prennent jamais le tag `latest`. Voir .releaserc.json.
+    branches: [main, beta]
+
+permissions:
+  contents: read
+
+# Une release à la fois par branche. Surtout pas `cancel-in-progress` :
+# interrompre semantic-release entre le tag Git et le push de l'image laisse
+# une version publiée sans image correspondante.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: edwinalkins/factorio-admin-rcon
+
+jobs:
+  # 1. Mêmes contrôles que sur une PR. Rien n'est publié s'ils échouent.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  # 2. semantic-release lit les commits conventionnels depuis le dernier tag,
+  #    en déduit la version, écrit CHANGELOG.md, tague et crée la release GitHub.
+  #    Si aucun commit ne justifie une version, la sortie `version` reste vide.
+  release:
+    name: semantic-release
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # tag, commit du changelog, création de la release
+      issues: write          # commentaire sur les issues résolues
+      pull-requests: write   # commentaire sur les PR incluses
+    outputs:
+      version: ${{ steps.semantic.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Historique complet : semantic-release remonte jusqu'au dernier tag.
+          fetch-depth: 0
+          # Sinon les identifiants posés par checkout entrent en conflit avec
+          # ceux que semantic-release utilise pour pousser.
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # Outillage de release volontairement hors de package.json : il ne sert
+      # qu'ici, et l'ajouter en devDependencies le ferait installer à chaque
+      # `npm ci` du build Docker. Versions épinglées, voir CI.md pour les monter.
+      - name: Run semantic-release
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx --yes \
+            --package semantic-release@25.0.9 \
+            --package @semantic-release/commit-analyzer@13.0.1 \
+            --package @semantic-release/release-notes-generator@14.1.1 \
+            --package @semantic-release/changelog@7.0.0 \
+            --package @semantic-release/npm@13.1.5 \
+            --package @semantic-release/exec@7.1.0 \
+            --package @semantic-release/git@11.0.1 \
+            --package @semantic-release/github@12.0.9 \
+            --package conventional-changelog-conventionalcommits@10.3.0 \
+            -- semantic-release
+
+  # 3. Build multi-arch et push, uniquement si une version a été publiée.
+  publish:
+    name: Push Docker Hub
+    needs: release
+    if: needs.release.outputs.version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # On construit l'arbre tagué, pas le commit déclencheur : c'est celui qui
+      # porte le package.json à la bonne version.
+      - uses: actions/checkout@v7
+        with:
+          ref: v${{ needs.release.outputs.version }}
+
+      - uses: docker/setup-qemu-action@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Dérive les tags de la version : 1.4.2 → `1.4.2`, `1.4`, `1`, `latest`.
+      # `latest=auto` exclut de lui-même les préversions (1.5.0-beta.1).
+      - name: Métadonnées (tags + labels OCI)
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.release.outputs.version }}
+          flavor: latest=auto
+          labels: |
+            org.opencontainers.image.title=Panneau d'admin RCON Factorio
+            org.opencontainers.image.description=Console RCON et actions d'administration pour un serveur Factorio
+
+      - name: Build et push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          cache-from: type=gha
+          # Traçabilité de la chaîne de build + inventaire des paquets.
+          provenance: mode=max
+          sbom: true
