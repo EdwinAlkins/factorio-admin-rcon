@@ -6,6 +6,17 @@ on:
     # ne prennent jamais le tag `latest`. Voir .releaserc.json.
     branches: [main, beta]
 
+  # Rattrapage : (re)pousser sur Docker Hub une version déjà taguée, sans
+  # repasser par semantic-release. Utile quand seul le push d'image a échoué —
+  # un « Re-run failed jobs » rejouerait l'ancien fichier de workflow, donc ne
+  # corrigerait rien si le bug est dans le workflow lui-même.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version déjà taguée à publier (ex. 1.0.0, sans le « v »)"
+        required: true
+        type: string
+
 permissions:
   contents: read
 
@@ -17,11 +28,14 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE_NAME: edwinalkins/factorio-admin-rcon
+  # Namespace Docker Hub (williamnauroy), différent du compte GitHub (EdwinAlkins).
+  IMAGE_NAME: williamnauroy/factorio-admin-rcon
 
 jobs:
   # 1. Mêmes contrôles que sur une PR. Rien n'est publié s'ils échouent.
+  #    Sautés en rattrapage manuel : la version visée a déjà été validée.
   ci:
+    if: github.event_name == 'push'
     uses: ./.github/workflows/ci.yml
 
   # 2. semantic-release lit les commits conventionnels depuis le dernier tag,
@@ -29,6 +43,7 @@ jobs:
   #    Si aucun commit ne justifie une version, la sortie `version` reste vide.
   release:
     name: semantic-release
+    if: github.event_name == 'push'
     needs: ci
     runs-on: ubuntu-latest
     permissions:
@@ -70,20 +85,25 @@ jobs:
             --package conventional-changelog-conventionalcommits@10.3.0 \
             -- semantic-release
 
-  # 3. Build multi-arch et push, uniquement si une version a été publiée.
+  # 3. Build multi-arch et push, si une version vient d'être publiée (push) ou
+  #    si une version existante est demandée à la main (workflow_dispatch).
+  #    `!failure() && !cancelled()` laisse passer les jobs *sautés* du rattrapage
+  #    manuel, tout en bloquant dès qu'un job en amont échoue.
   publish:
     name: Push Docker Hub
-    needs: release
-    if: needs.release.outputs.version != ''
+    needs: [ci, release]
+    if: ${{ !failure() && !cancelled() && (inputs.version || needs.release.outputs.version) != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      VERSION: ${{ inputs.version || needs.release.outputs.version }}
     steps:
       # On construit l'arbre tagué, pas le commit déclencheur : c'est celui qui
       # porte le package.json à la bonne version.
       - uses: actions/checkout@v7
         with:
-          ref: v${{ needs.release.outputs.version }}
+          ref: v${{ env.VERSION }}
 
       - uses: docker/setup-qemu-action@v4
 
@@ -102,9 +122,9 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.release.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.version }}
-            type=semver,pattern={{major}},value=${{ needs.release.outputs.version }}
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}},value=${{ env.VERSION }}
           flavor: latest=auto
           labels: |
             org.opencontainers.image.title=Panneau d'admin RCON Factorio

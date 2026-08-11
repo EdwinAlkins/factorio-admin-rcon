@@ -38,11 +38,11 @@ docker compose up -d --build factorio-admin   # http://127.0.0.1:3010
 saisir au lieu de les générer, `--force` fait tourner tous les secrets (et coupe les sessions
 ouvertes). Les valeurs déjà présentes dans `.env` sont conservées par défaut.
 
-Une image est publiée à chaque release sur `edwinalkins/factorio-admin-rcon` (`linux/amd64` et
+Une image est publiée à chaque release sur `williamnauroy/factorio-admin-rcon` (`linux/amd64` et
 `linux/arm64`). Épinglez une version exacte en production :
 
 ```bash
-docker pull edwinalkins/factorio-admin-rcon:1.0.0
+docker pull williamnauroy/factorio-admin-rcon:1.0.0
 ```
 
 Le versionnement et la publication sont automatiques — voir [CI.md](CI.md).
