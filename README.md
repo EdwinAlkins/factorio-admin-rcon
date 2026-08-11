@@ -20,7 +20,7 @@ généré au premier démarrage du serveur par `docker/files/docker-entrypoint.s
 
 ```bash
 npm run lint        # eslint
-npm run typecheck   # tsc --noEmit
+npm run typecheck   # next typegen && tsc --noEmit
 npm test            # vitest
 npm run build
 ```
