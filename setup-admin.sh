@@ -1,9 +1,9 @@
 #!/bin/bash
-# Prépare le fichier .env utilisé par le service factorio-admin :
-# génère les mots de passe des rôles et la clé de signature des sessions.
+# Prepares the .env file used by the factorio-admin service:
+# generates the role passwords and the session signing key.
 #
-# Les valeurs déjà présentes sont conservées par défaut ; utiliser --force
-# pour les régénérer (ce qui invalide toutes les sessions ouvertes).
+# Values already present are kept by default; use --force to regenerate them
+# (which invalidates every open session).
 
 set -euo pipefail
 
@@ -20,24 +20,24 @@ usage() {
     cat <<'EOF'
 Usage: ./setup-admin.sh [options]
 
-Crée ou met à jour le fichier .env lu par docker-compose pour le panneau d'admin.
+Creates or updates the .env file read by docker-compose for the admin panel.
 
 Options:
-  -m, --moderator      Créer aussi un mot de passe MODERATOR_PASSWORD
-                       (kick, ban, mute, messages ; pas de console RCON brute)
-  -v, --viewer         Créer aussi un mot de passe VIEWER_PASSWORD (lecture seule)
-  -a, --all            Équivaut à --moderator --viewer
-  -f, --force          Régénérer les valeurs déjà présentes
-                       (invalide les sessions en cours)
-      --ask            Saisir les mots de passe soi-même au lieu de les générer
-  -e, --env-file PATH  Utiliser un autre fichier que ./.env
-  -y, --yes            Ne poser aucune question (mode non interactif)
-  -h, --help           Afficher cette aide
+  -m, --moderator      Also create a MODERATOR_PASSWORD
+                       (kick, ban, mute, messages; no raw RCON console)
+  -v, --viewer         Also create a VIEWER_PASSWORD (read only)
+  -a, --all            Same as --moderator --viewer
+  -f, --force          Regenerate values that are already set
+                       (invalidates open sessions)
+      --ask            Type the passwords yourself instead of generating them
+  -e, --env-file PATH  Use a file other than ./.env
+  -y, --yes            Ask no questions (non-interactive mode)
+  -h, --help           Show this help
 
-Exemples:
+Examples:
   ./setup-admin.sh                 # ADMIN_PASSWORD + SESSION_SECRET
-  ./setup-admin.sh --all           # les trois rôles
-  ./setup-admin.sh --force --yes   # rotation complète, sans question
+  ./setup-admin.sh --all           # all three roles
+  ./setup-admin.sh --force --yes   # full rotation, no questions asked
 EOF
 }
 
@@ -51,7 +51,7 @@ while [[ $# -gt 0 ]]; do
         -y|--yes) ASSUME_YES=true ;;
         -e|--env-file)
             if [[ $# -lt 2 ]]; then
-                echo "erreur: --env-file attend un chemin" >&2
+                echo "error: --env-file expects a path" >&2
                 exit 1
             fi
             ENV_FILE="$2"
@@ -59,7 +59,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help) usage; exit 0 ;;
         *)
-            echo "erreur: option inconnue '$1'" >&2
+            echo "error: unknown option '$1'" >&2
             usage >&2
             exit 1
             ;;
@@ -67,7 +67,7 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# Génère une valeur aléatoire de N octets, en hexadécimal.
+# Generates a random value of N bytes, hex encoded.
 generate_secret() {
     local bytes="$1"
 
@@ -76,7 +76,7 @@ generate_secret() {
     elif [[ -r /dev/urandom ]]; then
         od -An -tx1 -N "$bytes" /dev/urandom | tr -d ' \n'
     else
-        echo "erreur: ni openssl ni /dev/urandom disponibles pour générer un secret" >&2
+        echo "error: neither openssl nor /dev/urandom available to generate a secret" >&2
         exit 1
     fi
 }
@@ -85,11 +85,11 @@ get_env_var() {
     local key="$1"
 
     [[ -f "$ENV_FILE" ]] || return 0
-    # Dernière occurrence : c'est celle que docker-compose retient.
+    # Last occurrence: that is the one docker-compose keeps.
     grep -E "^${key}=" "$ENV_FILE" | tail -n 1 | cut -d= -f2- || true
 }
 
-# Remplace la valeur si la clé existe, l'ajoute sinon.
+# Replaces the value if the key exists, appends it otherwise.
 upsert_env_var() {
     local key="$1" value="$2" tmp
 
@@ -100,7 +100,7 @@ upsert_env_var() {
 
     tmp="$(mktemp)"
     grep -vE "^${key}=" "$ENV_FILE" >"$tmp" || true
-    # Garantit un saut de ligne final avant d'ajouter la nouvelle valeur.
+    # Guarantees a trailing newline before appending the new value.
     if [[ -s "$tmp" ]] && [[ -n "$(tail -c 1 "$tmp")" ]]; then
         printf '\n' >>"$tmp"
     fi
@@ -120,29 +120,29 @@ confirm() {
     fi
 
     local answer
-    read -r -p "$question [o/N] " answer
-    [[ "$answer" == "o" || "$answer" == "O" || "$answer" == "y" || "$answer" == "Y" ]]
+    read -r -p "$question [y/N] " answer
+    [[ "$answer" == "y" || "$answer" == "Y" ]]
 }
 
 read_password() {
     local label="$1" first second
 
     while true; do
-        read -r -s -p "  Mot de passe $label : " first
+        read -r -s -p "  Password for $label: " first
         echo >&2
-        read -r -s -p "  Confirmer            : " second
+        read -r -s -p "  Confirm            : " second
         echo >&2
 
         if [[ -z "$first" ]]; then
-            echo "  (vide, recommencez)" >&2
+            echo "  (empty, try again)" >&2
             continue
         fi
         if [[ "$first" != "$second" ]]; then
-            echo "  (ne correspondent pas, recommencez)" >&2
+            echo "  (they do not match, try again)" >&2
             continue
         fi
         if [[ "$first" == *$'\n'* ]]; then
-            echo "  (retour à la ligne interdit)" >&2
+            echo "  (line breaks are not allowed)" >&2
             continue
         fi
 
@@ -151,8 +151,8 @@ read_password() {
     done
 }
 
-# Renseigne une variable : conservée si déjà définie, sinon générée ou saisie.
-# Alimente GENERATED / KEPT pour le récapitulatif final.
+# Fills in a variable: kept if already set, otherwise generated or typed in.
+# Feeds GENERATED / KEPT for the final summary.
 GENERATED=()
 KEPT=()
 
@@ -167,14 +167,14 @@ ensure_var() {
     fi
 
     if [[ -n "$existing" && "$FORCE" == true ]]; then
-        echo "→ rotation de $key ($label)"
+        echo "→ rotating $key ($label)"
     else
-        echo "→ création de $key ($label)"
+        echo "→ creating $key ($label)"
     fi
 
     if [[ "$ASK_PASSWORDS" == true && "$key" != "SESSION_SECRET" ]]; then
         if [[ ! -t 0 ]]; then
-            echo "erreur: --ask nécessite un terminal interactif" >&2
+            echo "error: --ask requires an interactive terminal" >&2
             exit 1
         fi
         value="$(read_password "$label")"
@@ -186,44 +186,44 @@ ensure_var() {
     GENERATED+=("$key=$value")
 }
 
-echo "Fichier : $ENV_FILE"
+echo "File: $ENV_FILE"
 
 if [[ ! -f "$ENV_FILE" ]]; then
     touch "$ENV_FILE"
-    echo "→ fichier créé"
+    echo "→ file created"
 fi
 
-# Lisible par le seul propriétaire : il contient des secrets.
+# Readable by its owner only: it holds secrets.
 chmod 600 "$ENV_FILE"
 
-ensure_var ADMIN_PASSWORD "administrateur — accès complet, console RCON incluse" 16
+ensure_var ADMIN_PASSWORD "administrator — full access, raw RCON console included" 16
 
 if [[ "$WITH_MODERATOR" == true ]]; then
-    ensure_var MODERATOR_PASSWORD "modérateur — kick, ban, mute, messages" 16
+    ensure_var MODERATOR_PASSWORD "moderator — kick, ban, mute, messages" 16
 fi
 
 if [[ "$WITH_VIEWER" == true ]]; then
-    ensure_var VIEWER_PASSWORD "observateur — lecture seule" 16
+    ensure_var VIEWER_PASSWORD "viewer — read only" 16
 fi
 
-# Clé indépendante des mots de passe : changer un mot de passe ne casse plus
-# la signature des cookies de session.
-ensure_var SESSION_SECRET "clé de signature des sessions" 32
+# Key independent from the passwords: changing a password no longer breaks the
+# session cookie signature.
+ensure_var SESSION_SECRET "session signing key" 32
 
 echo
 
 if [[ ${#KEPT[@]} -gt 0 ]]; then
-    echo "Valeurs existantes conservées : ${KEPT[*]}"
-    echo "  (./setup-admin.sh --force pour les régénérer)"
+    echo "Existing values kept: ${KEPT[*]}"
+    echo "  (./setup-admin.sh --force to regenerate them)"
 fi
 
 if [[ ${#GENERATED[@]} -gt 0 ]]; then
-    echo "Nouvelles valeurs (notez-les, elles ne seront plus affichées) :"
+    echo "New values (write them down, they will not be shown again):"
     for entry in "${GENERATED[@]}"; do
         key="${entry%%=*}"
         value="${entry#*=}"
         if [[ "$key" == "SESSION_SECRET" ]]; then
-            echo "  $key = (généré, aucun usage manuel)"
+            echo "  $key = (generated, never used by hand)"
         else
             echo "  $key = $value"
         fi
@@ -232,15 +232,15 @@ fi
 
 if [[ ${#GENERATED[@]} -gt 0 ]] && grep -qE '^(MODERATOR|VIEWER)_PASSWORD=' "$ENV_FILE"; then
     echo
-    echo "Rappel : le rôle est déterminé par le mot de passe utilisé à la connexion."
+    echo "Reminder: the role is determined by the password used to sign in."
 fi
 
 echo
-echo "Étapes suivantes :"
+echo "Next steps:"
 echo "  docker compose up -d --build factorio-admin"
-echo "  puis http://127.0.0.1:3010"
+echo "  then http://127.0.0.1:3010"
 
-if [[ ${#KEPT[@]} -gt 0 || ${#GENERATED[@]} -gt 0 ]] && confirm "Démarrer le panneau maintenant ?"; then
+if [[ ${#KEPT[@]} -gt 0 || ${#GENERATED[@]} -gt 0 ]] && confirm "Start the panel now?"; then
     echo
     (cd "$SCRIPT_DIR" && docker compose up -d --build factorio-admin)
 fi

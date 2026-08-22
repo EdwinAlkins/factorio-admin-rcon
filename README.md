@@ -1,22 +1,22 @@
-# Panneau d'admin RCON
+# RCON Admin Panel
 
-Application Next.js (App Router) qui pilote le serveur Factorio : console RCON libre, actions
-métier (joueurs, sauvegarde, modération, chat), rôles, journal d'audit.
+Next.js (App Router) application that drives a Factorio server: free-form RCON console, built-in
+actions (players, save, moderation, chat), roles, audit log.
 
-Elle parle le protocole RCON en TCP — le client C du dépôt (`docker/rcon/main.c`) hardcode
-`127.0.0.1` et n'est utilisable que depuis le conteneur du serveur.
+It speaks the RCON protocol over TCP — the repository's C client (`docker/rcon/main.c`) hardcodes
+`127.0.0.1` and is only usable from within the server container.
 
-## Développement
+## Development
 
 ```bash
-cp .env.example .env.local   # renseigner au minimum ADMIN_PASSWORD
+cp .env.example .env.local   # set ADMIN_PASSWORD at minimum
 npm install
 npm run dev                  # http://localhost:3000
 ```
 
-Le serveur Factorio doit tourner avec le port RCON publié (`docker compose up -d factorio`,
-`27015:27015/tcp` est déjà mappé). Le mot de passe RCON est lu dans `../data/config/rconpw`,
-généré au premier démarrage du serveur par `docker/files/docker-entrypoint.sh`.
+The Factorio server must be running with the RCON port published (`docker compose up -d factorio`,
+`27015:27015/tcp` is already mapped). The RCON password is read from `../data/config/rconpw`,
+generated on first server start by `docker/files/docker-entrypoint.sh`.
 
 ```bash
 npm run lint        # eslint
@@ -27,124 +27,122 @@ npm run build
 
 ## Production
 
-Service `factorio-admin` du `docker-compose.yml` à la racine :
+The `factorio-admin` service in the root `docker-compose.yml`:
 
 ```bash
-cd .. && ./setup-admin.sh            # génère ../.env (mots de passe + clé de session)
+cd .. && ./setup-admin.sh            # generates ../.env (passwords + session key)
 docker compose up -d --build factorio-admin   # http://127.0.0.1:3010
 ```
 
-`setup-admin.sh --all` crée aussi les mots de passe modérateur et observateur, `--ask` les fait
-saisir au lieu de les générer, `--force` fait tourner tous les secrets (et coupe les sessions
-ouvertes). Les valeurs déjà présentes dans `.env` sont conservées par défaut.
+`setup-admin.sh --all` also creates the moderator and viewer passwords, `--ask` prompts for them
+instead of generating them, and `--force` rotates every secret (which ends open sessions). Values
+already present in `.env` are kept by default.
 
-Une image est publiée à chaque release sur `williamnauroy/factorio-admin-rcon` (`linux/amd64` et
-`linux/arm64`). Épinglez une version exacte en production :
+An image is published on every release to `williamnauroy/factorio-admin-rcon` (`linux/amd64` and
+`linux/arm64`). Pin an exact version in production:
 
 ```bash
 docker pull williamnauroy/factorio-admin-rcon:1.0.0
 ```
 
-Le versionnement et la publication sont automatiques — voir [CI.md](CI.md).
+Versioning and publishing are automated — see [CI.md](CI.md).
 
-## Rôles
+## Roles
 
-Un mot de passe par rôle ; le rôle est déterminé par le mot de passe utilisé à la connexion.
+One password per role; the role is determined by the password used to sign in.
 
-| Rôle | Variable | Peut faire |
+| Role | Variable | Can do |
 | --- | --- | --- |
-| `viewer` | `VIEWER_PASSWORD` | Statut, joueurs, version, seed, évolution, admins, bannis |
-| `moderator` | `MODERATOR_PASSWORD` | + kick, ban/unban, mute/unmute, message serveur, message privé |
-| `admin` | `ADMIN_PASSWORD` | + sauvegarde, promote/demote, **console RCON brute**, journal d'audit |
+| `viewer` | `VIEWER_PASSWORD` | Status, players, version, seed, evolution, admins, ban list |
+| `moderator` | `MODERATOR_PASSWORD` | + kick, ban/unban, mute/unmute, server message, private message |
+| `admin` | `ADMIN_PASSWORD` | + save, promote/demote, **raw RCON console**, audit log |
 
-Les permissions sont appliquées **côté serveur** : le catalogue d'actions est filtré par rôle et
-`/api/actions` revérifie la permission avant d'exécuter quoi que ce soit.
+Permissions are enforced **server-side**: the action catalogue is filtered by role, and
+`/api/actions` re-checks the permission before executing anything.
 
-## Langues
+## Languages
 
-Le panneau est disponible en anglais (par défaut) et en français. La langue est déduite de
-l'en-tête `Accept-Language` à la première visite, modifiable par le sélecteur de la barre de
-statut, et mémorisée dans un cookie. Elle apparaît dans l'URL : `/` pour l'anglais, `/fr` pour le
-français.
+The panel ships in English (default) and French. The language is inferred from the
+`Accept-Language` header on first visit, can be changed from the switcher in the status bar, and is
+remembered in a cookie. It shows up in the URL: `/` for English, `/fr` for French.
 
-Pour ajouter une langue :
+To add a language:
 
-1. copier `messages/en.json` en `messages/<code>.json` et traduire les valeurs ;
-2. ajouter le code à `locales` dans `src/i18n/routing.ts` ;
-3. ajouter son nom dans `localeSwitcher` de chaque dictionnaire ;
-4. `npm test` — la suite vérifie que les deux fichiers exposent exactement les mêmes clés et
-   qu'aucune action du catalogue n'a de libellé manquant.
+1. copy `messages/en.json` to `messages/<code>.json` and translate the values;
+2. add the code to `locales` in `src/i18n/routing.ts`;
+3. add its name under `localeSwitcher` in every dictionary;
+4. `npm test` — the suite checks that all dictionaries expose exactly the same keys, that no
+   catalogue action is missing a label, and that every message compiles as ICU.
 
-Aucun texte d'interface ne vit dans `src/server/` : l'API ne renvoie que des identifiants
-(`ban`, `moderation`) et des codes d'erreur (`rate_limited_session`, `validation_player`), que
-l'interface traduit. Le champ `error` des réponses JSON reste un repli **en anglais**, destiné aux
-appels hors navigateur. Le journal d'audit stocke lui aussi des identifiants : l'historique reste
-donc lisible dans n'importe quelle langue, y compris pour des entrées antérieures.
+No interface text lives in `src/server/`: the API returns identifiers only (`ban`, `moderation`)
+and error codes (`rate_limited_session`, `validation_player`), which the interface translates. The
+`error` field of JSON responses stays an **English** fallback, meant for non-browser callers. The
+audit log stores identifiers too, so history stays readable in any language — including entries
+written before a language was added.
 
-Ne sont volontairement pas traduits : la sortie brute de Factorio, les commandes RCON et les logs
-serveur (en anglais, destinés à l'exploitant).
+Deliberately left untranslated: raw Factorio output, RCON commands, and server logs (English, aimed
+at the operator).
 
 ## Architecture
 
 ```
 src/
-├── app/            pages + routes API (pages sous `[locale]/`)
-├── components/     interface (console, actions, audit, modale)
-├── hooks/          statut serveur (polling), exécution de commandes, traductions
-├── i18n/           routing, chargement des dictionnaires, navigation locale-aware
-├── lib/            code partagé client/serveur (types, permissions, fetch typé)
-└── server/         code serveur uniquement
-    ├── actions/    définitions métier + exécution
-    ├── audit/      journal SQLite
-    ├── auth/       comptes, sessions, limiteurs
-    ├── config/     variables d'environnement validées (zod)
-    ├── http/       enveloppe de route (session, permission, origine, logs)
-    └── rcon/       service, file d'attente, parsing, cache de statut
+├── app/            pages + API routes (pages live under `[locale]/`)
+├── components/     interface (console, actions, audit, modal)
+├── hooks/          server status (polling), command execution, translations
+├── i18n/           routing, dictionary loading, locale-aware navigation
+├── lib/            shared client/server code (types, permissions, typed fetch)
+└── server/         server-only code
+    ├── actions/    business definitions + execution
+    ├── audit/      SQLite log
+    ├── auth/       accounts, sessions, rate limiters
+    ├── config/     validated environment variables (zod)
+    ├── http/       route wrapper (session, permission, origin, logs)
+    └── rcon/       service, queue, parsing, status cache
 
-messages/           dictionnaires (en.json fait référence)
+messages/           dictionaries (en.json is the reference)
 ```
 
-Deux chemins d'exécution distincts :
+Two distinct execution paths:
 
-- `POST /api/actions` — `{ action, values }`. Le serveur valide les arguments, applique la
-  permission et **construit lui-même** la commande. Chemin utilisé par tous les rôles.
-- `POST /api/rcon` — commande brute. Réservé à la permission `rcon:raw` (rôle `admin`).
+- `POST /api/actions` — `{ action, values }`. The server validates the arguments, enforces the
+  permission and **builds the command itself**. Used by every role.
+- `POST /api/rcon` — raw command. Restricted to the `rcon:raw` permission (`admin` role).
 
 ## Endpoints
 
-| Route | Auth | Rôle |
+| Route | Auth | Role |
 | --- | --- | --- |
-| `POST /api/login` / `POST /api/logout` | — | Ouvre / révoque une session |
-| `GET /api/status` | session | Statut serveur (mis en cache) |
-| `GET /api/actions` | session | Catalogue filtré par rôle |
-| `POST /api/actions` | session | Exécute une action métier |
-| `POST /api/rcon` | `rcon:raw` | Console brute |
-| `GET /api/audit` | `audit:read` | 50 dernières entrées d'audit |
-| `GET /api/health` | public | Liveness (sonde Docker) |
-| `GET /api/ready` | public | Readiness : config + base + RCON |
+| `POST /api/login` / `POST /api/logout` | — | Opens / revokes a session |
+| `GET /api/status` | session | Server status (cached) |
+| `GET /api/actions` | session | Catalogue filtered by role |
+| `POST /api/actions` | session | Runs a built-in action |
+| `POST /api/rcon` | `rcon:raw` | Raw console |
+| `GET /api/audit` | `audit:read` | Last 50 audit entries |
+| `GET /api/health` | public | Liveness (Docker probe) |
+| `GET /api/ready` | public | Readiness: config + database + RCON |
 
-## Modèle de sécurité
+## Security model
 
-Ce panneau suppose :
+This panel assumes:
 
-- **une seule instance** (1 conteneur = 1 processus Node = 1 connexion RCON). Les limiteurs de
-  débit et le cache de statut vivent en mémoire du processus : derrière un load balancer, ils
-  seraient contournables ;
-- **un accès réseau restreint** — le panneau est publié sur `127.0.0.1` par défaut ; en HTTPS
-  derrière un reverse proxy, mettre `TRUST_PROXY=true` (sinon `X-Forwarded-For` est ignoré, ce qui
-  est volontaire : un en-tête forgeable ne doit pas piloter la limitation) ;
-- **le port RCON du serveur Factorio n'est joignable que par le panneau** en production.
+- **a single instance** (1 container = 1 Node process = 1 RCON connection). Rate limiters and the
+  status cache live in process memory: behind a load balancer they would be bypassable;
+- **restricted network access** — the panel is published on `127.0.0.1` by default; when served
+  over HTTPS behind a reverse proxy, set `TRUST_PROXY=true` (otherwise `X-Forwarded-For` is
+  ignored, which is deliberate: a forgeable header must not drive rate limiting);
+- **the Factorio server's RCON port is only reachable by the panel** in production.
 
-Ce qui est en place :
+What is in place:
 
-- sessions persistées en SQLite : la déconnexion **révoque** réellement le cookie ;
-- comparaison des mots de passe en temps constant, limitation des tentatives (par IP quand elle est
-  fiable, plus un plafond global toujours actif) ;
-- limitation du débit de commandes par session et **file RCON bornée** (503 au-delà) ;
-- vérification de l'origine sur toutes les requêtes mutantes, cookie `httpOnly`/`SameSite=Lax`,
-  `secure` automatique en HTTPS ;
-- en-têtes CSP, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS ;
-- journal d'audit de toutes les actions, y compris les refus.
+- sessions persisted in SQLite: signing out really **revokes** the cookie;
+- constant-time password comparison, login attempt limiting (per IP when it is trustworthy, plus a
+  global cap that is always active);
+- per-session command rate limiting and a **bounded RCON queue** (503 beyond it);
+- origin checking on every mutating request, `httpOnly`/`SameSite=Lax` cookie, `secure` set
+  automatically over HTTPS;
+- CSP, `nosniff`, `Referrer-Policy`, `Permissions-Policy` and HSTS headers;
+- audit log of every action, refusals included.
 
-Ce qui reste hors périmètre : la confirmation des commandes Lua est une aide à l'interface, pas une
-protection — un compte `admin` a par définition un accès RCON complet.
+Out of scope: the Lua command confirmation is an interface aid, not a protection — an `admin`
+account has full RCON access by definition.
