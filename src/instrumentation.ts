@@ -15,13 +15,13 @@ export async function register() {
   } catch (error) {
     // Le panneau démarre quand même : /api/ready le signalera « unavailable »
     // et chaque route renverra une erreur explicite.
-    logger.error("Configuration invalide au démarrage", errorFields(error));
+    logger.error("invalid configuration at startup", errorFields(error));
     return;
   }
 
   const { hasAnyAccount } = await import("@/server/auth/users");
   if (!hasAnyAccount()) {
-    logger.warn("Aucun mot de passe configuré : toute connexion sera refusée");
+    logger.warn("no password configured: every sign-in will be refused");
   }
 
   try {
@@ -36,7 +36,7 @@ export async function register() {
       trustProxy: config.TRUST_PROXY,
     });
   } catch (error) {
-    logger.error("Initialisation du stockage impossible", errorFields(error));
+    logger.error("storage initialisation failed", errorFields(error));
   }
 
   const { registerShutdownHooks } = await import("@/server/shutdown");

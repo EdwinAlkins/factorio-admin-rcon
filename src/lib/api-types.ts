@@ -2,10 +2,19 @@ import type { Permission, Role } from "@/lib/permissions";
 
 /** Contrat des réponses JSON, partagé par les routes et les composants. */
 
+/** Valeurs injectées dans le message traduit (`{seconds}`, `{field}`…). */
+export type ErrorParams = Record<string, string | number>;
+
+/**
+ * `code` est la clé de traduction (`errors.<code>` dans les dictionnaires) et
+ * fait foi pour l'interface ; `error` n'est qu'un repli **en anglais**, lisible
+ * pour qui appelle l'API au curl.
+ */
 export type ApiError = {
   ok: false;
   error: string;
-  code?: string;
+  code: string;
+  params?: ErrorParams;
 };
 
 export type LoginResult = {
@@ -31,20 +40,24 @@ export type StatusResult = {
   cachedAt: number;
 };
 
+export type ActionGroup = "info" | "server" | "moderation" | "comms";
+
 export type ActionFieldDto = {
   name: string;
-  label: string;
-  placeholder?: string;
   required: boolean;
 };
 
+/**
+ * Le catalogue ne transporte que des identifiants : libellés, indices et
+ * messages de confirmation sont résolus côté interface via les clés
+ * `actions.items.<id>.*`. Aucun texte d'UI ne subsiste dans la couche métier.
+ */
 export type ActionDto = {
   id: string;
-  label: string;
-  hint: string;
-  group: string;
+  group: ActionGroup;
   risk: "none" | "dangerous";
-  confirmation?: string;
+  /** Le texte vit dans les dictionnaires ; ce drapeau dit seulement s'il existe. */
+  confirm: boolean;
   fields: ActionFieldDto[];
 };
 

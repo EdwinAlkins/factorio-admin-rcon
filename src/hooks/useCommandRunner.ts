@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { fetchJson } from "@/lib/fetch-json";
+import { useErrorMessage } from "@/hooks/useErrorMessage";
 import type { RconResult } from "@/lib/api-types";
 import { MAX_LOG_ENTRIES, type LogEntry, type NewLogEntry } from "@/lib/types";
 
@@ -12,19 +14,26 @@ import { MAX_LOG_ENTRIES, type LogEntry, type NewLogEntry } from "@/lib/types";
  */
 export function useCommandRunner(options: { onUnauthorized: () => void; onSuccess?: () => void }) {
   const { onUnauthorized, onSuccess } = options;
+  const locale = useLocale();
+  const errorMessage = useErrorMessage();
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const nextId = useRef(0);
   const running = useRef(false);
 
-  const append = useCallback((entry: NewLogEntry) => {
-    const complete: LogEntry = {
-      ...entry,
-      id: nextId.current++,
-      at: new Date().toLocaleTimeString("fr-FR"),
-    };
-    setEntries((current) => [...current, complete].slice(-MAX_LOG_ENTRIES));
-  }, []);
+  const append = useCallback(
+    (entry: NewLogEntry) => {
+      const complete: LogEntry = {
+        ...entry,
+        id: nextId.current++,
+        // Fuseau du navigateur, langue de l'interface : l'horodatage n'est
+        // produit que côté client, donc aucun écart d'hydratation possible.
+        at: new Date().toLocaleTimeString(locale),
+      };
+      setEntries((current) => [...current, complete].slice(-MAX_LOG_ENTRIES));
+    },
+    [locale],
+  );
 
   const send = useCallback(
     async (label: string, url: string, body: unknown) => {
@@ -48,7 +57,7 @@ export function useCommandRunner(options: { onUnauthorized: () => void; onSucces
           append({
             kind: "error",
             command: label,
-            error: outcome.message,
+            error: errorMessage(outcome),
             durationMs: Date.now() - startedAt,
           });
           return;
@@ -66,7 +75,7 @@ export function useCommandRunner(options: { onUnauthorized: () => void; onSucces
         setBusy(false);
       }
     },
-    [append, onSuccess, onUnauthorized],
+    [append, errorMessage, onSuccess, onUnauthorized],
   );
 
   /** Console brute : nécessite la permission `rcon:raw`. */

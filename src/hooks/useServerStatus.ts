@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { fetchJson } from "@/lib/fetch-json";
+import { useErrorMessage } from "@/hooks/useErrorMessage";
 import type { StatusResult } from "@/lib/api-types";
 import type { ServerStatus } from "@/lib/types";
 
@@ -16,13 +17,14 @@ export function useServerStatus(options: {
   onUnauthorized: () => void;
 }) {
   const { enabled, intervalMs = 15_000, onUnauthorized } = options;
+  const errorMessage = useErrorMessage();
   const [status, setStatus] = useState<ServerStatus>({ state: "loading" });
 
   const load = useCallback(async (): Promise<ServerStatus | "unauthorized"> => {
     const outcome = await fetchJson<StatusResult>("/api/status");
 
     if (outcome.kind === "unauthorized") return "unauthorized";
-    if (outcome.kind === "error") return { state: "error", message: outcome.message };
+    if (outcome.kind === "error") return { state: "error", message: errorMessage(outcome) };
 
     return {
       state: "ok",
@@ -32,7 +34,7 @@ export function useServerStatus(options: {
       target: outcome.data.target,
       cachedAt: outcome.data.cachedAt,
     };
-  }, []);
+  }, [errorMessage]);
 
   const refresh = useCallback(async () => {
     const next = await load();

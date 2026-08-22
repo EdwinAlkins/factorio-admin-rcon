@@ -16,11 +16,17 @@ describe("normalizeCommand", () => {
   it("refuse une commande vide", () => {
     expect(() => normalizeCommand("   ")).toThrow(RconError);
     expect(() => normalizeCommand("\n")).toThrow(RconError);
+    // On vérifie la clé, pas la phrase : le texte affiché dépend de la langue.
+    expect(() => normalizeCommand("   ")).toThrow(
+      expect.objectContaining({ key: "command_empty" }),
+    );
   });
 
   it("refuse une commande au-delà de la taille maximale", () => {
     const long = `/c ${"a".repeat(MAX_COMMAND_BYTES)}`;
-    expect(() => normalizeCommand(long)).toThrow(/trop longue/i);
+    expect(() => normalizeCommand(long)).toThrow(
+      expect.objectContaining({ key: "command_too_long", params: { max: MAX_COMMAND_BYTES } }),
+    );
   });
 
   it("compte en octets et non en caractères", () => {

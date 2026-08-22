@@ -1,0 +1,183 @@
+{
+  "meta": {
+    "title": "Factorio — Admin panel",
+    "description": "RCON console for the headless Factorio server"
+  },
+  "app": {
+    "brand": "Factorio",
+    "brandSuffix": "— admin panel"
+  },
+  "login": {
+    "subtitle": "Password required.",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…"
+  },
+  "statusBar": {
+    "connecting": "connecting…",
+    "target": "RCON {target} · version {version}",
+    "online": "{count} online",
+    "unknown": "—",
+    "refresh": "Refresh",
+    "logout": "Sign out",
+    "dot": {
+      "ok": "Server reachable, {count, plural, =0 {no player} one {# player} other {# players}} online",
+      "error": "Server unreachable",
+      "loading": "Status loading"
+    }
+  },
+  "roles": {
+    "viewer": "Viewer",
+    "moderator": "Moderator",
+    "admin": "Administrator"
+  },
+  "console": {
+    "title": "RCON console",
+    "titleReadOnly": "Results",
+    "shortcuts": "↑/↓ history · Ctrl+L clear",
+    "clear": "Clear display",
+    "forgetHistory": "Forget history",
+    "emptyWritable": "Type a Factorio command (e.g. /players, /version) or use the quick actions. Text without a leading “/” is broadcast to the chat.",
+    "emptyReadOnly": "Use the quick actions: their results appear here.",
+    "noOutput": "(no output)",
+    "inputLabel": "RCON command",
+    "inputPlaceholder": "/players online",
+    "send": "Send",
+    "sending": "…"
+  },
+  "quickActions": {
+    "title": "Quick actions",
+    "send": "Send",
+    "cancel": "Cancel"
+  },
+  "audit": {
+    "title": "Audit log",
+    "refresh": "Refresh",
+    "show": "Show",
+    "hide": "Hide",
+    "empty": "No entries.",
+    "columns": {
+      "date": "Date",
+      "account": "Account",
+      "action": "Action",
+      "status": "Status"
+    },
+    "status": {
+      "success": "success",
+      "denied": "denied",
+      "error": "error"
+    },
+    "actions": {
+      "login": "Sign-in",
+      "command": "Raw command"
+    }
+  },
+  "confirm": {
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "lua": {
+    "title": "Lua command",
+    "warning": "This command uses the Lua console: it permanently disables achievements for this save.",
+    "runAnyway": "Run anyway"
+  },
+  "localeSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "fr": "Français"
+  },
+  "actions": {
+    "groups": {
+      "info": "Info",
+      "server": "Server",
+      "moderation": "Moderation",
+      "comms": "Communication"
+    },
+    "fields": {
+      "player": { "label": "Player", "placeholder": "player name" },
+      "reason": { "label": "Reason", "placeholder": "optional" },
+      "message": { "label": "Message", "placeholder": "your message" }
+    },
+    "items": {
+      "players-online": { "label": "Players online", "hint": "/players online" },
+      "players": { "label": "All players", "hint": "/players" },
+      "admins": { "label": "Admins", "hint": "/admins" },
+      "banlist": { "label": "Banned", "hint": "/banlist get" },
+      "version": { "label": "Version", "hint": "/version" },
+      "time": { "label": "Play time", "hint": "/time" },
+      "seed": { "label": "Seed", "hint": "/seed" },
+      "evolution": { "label": "Evolution", "hint": "/evolution" },
+      "server-save": { "label": "Save", "hint": "/server-save" },
+      "kick": {
+        "label": "Kick",
+        "hint": "/kick <player> [reason]",
+        "confirmation": "Kick {player}?"
+      },
+      "ban": {
+        "label": "Ban",
+        "hint": "/ban <player> [reason]",
+        "confirmation": "Ban {player} permanently?"
+      },
+      "unban": { "label": "Unban", "hint": "/unban <player>" },
+      "mute": { "label": "Mute", "hint": "/mute <player>" },
+      "unmute": { "label": "Unmute", "hint": "/unmute <player>" },
+      "promote": {
+        "label": "Promote to admin",
+        "hint": "/promote <player>",
+        "confirmation": "Grant admin rights to {player}?"
+      },
+      "demote": { "label": "Demote", "hint": "/demote <player>" },
+      "broadcast": {
+        "label": "Server message",
+        "hint": "broadcast to the chat",
+        "placeholders": { "message": "restarting in 5 min" }
+      },
+      "whisper": {
+        "label": "Private message",
+        "hint": "/whisper <player> <message>",
+        "placeholders": { "message": "see you soon" }
+      }
+    }
+  },
+  "errors": {
+    "unknown": "Unexpected error.",
+    "network": "Panel unreachable (network request failed).",
+    "unreadable": "Unreadable response from the server (HTTP {status}).",
+    "http": "HTTP error {status}.",
+    "logout_failed": "Sign-out failed, please try again.",
+
+    "bad_origin": "Origin not allowed.",
+    "unauthenticated": "Not authenticated.",
+    "forbidden": "Insufficient permission.",
+    "config": "Invalid panel configuration.",
+    "internal": "Internal panel error.",
+
+    "bad_credentials": "Incorrect password.",
+    "password_missing": "Password missing.",
+    "no_account": "No account configured: set ADMIN_PASSWORD to use the panel.",
+    "rate_limited_panel": "Too many attempts on the panel. Try again in {seconds} s.",
+    "rate_limited_ip": "Too many attempts. Try again in {seconds} s.",
+    "rate_limited_session": "Too many commands sent. Try again in {seconds} s.",
+
+    "command_missing": "Missing or invalid `command` field.",
+    "action_body_invalid": "Invalid action request.",
+    "unknown_action": "Unknown action: {action}",
+    "invalid_arguments": "Invalid arguments for this action.",
+
+    "validation_required": "{field} is required.",
+    "validation_player": "{field}: invalid player name (no spaces, 60 max).",
+    "validation_too_long": "{field}: {max} characters maximum.",
+    "validation_newline": "{field}: line breaks are not allowed.",
+
+    "config_password": "RCON password unavailable on the server.",
+    "connection_refused": "The Factorio server is unreachable.",
+    "connection_lost": "Connection to the Factorio server lost.",
+    "timeout": "The Factorio server did not respond in time.",
+    "auth_rejected": "RCON authentication rejected by the Factorio server.",
+    "protocol": "Unexpected RCON response.",
+    "command_empty": "Empty command.",
+    "command_too_long": "Command too long (maximum {max} bytes).",
+    "backpressure": "Too many commands queued, try again in a few seconds.",
+    "probe_failed": "RCON check failed."
+  }
+}

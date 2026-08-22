@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 
 type Props = {
   title: string;
@@ -17,10 +18,11 @@ type Props = {
 export default function ConfirmDialog({
   title,
   message,
-  confirmLabel = "Confirmer",
+  confirmLabel,
   onConfirm,
   onCancel,
 }: Props) {
+  const t = useTranslations("confirm");
   const confirmRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -52,10 +54,10 @@ export default function ConfirmDialog({
         <p className="mt-2 text-sm text-muted">{message}</p>
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" className="btn" onClick={onCancel}>
-            Annuler
+            {t("cancel")}
           </button>
           <button ref={confirmRef} type="button" className="btn-primary" onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel ?? t("confirm")}
           </button>
         </div>
       </div>

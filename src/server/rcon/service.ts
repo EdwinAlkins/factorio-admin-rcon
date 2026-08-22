@@ -73,21 +73,17 @@ export class RconService {
       // turbopackIgnore : chemin fourni à l'exécution.
       raw = await readFile(/* turbopackIgnore: true */ this.config.passwordFile, "utf8");
     } catch (error) {
-      throw new RconError(
-        "configuration",
-        "Mot de passe RCON indisponible côté serveur.",
-        `passwordFile=${this.config.passwordFile} ${errorFields(error).error}`,
-      );
+      throw new RconError("config_password", {
+        detail: `passwordFile=${this.config.passwordFile} ${errorFields(error).error}`,
+      });
     }
 
     // Même traitement que read_password() dans docker/rcon/main.c.
     const password = raw.trim();
     if (!password) {
-      throw new RconError(
-        "configuration",
-        "Mot de passe RCON indisponible côté serveur.",
-        `passwordFile=${this.config.passwordFile} vide`,
-      );
+      throw new RconError("config_password", {
+        detail: `passwordFile=${this.config.passwordFile} vide`,
+      });
     }
     return password;
   }
@@ -101,29 +97,17 @@ export class RconService {
     const target = `host=${this.config.host} port=${this.config.port}`;
 
     if (errno) {
-      return new RconError(
-        "connection",
-        "Le serveur Factorio est inaccessible.",
-        `${target} errno=${errno}`,
-      );
+      return new RconError("connection_refused", { detail: `${target} errno=${errno}` });
     }
 
     const message = error instanceof Error ? error.message : String(error);
     if (/timeout/i.test(message)) {
-      return new RconError(
-        "timeout",
-        "Le serveur Factorio n'a pas répondu à temps.",
-        `${target} ${message}`,
-      );
+      return new RconError("timeout", { detail: `${target} ${message}` });
     }
 
     // Pas de code errno pendant la phase connexion+auth de rcon-client :
     // la socket est ouverte, c'est donc l'authentification qui a échoué.
-    return new RconError(
-      "authentication",
-      "Authentification RCON refusée par le serveur Factorio.",
-      `${target} ${message}`,
-    );
+    return new RconError("auth_rejected", { detail: `${target} ${message}` });
   }
 
   private classifySend(error: unknown): RconError {
@@ -133,23 +117,15 @@ export class RconService {
     const target = `host=${this.config.host} port=${this.config.port}`;
 
     if (errno) {
-      return new RconError(
-        "connection",
-        "Connexion au serveur Factorio perdue.",
-        `${target} errno=${errno}`,
-      );
+      return new RconError("connection_lost", { detail: `${target} errno=${errno}` });
     }
 
     const message = error instanceof Error ? error.message : String(error);
     if (/timeout/i.test(message)) {
-      return new RconError(
-        "timeout",
-        "Le serveur Factorio n'a pas répondu à temps.",
-        `${target} ${message}`,
-      );
+      return new RconError("timeout", { detail: `${target} ${message}` });
     }
 
-    return new RconError("protocol", "Réponse RCON inattendue.", `${target} ${message}`);
+    return new RconError("protocol", { detail: `${target} ${message}` });
   }
 
   private async connect(): Promise<Rcon> {
@@ -208,7 +184,7 @@ export class RconService {
 
     this.failedCommands += 1;
     this.lastErrorAt = Date.now();
-    const failure = lastError ?? new RconError("internal", "Erreur RCON inconnue.");
+    const failure = lastError ?? new RconError("internal");
     logger.warn("rcon command failed", {
       code: failure.code,
       detail: failure.detail,
@@ -222,11 +198,9 @@ export class RconService {
     const command = normalizeCommand(rawCommand);
 
     if (this.depth >= this.config.maxQueue) {
-      throw new RconError(
-        "backpressure",
-        "Trop de commandes en attente, réessayez dans quelques secondes.",
-        `queueDepth=${this.depth} maxQueue=${this.config.maxQueue}`,
-      );
+      throw new RconError("backpressure", {
+        detail: `queueDepth=${this.depth} maxQueue=${this.config.maxQueue}`,
+      });
     }
 
     this.depth += 1;
@@ -257,7 +231,7 @@ export class RconService {
         error:
           error instanceof RconError
             ? error
-            : new RconError("internal", "Vérification RCON impossible."),
+            : new RconError("probe_failed"),
       };
     }
   }

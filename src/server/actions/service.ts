@@ -1,6 +1,13 @@
 import { can } from "@/lib/permissions";
 import type { Session } from "@/server/auth/session";
-import { ACTIONS, findAction, schemaOf, toDto } from "@/server/actions/definitions";
+import {
+  ACTIONS,
+  DEFAULT_MAX_LENGTH,
+  findAction,
+  schemaOf,
+  toDto,
+} from "@/server/actions/definitions";
+import { isKnownErrorCode } from "@/server/error-text";
 import { ApiFailure } from "@/server/http/errors";
 import { recordAudit } from "@/server/audit/service";
 import { getRcon } from "@/server/rcon";
@@ -28,7 +35,7 @@ export async function executeAction(
   const definition = findAction(actionId);
 
   if (!definition) {
-    throw ApiFailure.notFound(`Action inconnue : ${actionId}`, "unknown_action");
+    throw ApiFailure.notFound("unknown_action", { action: actionId });
   }
 
   if (!can(ctx.session.role, definition.permission)) {
@@ -38,7 +45,7 @@ export async function executeAction(
       kind: "action",
       action: definition.id,
       status: "denied",
-      detail: `permission requise: ${definition.permission}`,
+      detail: `required permission: ${definition.permission}`,
       ip: ctx.ip,
       requestId: ctx.requestId,
     });
@@ -47,10 +54,21 @@ export async function executeAction(
 
   const parsed = schemaOf(definition).safeParse(values ?? {});
   if (!parsed.success) {
-    throw ApiFailure.badRequest(
-      parsed.error.issues.map((issue) => issue.message).join(" "),
-      "invalid_arguments",
-    );
+    // On ne remonte que le premier problème : l'interface n'affiche qu'une
+    // ligne d'erreur. `message` porte une clé (cf. `fieldSchema`), sauf pour
+    // les rejets structurels de zod, qui retombent sur un code générique.
+    const issue = parsed.error.issues[0];
+    const name = String(issue.path[0] ?? "");
+    const field = definition.fields.find((candidate) => candidate.name === name);
+    const code = isKnownErrorCode(issue.message) ? issue.message : "invalid_arguments";
+
+    throw ApiFailure.badRequest(code, {
+      field: name,
+      // La longueur maximale n'a de sens que pour le dépassement de taille.
+      ...(code === "validation_too_long"
+        ? { max: field?.maxLength ?? DEFAULT_MAX_LENGTH }
+        : {}),
+    });
   }
 
   const command = definition.build(parsed.data as Record<string, string>);

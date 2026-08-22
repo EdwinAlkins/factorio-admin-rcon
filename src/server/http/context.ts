@@ -7,6 +7,8 @@ import { errorFields, logger, newRequestId } from "@/server/log";
 import { ConfigError } from "@/server/config/env";
 import { ApiFailure, retryAfterOf } from "@/server/http/errors";
 import { RCON_HTTP_STATUS, RconError } from "@/server/rcon/errors";
+import { englishError } from "@/server/error-text";
+import type { ApiError, ErrorParams } from "@/lib/api-types";
 
 export type ApiContext = {
   request: Request;
@@ -15,8 +17,13 @@ export type ApiContext = {
   session: Session | null;
 };
 
-export function jsonError(message: string, status: number, code?: string) {
-  return Response.json({ ok: false, error: message, code }, { status });
+/**
+ * Corps d'erreur unique du panneau : `code` est la clé de traduction utilisée
+ * par l'interface, `error` son repli anglais pour les appels hors navigateur.
+ */
+export function jsonError(status: number, code: string, params?: ErrorParams) {
+  const body: ApiError = { ok: false, error: englishError(code, params), code, params };
+  return Response.json(body, { status });
 }
 
 /**
@@ -82,7 +89,7 @@ export async function readSession(): Promise<Session | null> {
     const store = await cookies();
     return verifySessionToken(store.get(SESSION_COOKIE)?.value);
   } catch (error) {
-    logger.error("Lecture de session impossible", errorFields(error));
+    logger.error("session read failed", errorFields(error));
     return null;
   }
 }
@@ -108,14 +115,14 @@ export function route(options: RouteOptions, handler: (ctx: ApiContext) => Promi
 
     try {
       if (options.mutation && !sameOrigin(request)) {
-        response = jsonError("Origine non autorisée.", 403, "bad_origin");
+        response = jsonError(403, "bad_origin");
       } else {
         const session = options.auth === false ? null : await readSession();
 
         if (options.auth !== false && !session) {
-          response = jsonError("Non authentifié.", 401, "unauthenticated");
+          response = jsonError(401, "unauthenticated");
         } else if (options.permission && session && !can(session.role, options.permission)) {
-          response = jsonError("Permission insuffisante.", 403, "forbidden");
+          response = jsonError(403, "forbidden");
         } else {
           response = await handler({ request, requestId, ip: clientIp(request), session });
         }
@@ -123,13 +130,16 @@ export function route(options: RouteOptions, handler: (ctx: ApiContext) => Promi
     } catch (error) {
       if (error instanceof ApiFailure) {
         const retryAfter = retryAfterOf(error);
-        response = Response.json(
-          { ok: false, error: error.message, code: error.code },
-          {
-            status: error.status,
-            headers: retryAfter ? { "retry-after": String(retryAfter) } : undefined,
-          },
-        );
+        const body: ApiError = {
+          ok: false,
+          error: error.message,
+          code: error.code,
+          params: error.params,
+        };
+        response = Response.json(body, {
+          status: error.status,
+          headers: retryAfter ? { "retry-after": String(retryAfter) } : undefined,
+        });
       } else if (error instanceof RconError) {
         // Détail technique dans les logs, message neutre pour le client.
         logger.warn("rcon error", {
@@ -138,17 +148,19 @@ export function route(options: RouteOptions, handler: (ctx: ApiContext) => Promi
           code: error.code,
           detail: error.detail,
         });
-        response = jsonError(error.message, RCON_HTTP_STATUS[error.code], error.code);
+        response = jsonError(RCON_HTTP_STATUS[error.code], error.key, error.params);
       } else if (error instanceof ConfigError) {
-        logger.error("Configuration invalide", { requestId, ...errorFields(error) });
-        response = jsonError(error.message, 500, "config");
+        // Le détail d'une config invalide reste dans les logs : il peut citer
+        // des noms de variables et des chemins internes.
+        logger.error("invalid configuration", { requestId, ...errorFields(error) });
+        response = jsonError(500, "config");
       } else {
-        logger.error("Erreur non gérée", {
+        logger.error("unhandled error", {
           requestId,
           route: options.name,
           ...errorFields(error),
         });
-        response = jsonError("Erreur interne du panneau.", 500, "internal");
+        response = jsonError(500, "internal");
       }
     }
 

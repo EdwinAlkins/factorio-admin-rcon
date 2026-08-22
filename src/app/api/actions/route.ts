@@ -26,15 +26,12 @@ export const POST = route(
 
     const verdict = limiters().rconPerSession.consume(`session:${current.id}`);
     if (!verdict.allowed) {
-      throw ApiFailure.tooManyRequests(
-        `Trop de commandes envoyées. Réessayez dans ${verdict.retryAfter} s.`,
-        verdict.retryAfter,
-      );
+      throw ApiFailure.tooManyRequests("rate_limited_session", verdict.retryAfter);
     }
 
     const parsed = ActionBody.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
-      throw ApiFailure.badRequest("Requête d'action invalide.");
+      throw ApiFailure.badRequest("action_body_invalid");
     }
 
     const execution = await executeAction(

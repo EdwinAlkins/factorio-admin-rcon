@@ -24,34 +24,24 @@ export const POST = route(
 
     const globalVerdict = loginGlobal.check("all");
     if (!globalVerdict.allowed) {
-      throw ApiFailure.tooManyRequests(
-        `Trop de tentatives sur le panneau. Réessayez dans ${globalVerdict.retryAfter} s.`,
-        globalVerdict.retryAfter,
-      );
+      throw ApiFailure.tooManyRequests("rate_limited_panel", globalVerdict.retryAfter);
     }
 
     if (perIp) {
       const verdict = loginPerIp.check(key);
       if (!verdict.allowed) {
-        throw ApiFailure.tooManyRequests(
-          `Trop de tentatives. Réessayez dans ${verdict.retryAfter} s.`,
-          verdict.retryAfter,
-        );
+        throw ApiFailure.tooManyRequests("rate_limited_ip", verdict.retryAfter);
       }
     }
 
     const parsed = LoginBody.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
-      throw ApiFailure.badRequest("Mot de passe manquant.");
+      throw ApiFailure.badRequest("password_missing");
     }
 
     if (!hasAnyAccount()) {
-      logger.error("Aucun mot de passe configuré : toute connexion est refusée", { requestId });
-      throw new ApiFailure(
-        500,
-        "Aucun compte configuré : définissez ADMIN_PASSWORD pour utiliser le panneau.",
-        "no_account",
-      );
+      logger.error("no password configured: every sign-in will be refused", { requestId });
+      throw new ApiFailure(500, "no_account");
     }
 
     const user = authenticate(parsed.data.password);
@@ -65,12 +55,12 @@ export const POST = route(
         kind: "auth",
         action: "login",
         status: "denied",
-        detail: "mot de passe incorrect",
+        detail: "bad password",
         ip,
         requestId,
       });
 
-      throw new ApiFailure(401, "Mot de passe incorrect.", "bad_credentials");
+      throw new ApiFailure(401, "bad_credentials");
     }
 
     if (perIp) loginPerIp.reset(key);

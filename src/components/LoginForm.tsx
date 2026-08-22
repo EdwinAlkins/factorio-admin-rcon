@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { fetchJson } from "@/lib/fetch-json";
+import { useErrorMessage } from "@/hooks/useErrorMessage";
 import type { LoginResult } from "@/lib/api-types";
 
 export default function LoginForm() {
+  const t = useTranslations();
+  const errorMessage = useErrorMessage();
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +34,9 @@ export default function LoginForm() {
       return;
     }
 
+    // Sur cette page, un 401 ne peut signifier qu'une chose.
     setError(
-      outcome.kind === "unauthorized"
-        ? "Mot de passe incorrect."
-        : outcome.message,
+      outcome.kind === "unauthorized" ? t("errors.bad_credentials") : errorMessage(outcome),
     );
   }
 
@@ -44,14 +47,14 @@ export default function LoginForm() {
     >
       <div>
         <h1 className="text-base font-semibold">
-          Factorio <span className="text-accent">— panneau d&apos;admin</span>
+          {t("app.brand")} <span className="text-accent">{t("app.brandSuffix")}</span>
         </h1>
-        <p className="mt-1 text-xs text-muted">Mot de passe requis.</p>
+        <p className="mt-1 text-xs text-muted">{t("login.subtitle")}</p>
       </div>
 
       <div>
         <label className="block text-xs text-muted" htmlFor="password">
-          Mot de passe
+          {t("login.password")}
         </label>
         <input
           id="password"
@@ -72,7 +75,7 @@ export default function LoginForm() {
       )}
 
       <button type="submit" className="btn-primary w-full" disabled={busy}>
-        {busy ? "Connexion…" : "Se connecter"}
+        {busy ? t("login.submitting") : t("login.submit")}
       </button>
     </form>
   );

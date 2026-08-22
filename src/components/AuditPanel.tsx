@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { fetchJson } from "@/lib/fetch-json";
+import { useDynamicTranslations } from "@/hooks/useDynamicTranslations";
+import { useErrorMessage } from "@/hooks/useErrorMessage";
 import type { AuditEntryDto, AuditResult } from "@/lib/api-types";
 
 type AuditLoad =
@@ -15,18 +18,39 @@ const STATUS_STYLE: Record<string, string> = {
   error: "text-danger",
 };
 
-/** Journal d'audit : trace serveur durable de ce qui a été fait via le panneau. */
+/**
+ * Journal d'audit : trace serveur durable de ce qui a été fait via le panneau.
+ *
+ * Les lignes stockées ne contiennent que des identifiants (`ban`, `denied`…),
+ * jamais de texte traduit : l'historique reste donc lisible dans n'importe
+ * quelle langue, y compris pour des entrées écrites avant l'ajout de celle-ci.
+ */
 export default function AuditPanel({ onUnauthorized }: { onUnauthorized: () => void }) {
+  const t = useTranslations("audit");
+  const locale = useLocale();
+  const errorMessage = useErrorMessage();
+  const actionText = useDynamicTranslations("actions");
+  const auditText = useDynamicTranslations("audit");
+  const roleText = useDynamicTranslations("roles");
   const [entries, setEntries] = useState<AuditEntryDto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
+  /** `action` est un id du catalogue pour les actions, un verbe interne sinon. */
+  function actionLabel(entry: AuditEntryDto): string {
+    const catalogKey = `items.${entry.action}.label`;
+    if (entry.kind === "action" && actionText.has(catalogKey)) return actionText(catalogKey);
+
+    const auditKey = `actions.${entry.action}`;
+    return auditText.has(auditKey) ? auditText(auditKey) : entry.action;
+  }
+
   const load = useCallback(async (): Promise<AuditLoad> => {
     const outcome = await fetchJson<AuditResult>("/api/audit?limit=50");
     if (outcome.kind === "unauthorized") return { kind: "unauthorized" };
-    if (outcome.kind === "error") return { kind: "error", message: outcome.message };
+    if (outcome.kind === "error") return { kind: "error", message: errorMessage(outcome) };
     return { kind: "ok", entries: outcome.data.entries };
-  }, []);
+  }, [errorMessage]);
 
   const apply = useCallback(
     (result: AuditLoad) => {
@@ -62,11 +86,11 @@ export default function AuditPanel({ onUnauthorized }: { onUnauthorized: () => v
   return (
     <section className="rounded-lg border border-line bg-surface">
       <header className="flex items-center justify-between border-b border-line px-4 py-2">
-        <h2 className="text-sm font-medium">Journal d&apos;audit</h2>
+        <h2 className="text-sm font-medium">{t("title")}</h2>
         <div className="flex gap-2">
           {open && (
             <button type="button" className="btn px-2 py-1 text-xs" onClick={() => void refresh()}>
-              Rafraîchir
+              {t("refresh")}
             </button>
           )}
           <button
@@ -75,7 +99,7 @@ export default function AuditPanel({ onUnauthorized }: { onUnauthorized: () => v
             aria-expanded={open}
             onClick={() => setOpen((current) => !current)}
           >
-            {open ? "Masquer" : "Afficher"}
+            {open ? t("hide") : t("show")}
           </button>
         </div>
       </header>
@@ -87,34 +111,39 @@ export default function AuditPanel({ onUnauthorized }: { onUnauthorized: () => v
               {error}
             </p>
           )}
-          {!error && entries.length === 0 && <p className="text-muted">Aucune entrée.</p>}
+          {!error && entries.length === 0 && <p className="text-muted">{t("empty")}</p>}
           {entries.length > 0 && (
             <table className="w-full border-collapse font-mono">
               <thead className="text-muted">
                 <tr className="text-left">
-                  <th className="py-1 pr-3 font-normal">Date</th>
-                  <th className="py-1 pr-3 font-normal">Compte</th>
-                  <th className="py-1 pr-3 font-normal">Action</th>
-                  <th className="py-1 pr-3 font-normal">Statut</th>
+                  <th className="py-1 pr-3 font-normal">{t("columns.date")}</th>
+                  <th className="py-1 pr-3 font-normal">{t("columns.account")}</th>
+                  <th className="py-1 pr-3 font-normal">{t("columns.action")}</th>
+                  <th className="py-1 pr-3 font-normal">{t("columns.status")}</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.map((entry) => (
                   <tr key={entry.id} className="border-t border-line/60 align-top">
                     <td className="whitespace-nowrap py-1 pr-3 text-muted">
-                      {new Date(entry.ts).toLocaleString("fr-FR")}
+                      {new Date(entry.ts).toLocaleString(locale)}
                     </td>
                     <td className="py-1 pr-3">
                       {entry.username}
-                      <span className="text-muted"> ({entry.role})</span>
+                      <span className="text-muted">
+                        {" "}
+                        ({roleText.has(entry.role) ? roleText(entry.role) : entry.role})
+                      </span>
                     </td>
                     <td className="py-1 pr-3">
-                      {entry.action}
+                      {actionLabel(entry)}
                       {entry.command && <div className="text-muted">{entry.command}</div>}
                       {entry.detail && <div className="text-muted">{entry.detail}</div>}
                     </td>
                     <td className={`py-1 pr-3 ${STATUS_STYLE[entry.status] ?? ""}`}>
-                      {entry.status}
+                      {auditText.has(`status.${entry.status}`)
+                        ? auditText(`status.${entry.status}`)
+                        : entry.status}
                       {entry.durationMs !== null && (
                         <span className="text-muted"> {entry.durationMs} ms</span>
                       )}

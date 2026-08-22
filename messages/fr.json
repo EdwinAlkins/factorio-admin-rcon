@@ -1,0 +1,183 @@
+{
+  "meta": {
+    "title": "Factorio — Panneau d’admin",
+    "description": "Console RCON pour le serveur Factorio headless"
+  },
+  "app": {
+    "brand": "Factorio",
+    "brandSuffix": "— panneau d’admin"
+  },
+  "login": {
+    "subtitle": "Mot de passe requis.",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "submitting": "Connexion…"
+  },
+  "statusBar": {
+    "connecting": "connexion…",
+    "target": "RCON {target} · version {version}",
+    "online": "{count} en ligne",
+    "unknown": "—",
+    "refresh": "Rafraîchir",
+    "logout": "Déconnexion",
+    "dot": {
+      "ok": "Serveur joignable, {count, plural, =0 {aucun joueur} one {# joueur} other {# joueurs}} en ligne",
+      "error": "Serveur injoignable",
+      "loading": "Statut en cours de chargement"
+    }
+  },
+  "roles": {
+    "viewer": "Observateur",
+    "moderator": "Modérateur",
+    "admin": "Administrateur"
+  },
+  "console": {
+    "title": "Console RCON",
+    "titleReadOnly": "Résultats",
+    "shortcuts": "↑/↓ historique · Ctrl+L effacer",
+    "clear": "Effacer l’affichage",
+    "forgetHistory": "Oublier l’historique",
+    "emptyWritable": "Tapez une commande Factorio (ex. /players, /version) ou utilisez les actions rapides. Un texte sans « / » est diffusé dans le chat.",
+    "emptyReadOnly": "Utilisez les actions rapides : leurs résultats s’affichent ici.",
+    "noOutput": "(aucune sortie)",
+    "inputLabel": "Commande RCON",
+    "inputPlaceholder": "/players online",
+    "send": "Envoyer",
+    "sending": "…"
+  },
+  "quickActions": {
+    "title": "Actions rapides",
+    "send": "Envoyer",
+    "cancel": "Annuler"
+  },
+  "audit": {
+    "title": "Journal d’audit",
+    "refresh": "Rafraîchir",
+    "show": "Afficher",
+    "hide": "Masquer",
+    "empty": "Aucune entrée.",
+    "columns": {
+      "date": "Date",
+      "account": "Compte",
+      "action": "Action",
+      "status": "Statut"
+    },
+    "status": {
+      "success": "succès",
+      "denied": "refusé",
+      "error": "erreur"
+    },
+    "actions": {
+      "login": "Connexion",
+      "command": "Commande brute"
+    }
+  },
+  "confirm": {
+    "confirm": "Confirmer",
+    "cancel": "Annuler"
+  },
+  "lua": {
+    "title": "Commande Lua",
+    "warning": "Cette commande utilise la console Lua : elle désactive définitivement les succès de cette partie.",
+    "runAnyway": "Exécuter quand même"
+  },
+  "localeSwitcher": {
+    "label": "Langue",
+    "en": "English",
+    "fr": "Français"
+  },
+  "actions": {
+    "groups": {
+      "info": "Infos",
+      "server": "Serveur",
+      "moderation": "Modération",
+      "comms": "Communication"
+    },
+    "fields": {
+      "player": { "label": "Joueur", "placeholder": "nom du joueur" },
+      "reason": { "label": "Raison", "placeholder": "optionnel" },
+      "message": { "label": "Message", "placeholder": "votre message" }
+    },
+    "items": {
+      "players-online": { "label": "Joueurs en ligne", "hint": "/players online" },
+      "players": { "label": "Tous les joueurs", "hint": "/players" },
+      "admins": { "label": "Admins", "hint": "/admins" },
+      "banlist": { "label": "Bannis", "hint": "/banlist get" },
+      "version": { "label": "Version", "hint": "/version" },
+      "time": { "label": "Temps de jeu", "hint": "/time" },
+      "seed": { "label": "Seed", "hint": "/seed" },
+      "evolution": { "label": "Évolution", "hint": "/evolution" },
+      "server-save": { "label": "Sauvegarder", "hint": "/server-save" },
+      "kick": {
+        "label": "Kick",
+        "hint": "/kick <joueur> [raison]",
+        "confirmation": "Expulser {player} ?"
+      },
+      "ban": {
+        "label": "Bannir",
+        "hint": "/ban <joueur> [raison]",
+        "confirmation": "Bannir définitivement {player} ?"
+      },
+      "unban": { "label": "Débannir", "hint": "/unban <joueur>" },
+      "mute": { "label": "Mute", "hint": "/mute <joueur>" },
+      "unmute": { "label": "Unmute", "hint": "/unmute <joueur>" },
+      "promote": {
+        "label": "Promouvoir admin",
+        "hint": "/promote <joueur>",
+        "confirmation": "Donner les droits d’administration à {player} ?"
+      },
+      "demote": { "label": "Rétrograder", "hint": "/demote <joueur>" },
+      "broadcast": {
+        "label": "Message serveur",
+        "hint": "diffusé dans le chat",
+        "placeholders": { "message": "redémarrage dans 5 min" }
+      },
+      "whisper": {
+        "label": "Message privé",
+        "hint": "/whisper <joueur> <message>",
+        "placeholders": { "message": "à tout de suite" }
+      }
+    }
+  },
+  "errors": {
+    "unknown": "Erreur inattendue.",
+    "network": "Panneau injoignable (requête réseau échouée).",
+    "unreadable": "Réponse illisible du serveur (HTTP {status}).",
+    "http": "Erreur HTTP {status}.",
+    "logout_failed": "Déconnexion impossible, réessayez.",
+
+    "bad_origin": "Origine non autorisée.",
+    "unauthenticated": "Non authentifié.",
+    "forbidden": "Permission insuffisante.",
+    "config": "Configuration du panneau invalide.",
+    "internal": "Erreur interne du panneau.",
+
+    "bad_credentials": "Mot de passe incorrect.",
+    "password_missing": "Mot de passe manquant.",
+    "no_account": "Aucun compte configuré : définissez ADMIN_PASSWORD pour utiliser le panneau.",
+    "rate_limited_panel": "Trop de tentatives sur le panneau. Réessayez dans {seconds} s.",
+    "rate_limited_ip": "Trop de tentatives. Réessayez dans {seconds} s.",
+    "rate_limited_session": "Trop de commandes envoyées. Réessayez dans {seconds} s.",
+
+    "command_missing": "Champ `command` manquant ou invalide.",
+    "action_body_invalid": "Requête d’action invalide.",
+    "unknown_action": "Action inconnue : {action}",
+    "invalid_arguments": "Arguments invalides pour cette action.",
+
+    "validation_required": "{field} est obligatoire.",
+    "validation_player": "{field} : nom de joueur invalide (sans espace, 60 max).",
+    "validation_too_long": "{field} : {max} caractères maximum.",
+    "validation_newline": "{field} : retours à la ligne interdits.",
+
+    "config_password": "Mot de passe RCON indisponible côté serveur.",
+    "connection_refused": "Le serveur Factorio est inaccessible.",
+    "connection_lost": "Connexion au serveur Factorio perdue.",
+    "timeout": "Le serveur Factorio n’a pas répondu à temps.",
+    "auth_rejected": "Authentification RCON refusée par le serveur Factorio.",
+    "protocol": "Réponse RCON inattendue.",
+    "command_empty": "Commande vide.",
+    "command_too_long": "Commande trop longue (maximum {max} octets).",
+    "backpressure": "Trop de commandes en attente, réessayez dans quelques secondes.",
+    "probe_failed": "Vérification RCON impossible."
+  }
+}
