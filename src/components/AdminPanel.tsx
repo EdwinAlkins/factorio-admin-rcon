@@ -1,21 +1,20 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import AuditPanel from "@/components/AuditPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Console from "@/components/Console";
 import QuickActions from "@/components/QuickActions";
 import ServerStatusBar from "@/components/ServerStatusBar";
+import { useActionText } from "@/hooks/useActionText";
 import { useCommandRunner } from "@/hooks/useCommandRunner";
 import { useServerStatus } from "@/hooks/useServerStatus";
 import { fetchJson } from "@/lib/fetch-json";
 import { isLuaCommand } from "@/lib/lua";
 import { can } from "@/lib/permissions";
 import type { ActionDto, SessionInfo } from "@/lib/api-types";
-
-const LUA_WARNING =
-  "Cette commande utilise la console Lua : elle désactive définitivement les succès de cette partie.";
 
 type Pending = { title: string; message: string; confirmLabel: string; run: () => void };
 
@@ -25,6 +24,8 @@ type Props = {
 };
 
 export default function AdminPanel({ session, actions }: Props) {
+  const t = useTranslations();
+  const text = useActionText();
   const router = useRouter();
   const [pending, setPending] = useState<Pending | null>(null);
   const [logoutError, setLogoutError] = useState<string | null>(null);
@@ -51,30 +52,27 @@ export default function AdminPanel({ session, actions }: Props) {
     (command: string) => {
       if (isLuaCommand(command)) {
         setPending({
-          title: "Commande Lua",
-          message: `${LUA_WARNING}\n\n${command}`,
-          confirmLabel: "Exécuter quand même",
+          title: t("lua.title"),
+          message: `${t("lua.warning")}\n\n${command}`,
+          confirmLabel: t("lua.runAnyway"),
           run: () => void runCommand(command),
         });
         return;
       }
       void runCommand(command);
     },
-    [runCommand],
+    [runCommand, t],
   );
 
   const submitAction = useCallback(
     (action: ActionDto, values: Record<string, string>) => {
-      const label = `${action.label}${values.player ? ` ${values.player}` : ""}`;
+      const label = `${text.label(action)}${values.player ? ` ${values.player}` : ""}`;
 
-      if (action.confirmation) {
+      if (action.confirm) {
         setPending({
-          title: action.label,
-          message: action.confirmation.replace(
-            /\{(\w+)\}/g,
-            (_, key: string) => values[key] ?? `<${key}>`,
-          ),
-          confirmLabel: "Confirmer",
+          title: text.label(action),
+          message: text.confirmation(action, values),
+          confirmLabel: t("confirm.confirm"),
           run: () => void runAction(action.id, label, values),
         });
         return;
@@ -82,7 +80,7 @@ export default function AdminPanel({ session, actions }: Props) {
 
       void runAction(action.id, label, values);
     },
-    [runAction],
+    [runAction, t, text],
   );
 
   const logout = useCallback(async () => {
@@ -91,12 +89,12 @@ export default function AdminPanel({ session, actions }: Props) {
     if (outcome.kind === "error") {
       // La session reste valide côté serveur : mieux vaut le dire que de
       // rediriger en laissant croire à une déconnexion effective.
-      setLogoutError("Déconnexion impossible, réessayez.");
+      setLogoutError(t("errors.logout_failed"));
       return;
     }
 
     onUnauthorized();
-  }, [onUnauthorized]);
+  }, [onUnauthorized, t]);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 p-4">

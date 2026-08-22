@@ -16,14 +16,11 @@ export function normalizeCommand(input: string): string {
   const command = input.replace(/[\r\n]+/g, " ").trim();
 
   if (!command) {
-    throw new RconError("invalid_command", "Commande vide.");
+    throw new RconError("command_empty");
   }
 
   if (Buffer.byteLength(command, "utf8") > MAX_COMMAND_BYTES) {
-    throw new RconError(
-      "invalid_command",
-      `Commande trop longue (maximum ${MAX_COMMAND_BYTES} octets).`,
-    );
+    throw new RconError("command_too_long", { params: { max: MAX_COMMAND_BYTES } });
   }
 
   return command;

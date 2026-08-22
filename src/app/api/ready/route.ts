@@ -38,7 +38,7 @@ export async function GET() {
 
   const rcon = await getRcon().healthCheck();
   if (!rcon.ok) {
-    logger.warn("readiness: RCON indisponible", { code: rcon.error.code, detail: rcon.error.detail });
+    logger.warn("readiness: rcon unavailable", { code: rcon.error.code, detail: rcon.error.detail });
   }
   checks.push({ name: "rcon", ok: rcon.ok });
 

@@ -80,6 +80,6 @@ describe("permissions par rôle", () => {
   it("laisse le bannissement derrière une permission de modération", () => {
     const ban = findAction("ban")!;
     expect(ban.permission).toBe("action:moderate");
-    expect(ban.confirmation).toBeTruthy();
+    expect(ban.confirm).toBe(true);
   });
 });

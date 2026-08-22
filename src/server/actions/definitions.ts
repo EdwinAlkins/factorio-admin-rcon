@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Permission } from "@/lib/permissions";
-import type { ActionDto } from "@/lib/api-types";
+import type { ActionDto, ActionGroup } from "@/lib/api-types";
 
 /**
  * Catalogue des actions métier, défini **côté serveur**.
@@ -8,28 +8,28 @@ import type { ActionDto } from "@/lib/api-types";
  * L'interface envoie `{ action: "ban", values: { player, reason } }` : c'est le
  * serveur qui valide, applique la permission et construit la commande RCON.
  * Le client ne peut donc pas fabriquer une commande arbitraire via ce chemin.
+ *
+ * Aucun texte d'interface ici : libellés, indices et confirmations sont des
+ * clés `actions.items.<id>.*` dans `messages/*.json`, résolues côté client.
+ * `tests/i18n/messages.test.ts` vérifie qu'aucune action n'a de clé manquante.
  */
 
 export type ActionFieldKind = "player" | "text";
 
 export type ActionField = {
   name: string;
-  label: string;
   kind: ActionFieldKind;
-  placeholder?: string;
   required: boolean;
   maxLength?: number;
 };
 
 export type ActionDefinition = {
   id: string;
-  label: string;
-  hint: string;
-  group: "Infos" | "Serveur" | "Modération" | "Communication";
+  group: ActionGroup;
   permission: Permission;
   risk: "none" | "dangerous";
-  /** Message de confirmation ; `{champ}` est remplacé côté interface. */
-  confirmation?: string;
+  /** Une confirmation est demandée ; son texte vit dans les dictionnaires. */
+  confirm?: boolean;
   fields: ActionField[];
   build: (values: Record<string, string>) => string;
 };
@@ -39,21 +39,24 @@ export type ActionDefinition = {
 const PLAYER_PATTERN = /^[^\s\r\n]{1,60}$/;
 const NO_NEWLINE = /^[^\r\n]*$/;
 
+export const DEFAULT_MAX_LENGTH = 200;
+
+/**
+ * Les messages zod ne sont pas des phrases mais des clés de traduction : c'est
+ * `executeAction` qui les transforme en `{ code, params }` pour le client.
+ */
 function fieldSchema(field: ActionField): z.ZodType<string> {
   if (field.kind === "player") {
-    return z
-      .string()
-      .trim()
-      .regex(PLAYER_PATTERN, `${field.label} : nom de joueur invalide (sans espace, 60 max).`);
+    return z.string().trim().regex(PLAYER_PATTERN, "validation_player");
   }
 
   const base = z
     .string()
     .trim()
-    .max(field.maxLength ?? 200, `${field.label} : ${field.maxLength ?? 200} caractères maximum.`)
-    .regex(NO_NEWLINE, `${field.label} : retours à la ligne interdits.`);
+    .max(field.maxLength ?? DEFAULT_MAX_LENGTH, "validation_too_long")
+    .regex(NO_NEWLINE, "validation_newline");
 
-  return field.required ? base.min(1, `${field.label} est obligatoire.`) : base;
+  return field.required ? base.min(1, "validation_required") : base;
 }
 
 /** Schéma zod dérivé des champs déclarés par l'action. */
@@ -72,28 +75,14 @@ function join(...parts: string[]): string {
   return parts.filter((part) => part.length > 0).join(" ");
 }
 
-const PLAYER: ActionField = {
-  name: "player",
-  label: "Joueur",
-  kind: "player",
-  placeholder: "nom du joueur",
-  required: true,
-};
-
-const REASON: ActionField = {
-  name: "reason",
-  label: "Raison",
-  kind: "text",
-  placeholder: "optionnel",
-  required: false,
-};
+const PLAYER: ActionField = { name: "player", kind: "player", required: true };
+const REASON: ActionField = { name: "reason", kind: "text", required: false };
+const MESSAGE: ActionField = { name: "message", kind: "text", required: true };
 
 export const ACTIONS: ActionDefinition[] = [
   {
     id: "players-online",
-    label: "Joueurs en ligne",
-    hint: "/players online",
-    group: "Infos",
+    group: "info",
     permission: "action:info",
     risk: "none",
     fields: [],
@@ -101,9 +90,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "players",
-    label: "Tous les joueurs",
-    hint: "/players",
-    group: "Infos",
+    group: "info",
     permission: "action:info",
     risk: "none",
     fields: [],
@@ -111,9 +98,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "admins",
-    label: "Admins",
-    hint: "/admins",
-    group: "Infos",
+    group: "info",
     permission: "action:info",
     risk: "none",
     fields: [],
@@ -121,9 +106,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "banlist",
-    label: "Bannis",
-    hint: "/banlist get",
-    group: "Infos",
+    group: "info",
     permission: "action:info",
     risk: "none",
     fields: [],
@@ -131,9 +114,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "version",
-    label: "Version",
-    hint: "/version",
-    group: "Infos",
+    group: "info",
     permission: "action:info",
     risk: "none",
     fields: [],
@@ -141,9 +122,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "time",
-    label: "Temps de jeu",
-    hint: "/time",
-    group: "Infos",
+    group: "info",
     permission: "action:info",
     risk: "none",
     fields: [],
@@ -151,9 +130,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "seed",
-    label: "Seed",
-    hint: "/seed",
-    group: "Infos",
+    group: "info",
     permission: "action:info",
     risk: "none",
     fields: [],
@@ -161,9 +138,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "evolution",
-    label: "Évolution",
-    hint: "/evolution",
-    group: "Infos",
+    group: "info",
     permission: "action:info",
     risk: "none",
     fields: [],
@@ -171,9 +146,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "server-save",
-    label: "Sauvegarder",
-    hint: "/server-save",
-    group: "Serveur",
+    group: "server",
     permission: "action:server",
     risk: "none",
     fields: [],
@@ -181,31 +154,25 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "kick",
-    label: "Kick",
-    hint: "/kick <joueur> [raison]",
-    group: "Modération",
+    group: "moderation",
     permission: "action:moderate",
     risk: "dangerous",
-    confirmation: "Expulser {player} ?",
+    confirm: true,
     fields: [PLAYER, REASON],
     build: (v) => join("/kick", v.player, v.reason),
   },
   {
     id: "ban",
-    label: "Bannir",
-    hint: "/ban <joueur> [raison]",
-    group: "Modération",
+    group: "moderation",
     permission: "action:moderate",
     risk: "dangerous",
-    confirmation: "Bannir définitivement {player} ?",
+    confirm: true,
     fields: [PLAYER, REASON],
     build: (v) => join("/ban", v.player, v.reason),
   },
   {
     id: "unban",
-    label: "Débannir",
-    hint: "/unban <joueur>",
-    group: "Modération",
+    group: "moderation",
     permission: "action:moderate",
     risk: "none",
     fields: [PLAYER],
@@ -213,9 +180,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "mute",
-    label: "Mute",
-    hint: "/mute <joueur>",
-    group: "Modération",
+    group: "moderation",
     permission: "action:moderate",
     risk: "none",
     fields: [PLAYER],
@@ -223,9 +188,7 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "unmute",
-    label: "Unmute",
-    hint: "/unmute <joueur>",
-    group: "Modération",
+    group: "moderation",
     permission: "action:moderate",
     risk: "none",
     fields: [PLAYER],
@@ -233,20 +196,16 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "promote",
-    label: "Promouvoir admin",
-    hint: "/promote <joueur>",
-    group: "Serveur",
+    group: "server",
     permission: "action:server",
     risk: "dangerous",
-    confirmation: "Donner les droits d'administration à {player} ?",
+    confirm: true,
     fields: [PLAYER],
     build: (v) => join("/promote", v.player),
   },
   {
     id: "demote",
-    label: "Rétrograder",
-    hint: "/demote <joueur>",
-    group: "Serveur",
+    group: "server",
     permission: "action:server",
     risk: "none",
     fields: [PLAYER],
@@ -254,40 +213,19 @@ export const ACTIONS: ActionDefinition[] = [
   },
   {
     id: "broadcast",
-    label: "Message serveur",
-    hint: "diffusé dans le chat",
-    group: "Communication",
+    group: "comms",
     permission: "action:moderate",
     risk: "none",
-    fields: [
-      {
-        name: "message",
-        label: "Message",
-        kind: "text",
-        placeholder: "redémarrage dans 5 min",
-        required: true,
-      },
-    ],
+    fields: [MESSAGE],
     // Sans « / » initial, Factorio diffuse le texte dans le chat de la partie.
     build: (v) => v.message,
   },
   {
     id: "whisper",
-    label: "Message privé",
-    hint: "/whisper <joueur> <message>",
-    group: "Communication",
+    group: "comms",
     permission: "action:moderate",
     risk: "none",
-    fields: [
-      PLAYER,
-      {
-        name: "message",
-        label: "Message",
-        kind: "text",
-        placeholder: "à tout de suite",
-        required: true,
-      },
-    ],
+    fields: [PLAYER, MESSAGE],
     build: (v) => join("/whisper", v.player, v.message),
   },
 ];
@@ -299,15 +237,11 @@ export function findAction(id: string): ActionDefinition | undefined {
 export function toDto(definition: ActionDefinition): ActionDto {
   return {
     id: definition.id,
-    label: definition.label,
-    hint: definition.hint,
     group: definition.group,
     risk: definition.risk,
-    confirmation: definition.confirmation,
+    confirm: definition.confirm === true,
     fields: definition.fields.map((field) => ({
       name: field.name,
-      label: field.label,
-      placeholder: field.placeholder,
       required: field.required,
     })),
   };

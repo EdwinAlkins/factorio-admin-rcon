@@ -1,7 +1,9 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import type { ActionDto } from "@/lib/api-types";
+import { useTranslations } from "next-intl";
+import { useActionText } from "@/hooks/useActionText";
+import type { ActionDto, ActionGroup } from "@/lib/api-types";
 
 type Props = {
   actions: ActionDto[];
@@ -9,17 +11,15 @@ type Props = {
   onRun: (action: ActionDto, values: Record<string, string>) => void;
 };
 
-function fillTemplate(template: string, values: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? `<${key}>`);
-}
-
 export default function QuickActions({ actions, busy, onRun }: Props) {
+  const t = useTranslations("quickActions");
+  const text = useActionText();
   const [openId, setOpenId] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const fieldId = useId();
 
   const groups = useMemo(() => {
-    const byGroup = new Map<string, ActionDto[]>();
+    const byGroup = new Map<ActionGroup, ActionDto[]>();
     for (const action of actions) {
       const list = byGroup.get(action.group) ?? [];
       list.push(action);
@@ -53,19 +53,19 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
   return (
     <section className="rounded-lg border border-line bg-surface">
       <header className="border-b border-line px-4 py-2">
-        <h2 className="text-sm font-medium">Actions rapides</h2>
+        <h2 className="text-sm font-medium">{t("title")}</h2>
       </header>
 
       <div className="space-y-4 p-4">
         {groups.map(([group, groupActions]) => (
           <div key={group}>
-            <h3 className="mb-2 text-xs uppercase tracking-wide text-muted">{group}</h3>
+            <h3 className="mb-2 text-xs uppercase tracking-wide text-muted">{text.group(group)}</h3>
             <div className="flex flex-wrap gap-2">
               {groupActions.map((action) => (
                 <button
                   key={action.id}
                   type="button"
-                  title={action.hint}
+                  title={text.hint(action)}
                   disabled={busy}
                   aria-expanded={action.fields.length > 0 ? openId === action.id : undefined}
                   onClick={() => select(action)}
@@ -73,7 +73,7 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
                     action.risk === "dangerous" ? "hover:border-danger hover:text-danger" : ""
                   }`}
                 >
-                  {action.label}
+                  {text.label(action)}
                   {action.fields.length > 0 ? "…" : ""}
                 </button>
               ))}
@@ -90,20 +90,20 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
                     submit(action);
                   }}
                 >
-                  <p className="font-mono text-xs text-muted">{action.hint}</p>
+                  <p className="font-mono text-xs text-muted">{text.hint(action)}</p>
                   {action.fields.map((field) => (
                     <div key={field.name}>
                       <label
                         className="block text-xs text-muted"
                         htmlFor={`${fieldId}-${action.id}-${field.name}`}
                       >
-                        {field.label}
+                        {text.fieldLabel(field.name)}
                         {field.required ? " *" : ""}
                       </label>
                       <input
                         id={`${fieldId}-${action.id}-${field.name}`}
                         className="field mt-1"
-                        placeholder={field.placeholder}
+                        placeholder={text.placeholder(action, field.name)}
                         required={field.required}
                         value={values[field.name] ?? ""}
                         onChange={(event) =>
@@ -115,15 +115,15 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
                       />
                     </div>
                   ))}
-                  {action.confirmation && (
-                    <p className="text-xs text-muted">{fillTemplate(action.confirmation, values)}</p>
+                  {action.confirm && (
+                    <p className="text-xs text-muted">{text.confirmation(action, values)}</p>
                   )}
                   <div className="flex gap-2">
                     <button type="submit" className="btn-primary" disabled={busy}>
-                      Envoyer
+                      {t("send")}
                     </button>
                     <button type="button" className="btn" onClick={() => setOpenId(null)}>
-                      Annuler
+                      {t("cancel")}
                     </button>
                   </div>
                 </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useTranslations } from "next-intl";
 import type { LogEntry } from "@/lib/types";
 
 const HISTORY_KEY = "factorio-admin:history";
@@ -30,6 +31,7 @@ type Props = {
 };
 
 export default function Console({ entries, busy, canRun, onRun, onClear }: Props) {
+  const t = useTranslations("console");
   const [input, setInput] = useState("");
   // L'historique n'est jamais rendu dans le DOM (uniquement ↑/↓) : le lire au
   // premier render côté client ne crée donc pas d'écart d'hydratation.
@@ -111,15 +113,15 @@ export default function Console({ entries, busy, canRun, onRun, onClear }: Props
   return (
     <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-line bg-surface">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2">
-        <h2 className="text-sm font-medium">{canRun ? "Console RCON" : "Résultats"}</h2>
+        <h2 className="text-sm font-medium">{canRun ? t("title") : t("titleReadOnly")}</h2>
         <div className="flex items-center gap-3 text-xs text-muted">
-          {canRun && <span>↑/↓ historique · Ctrl+L effacer</span>}
+          {canRun && <span>{t("shortcuts")}</span>}
           <button type="button" className="btn px-2 py-1 text-xs" onClick={onClear}>
-            Effacer l&apos;affichage
+            {t("clear")}
           </button>
           {canRun && history.length > 0 && (
             <button type="button" className="btn px-2 py-1 text-xs" onClick={forgetHistory}>
-              Oublier l&apos;historique
+              {t("forgetHistory")}
             </button>
           )}
         </div>
@@ -131,11 +133,7 @@ export default function Console({ entries, busy, canRun, onRun, onClear }: Props
         className="min-h-64 flex-1 overflow-y-auto px-4 py-3 font-mono text-[13px] leading-relaxed"
       >
         {entries.length === 0 ? (
-          <p className="text-muted">
-            {canRun
-              ? "Tapez une commande Factorio (ex. /players, /version) ou utilisez les actions rapides. Un texte sans « / » est diffusé dans le chat."
-              : "Utilisez les actions rapides : leurs résultats s'affichent ici."}
-          </p>
+          <p className="text-muted">{canRun ? t("emptyWritable") : t("emptyReadOnly")}</p>
         ) : (
           <ul className="space-y-3">
             {entries.map((entry) => (
@@ -154,7 +152,7 @@ export default function Console({ entries, busy, canRun, onRun, onClear }: Props
                   </pre>
                 ) : (
                   <pre className="whitespace-pre-wrap break-words">
-                    {entry.output.trim() ? entry.output : "(aucune sortie)"}
+                    {entry.output.trim() ? entry.output : t("noOutput")}
                   </pre>
                 )}
               </li>
@@ -170,16 +168,16 @@ export default function Console({ entries, busy, canRun, onRun, onClear }: Props
           </span>
           <input
             autoFocus
-            aria-label="Commande RCON"
+            aria-label={t("inputLabel")}
             className="field font-mono"
-            placeholder="/players online"
+            placeholder={t("inputPlaceholder")}
             value={input}
             disabled={busy}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
           />
           <button type="button" className="btn-primary" onClick={submit} disabled={busy}>
-            {busy ? "…" : "Envoyer"}
+            {busy ? t("sending") : t("send")}
           </button>
         </div>
       )}

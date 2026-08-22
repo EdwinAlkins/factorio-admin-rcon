@@ -29,12 +29,6 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   ],
 };
 
-export const ROLE_LABELS: Record<Role, string> = {
-  viewer: "Observateur",
-  moderator: "Modérateur",
-  admin: "Administrateur",
-};
-
 export function can(role: Role, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role].includes(permission);
 }

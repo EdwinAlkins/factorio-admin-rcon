@@ -1,29 +1,40 @@
-/** Erreur applicative portant son code HTTP, transformée en JSON par `route()`. */
+import { englishError } from "@/server/error-text";
+import type { ErrorParams } from "@/lib/api-types";
+
+/**
+ * Erreur applicative portant son code HTTP, transformée en JSON par `route()`.
+ *
+ * On ne manipule plus de texte ici : `code` est la clé de traduction et
+ * `params` ses valeurs. Le message anglais n'est calculé que pour rester
+ * lisible dans les logs et pour les appels hors interface.
+ */
 export class ApiFailure extends Error {
   readonly status: number;
   readonly code: string;
+  readonly params?: ErrorParams;
 
-  constructor(status: number, message: string, code = "error") {
-    super(message);
+  constructor(status: number, code: string, params?: ErrorParams) {
+    super(englishError(code, params));
     this.name = "ApiFailure";
     this.status = status;
     this.code = code;
+    this.params = params;
   }
 
-  static badRequest(message: string, code = "bad_request") {
-    return new ApiFailure(400, message, code);
+  static badRequest(code: string, params?: ErrorParams) {
+    return new ApiFailure(400, code, params);
   }
 
-  static forbidden(message = "Permission insuffisante.", code = "forbidden") {
-    return new ApiFailure(403, message, code);
+  static forbidden(code = "forbidden", params?: ErrorParams) {
+    return new ApiFailure(403, code, params);
   }
 
-  static notFound(message: string, code = "not_found") {
-    return new ApiFailure(404, message, code);
+  static notFound(code: string, params?: ErrorParams) {
+    return new ApiFailure(404, code, params);
   }
 
-  static tooManyRequests(message: string, retryAfter: number) {
-    const failure = new ApiFailure(429, message, "rate_limited");
+  static tooManyRequests(code: string, retryAfter: number) {
+    const failure = new ApiFailure(429, code, { seconds: retryAfter });
     return Object.assign(failure, { retryAfter });
   }
 }

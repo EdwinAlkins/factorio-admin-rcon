@@ -77,9 +77,15 @@ ni `1`, ni `latest`.
 L'image est construite pour `linux/amd64` et `linux/arm64`, avec les labels OCI standard, un
 attestat de provenance et un SBOM.
 
-> Sur Docker Hub, provenance et SBOM apparaissent comme des entrées `unknown/unknown` à côté des
-> deux architectures. C'est normal. Pour les enlever : `provenance: false` et `sbom: false` dans
-> `release.yml`.
+> Provenance et SBOM sont stockés comme des manifestes supplémentaires en `unknown/unknown` dans
+> l'index OCI. L'interface de Docker Hub les masque — vous ne verrez que `linux/amd64` et
+> `linux/arm64` — mais ils sont bien présents :
+>
+> ```bash
+> docker buildx imagetools inspect williamnauroy/factorio-admin-rcon:1.0.0
+> ```
+>
+> Pour s'en passer : `provenance: false` et `sbom: false` dans `release.yml`.
 
 ## Actions manuelles à faire
 

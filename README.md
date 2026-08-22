@@ -60,13 +60,38 @@ Un mot de passe par rôle ; le rôle est déterminé par le mot de passe utilis�
 Les permissions sont appliquées **côté serveur** : le catalogue d'actions est filtré par rôle et
 `/api/actions` revérifie la permission avant d'exécuter quoi que ce soit.
 
+## Langues
+
+Le panneau est disponible en anglais (par défaut) et en français. La langue est déduite de
+l'en-tête `Accept-Language` à la première visite, modifiable par le sélecteur de la barre de
+statut, et mémorisée dans un cookie. Elle apparaît dans l'URL : `/` pour l'anglais, `/fr` pour le
+français.
+
+Pour ajouter une langue :
+
+1. copier `messages/en.json` en `messages/<code>.json` et traduire les valeurs ;
+2. ajouter le code à `locales` dans `src/i18n/routing.ts` ;
+3. ajouter son nom dans `localeSwitcher` de chaque dictionnaire ;
+4. `npm test` — la suite vérifie que les deux fichiers exposent exactement les mêmes clés et
+   qu'aucune action du catalogue n'a de libellé manquant.
+
+Aucun texte d'interface ne vit dans `src/server/` : l'API ne renvoie que des identifiants
+(`ban`, `moderation`) et des codes d'erreur (`rate_limited_session`, `validation_player`), que
+l'interface traduit. Le champ `error` des réponses JSON reste un repli **en anglais**, destiné aux
+appels hors navigateur. Le journal d'audit stocke lui aussi des identifiants : l'historique reste
+donc lisible dans n'importe quelle langue, y compris pour des entrées antérieures.
+
+Ne sont volontairement pas traduits : la sortie brute de Factorio, les commandes RCON et les logs
+serveur (en anglais, destinés à l'exploitant).
+
 ## Architecture
 
 ```
 src/
-├── app/            pages + routes API
+├── app/            pages + routes API (pages sous `[locale]/`)
 ├── components/     interface (console, actions, audit, modale)
-├── hooks/          statut serveur (polling), exécution de commandes
+├── hooks/          statut serveur (polling), exécution de commandes, traductions
+├── i18n/           routing, chargement des dictionnaires, navigation locale-aware
 ├── lib/            code partagé client/serveur (types, permissions, fetch typé)
 └── server/         code serveur uniquement
     ├── actions/    définitions métier + exécution
@@ -75,6 +100,8 @@ src/
     ├── config/     variables d'environnement validées (zod)
     ├── http/       enveloppe de route (session, permission, origine, logs)
     └── rcon/       service, file d'attente, parsing, cache de statut
+
+messages/           dictionnaires (en.json fait référence)
 ```
 
 Deux chemins d'exécution distincts :

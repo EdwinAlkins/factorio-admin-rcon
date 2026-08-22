@@ -37,15 +37,12 @@ export const POST = route(
         ip,
         requestId,
       });
-      throw ApiFailure.tooManyRequests(
-        `Trop de commandes envoyées. Réessayez dans ${verdict.retryAfter} s.`,
-        verdict.retryAfter,
-      );
+      throw ApiFailure.tooManyRequests("rate_limited_session", verdict.retryAfter);
     }
 
     const parsed = RconBody.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
-      throw ApiFailure.badRequest("Champ `command` manquant ou invalide.");
+      throw ApiFailure.badRequest("command_missing");
     }
 
     try {

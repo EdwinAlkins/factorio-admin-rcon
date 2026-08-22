@@ -43,3 +43,5 @@ next-env.d.ts
 
 # Local SQLite store (sessions, audit log)
 /.data
+.data/
+data/
