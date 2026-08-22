@@ -45,3 +45,4 @@ next-env.d.ts
 /.data
 .data/
 data/
+private/
