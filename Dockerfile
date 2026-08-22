@@ -1,4 +1,4 @@
-# Panneau d'admin RCON (Next.js) — image de production, sortie `standalone`.
+# RCON admin panel (Next.js) — production image, `standalone` output.
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -18,16 +18,16 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
     DATA_DIR=/data
-# Sessions et journal d'audit (SQLite via node:sqlite, sans dépendance native).
+# Sessions and audit log (SQLite via node:sqlite, no native dependency).
 RUN mkdir -p /data && chown 1000:1000 /data
-# `standalone` embarque le serveur Node et uniquement les dépendances utilisées.
+# `standalone` bundles the Node server and only the dependencies actually used.
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
-# uid/gid de l'utilisateur `node` des images officielles (hadolint DL3066)
+# uid/gid of the `node` user in the official images (hadolint DL3066)
 USER 1000:1000
 EXPOSE 3000
 VOLUME ["/data"]
-# Liveness uniquement : une panne de Factorio ne doit pas redémarrer le panneau.
+# Liveness only: a Factorio outage must not restart the panel.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 CMD ["node", "server.js"]

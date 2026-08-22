@@ -2,72 +2,72 @@ name: Release
 
 on:
   push:
-    # `beta` est optionnelle : elle publie des préversions (1.5.0-beta.1) qui
-    # ne prennent jamais le tag `latest`. Voir .releaserc.json.
+    # `beta` is optional: it publishes pre-releases (1.5.0-beta.1) that never
+    # take the `latest` tag. See .releaserc.json.
     branches: [main, beta]
 
-  # Rattrapage : (re)pousser sur Docker Hub une version déjà taguée, sans
-  # repasser par semantic-release. Utile quand seul le push d'image a échoué —
-  # un « Re-run failed jobs » rejouerait l'ancien fichier de workflow, donc ne
-  # corrigerait rien si le bug est dans le workflow lui-même.
+  # Recovery: (re)push an already-tagged version to Docker Hub without going
+  # through semantic-release again. Useful when only the image push failed — a
+  # "Re-run failed jobs" would replay the old workflow file, so it would fix
+  # nothing if the bug is in the workflow itself.
   workflow_dispatch:
     inputs:
       version:
-        description: "Version déjà taguée à publier (ex. 1.0.0, sans le « v »)"
+        description: "Already-tagged version to publish (e.g. 1.0.0, without the 'v')"
         required: true
         type: string
 
 permissions:
   contents: read
 
-# Une release à la fois par branche. Surtout pas `cancel-in-progress` :
-# interrompre semantic-release entre le tag Git et le push de l'image laisse
-# une version publiée sans image correspondante.
+# One release at a time per branch. Definitely not `cancel-in-progress`:
+# interrupting semantic-release between the Git tag and the image push leaves a
+# published version with no matching image.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 env:
-  # Namespace Docker Hub (williamnauroy), différent du compte GitHub (EdwinAlkins).
+  # Docker Hub namespace (williamnauroy), different from the GitHub account (EdwinAlkins).
   IMAGE_NAME: williamnauroy/factorio-admin-rcon
 
 jobs:
-  # 1. Mêmes contrôles que sur une PR. Rien n'est publié s'ils échouent.
-  #    Sautés en rattrapage manuel : la version visée a déjà été validée.
+  # 1. Same checks as on a PR. Nothing is published if they fail.
+  #    Skipped during manual recovery: the target version was already validated.
   ci:
     if: github.event_name == 'push'
     uses: ./.github/workflows/ci.yml
 
-  # 2. semantic-release lit les commits conventionnels depuis le dernier tag,
-  #    en déduit la version, écrit CHANGELOG.md, tague et crée la release GitHub.
-  #    Si aucun commit ne justifie une version, la sortie `version` reste vide.
+  # 2. semantic-release reads the conventional commits since the last tag,
+  #    derives the version, writes CHANGELOG.md, tags and creates the GitHub
+  #    release. If no commit warrants a version, the `version` output stays empty.
   release:
     name: semantic-release
     if: github.event_name == 'push'
     needs: ci
     runs-on: ubuntu-latest
     permissions:
-      contents: write        # tag, commit du changelog, création de la release
-      issues: write          # commentaire sur les issues résolues
-      pull-requests: write   # commentaire sur les PR incluses
+      contents: write        # tag, changelog commit, release creation
+      issues: write          # comment on resolved issues
+      pull-requests: write   # comment on the PRs included
     outputs:
       version: ${{ steps.semantic.outputs.version }}
     steps:
       - uses: actions/checkout@v7
         with:
-          # Historique complet : semantic-release remonte jusqu'au dernier tag.
+          # Full history: semantic-release walks back to the last tag.
           fetch-depth: 0
-          # Sinon les identifiants posés par checkout entrent en conflit avec
-          # ceux que semantic-release utilise pour pousser.
+          # Otherwise the credentials set by checkout conflict with the ones
+          # semantic-release uses to push.
           persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
           node-version: 24
 
-      # Outillage de release volontairement hors de package.json : il ne sert
-      # qu'ici, et l'ajouter en devDependencies le ferait installer à chaque
-      # `npm ci` du build Docker. Versions épinglées, voir CI.md pour les monter.
+      # Release tooling deliberately kept out of package.json: it is only used
+      # here, and adding it to devDependencies would install it on every
+      # `npm ci` of the Docker build. Versions are pinned, see CI.md to bump them.
       - name: Run semantic-release
         id: semantic
         env:
@@ -85,10 +85,10 @@ jobs:
             --package conventional-changelog-conventionalcommits@10.3.0 \
             -- semantic-release
 
-  # 3. Build multi-arch et push, si une version vient d'être publiée (push) ou
-  #    si une version existante est demandée à la main (workflow_dispatch).
-  #    `!failure() && !cancelled()` laisse passer les jobs *sautés* du rattrapage
-  #    manuel, tout en bloquant dès qu'un job en amont échoue.
+  # 3. Multi-arch build and push, either when a version was just published
+  #    (push) or when an existing one is requested by hand (workflow_dispatch).
+  #    `!failure() && !cancelled()` lets the *skipped* jobs of manual recovery
+  #    through, while still blocking as soon as an upstream job fails.
   publish:
     name: Push Docker Hub
     needs: [ci, release]
@@ -99,8 +99,8 @@ jobs:
     env:
       VERSION: ${{ inputs.version || needs.release.outputs.version }}
     steps:
-      # On construit l'arbre tagué, pas le commit déclencheur : c'est celui qui
-      # porte le package.json à la bonne version.
+      # We build the tagged tree, not the triggering commit: that is the one
+      # carrying package.json at the right version.
       - uses: actions/checkout@v7
         with:
           ref: v${{ env.VERSION }}
@@ -114,9 +114,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Dérive les tags de la version : 1.4.2 → `1.4.2`, `1.4`, `1`, `latest`.
-      # `latest=auto` exclut de lui-même les préversions (1.5.0-beta.1).
-      - name: Métadonnées (tags + labels OCI)
+      # Derives the tags from the version: 1.4.2 → `1.4.2`, `1.4`, `1`, `latest`.
+      # `latest=auto` excludes pre-releases (1.5.0-beta.1) on its own.
+      - name: Metadata (tags + OCI labels)
         id: meta
         uses: docker/metadata-action@v6
         with:
@@ -127,10 +127,10 @@ jobs:
             type=semver,pattern={{major}},value=${{ env.VERSION }}
           flavor: latest=auto
           labels: |
-            org.opencontainers.image.title=Panneau d'admin RCON Factorio
-            org.opencontainers.image.description=Console RCON et actions d'administration pour un serveur Factorio
+            org.opencontainers.image.title=Factorio RCON Admin Panel
+            org.opencontainers.image.description=RCON console and administration actions for a Factorio server
 
-      - name: Build et push
+      - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -140,6 +140,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
-          # Traçabilité de la chaîne de build + inventaire des paquets.
+          # Build-chain traceability + package inventory.
           provenance: mode=max
           sbom: true
