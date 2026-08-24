@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import AuditPanel from "@/components/AuditPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Console from "@/components/Console";
+import MetricsPanel from "@/components/MetricsPanel";
 import QuickActions from "@/components/QuickActions";
 import ServerStatusBar from "@/components/ServerStatusBar";
 import { useActionText } from "@/hooks/useActionText";
@@ -18,17 +19,24 @@ import type { ActionDto, SessionInfo } from "@/lib/api-types";
 
 type Pending = { title: string; message: string; confirmLabel: string; run: () => void };
 
+type Tab = "console" | "metrics";
+
+const TABS: Tab[] = ["console", "metrics"];
+
 type Props = {
   session: SessionInfo;
   actions: ActionDto[];
+  /** `false` : fonctionnalité coupée côté serveur, l'onglet n'existe pas. */
+  metricsEnabled: boolean;
 };
 
-export default function AdminPanel({ session, actions }: Props) {
+export default function AdminPanel({ session, actions, metricsEnabled }: Props) {
   const t = useTranslations();
   const text = useActionText();
   const router = useRouter();
   const [pending, setPending] = useState<Pending | null>(null);
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("console");
 
   const canRunRaw = can(session.role, "rcon:raw");
   const canReadAudit = can(session.role, "audit:read");
@@ -96,6 +104,17 @@ export default function AdminPanel({ session, actions }: Props) {
     onUnauthorized();
   }, [onUnauthorized, t]);
 
+  const consolePane = (
+    <Console
+      entries={entries}
+      busy={busy}
+      canRun={canRunRaw}
+      onRun={submitCommand}
+      onClear={clear}
+      className={metricsEnabled && tab !== "console" ? "hidden" : ""}
+    />
+  );
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 p-4">
       <ServerStatusBar
@@ -111,13 +130,39 @@ export default function AdminPanel({ session, actions }: Props) {
           <QuickActions actions={actions} busy={busy} onRun={submitAction} />
           {canReadAudit && <AuditPanel onUnauthorized={onUnauthorized} />}
         </div>
-        <Console
-          entries={entries}
-          busy={busy}
-          canRun={canRunRaw}
-          onRun={submitCommand}
-          onClear={clear}
-        />
+        {/* Sans métriques, la console reprend toute la colonne : un onglet
+            unique n'est pas un onglet, et l'écran redevient exactement celui
+            d'avant la fonctionnalité. */}
+        {metricsEnabled ? (
+          // Les deux panneaux restent montés : masquer plutôt que démonter
+          // préserve la saisie et le défilement de la console d'un onglet à
+          // l'autre. Le sondage des métriques est coupé par `active`.
+          <div className="flex min-h-0 flex-col gap-3">
+            <nav className="flex gap-2">
+              {TABS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={tab === key}
+                  className={`btn text-xs ${tab === key ? "border-accent text-accent" : ""}`}
+                  onClick={() => setTab(key)}
+                >
+                  {t(`tabs.${key}`)}
+                </button>
+              ))}
+            </nav>
+
+            {consolePane}
+
+            <MetricsPanel
+              active={tab === "metrics"}
+              onUnauthorized={onUnauthorized}
+              className={tab === "metrics" ? "flex-1" : "hidden"}
+            />
+          </div>
+        ) : (
+          consolePane
+        )}
       </div>
 
       {pending && (

@@ -58,6 +58,7 @@ const API_ERROR_CODES = [
   "rate_limited_session",
   "command_missing",
   "action_body_invalid",
+  "metrics_disabled",
   "unknown_action",
   "invalid_arguments",
   "validation_required",

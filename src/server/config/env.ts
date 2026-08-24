@@ -52,6 +52,37 @@ const EnvSchema = z.object({
   DATA_DIR: z.string().min(1).default("./.data"),
   AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
 
+  // Métriques, en trois niveaux : un interrupteur maître et deux sources.
+  //
+  // METRICS_ENABLED=false coupe la fonctionnalité entière — aucun collecteur,
+  // aucun onglet, aucun endpoint — et les deux drapeaux de source ci-dessous ne
+  // sont alors même pas consultés. Le reste des variables continue d'être
+  // validé : une valeur mal formée doit se voir au démarrage, pas des mois plus
+  // tard le jour où quelqu'un réactive les métriques.
+  METRICS_ENABLED: booleanish.default(true),
+  // Source Docker (CPU + mémoire), interrogée via un proxy en lecture seule
+  // (voir docker-compose.yml). À false, seules les métriques issues de RCON
+  // sont collectées ; le reste du panneau fonctionne.
+  METRICS_DOCKER: booleanish.default(true),
+  // Contrainte sur le schéma : `z.url()` seul accepterait « docker-proxy:2375 »
+  // en le lisant comme un schéma d'URL exotique, et l'erreur n'apparaîtrait
+  // qu'au premier fetch, des heures plus tard.
+  DOCKER_API_URL: z.url({ protocol: /^https?$/ }).default("http://docker-proxy:2375"),
+  // Valeur du label `com.docker.compose.service`, avec repli sur le nom du conteneur.
+  METRICS_CONTAINER: z.string().min(1).default("factorio"),
+  // Distinct de RCON_TIMEOUT_MS : un relevé Docker traverse un proxy HTTP et
+  // immobilise le démon ~1 s pour calculer son delta CPU, là où RCON est une
+  // socket persistante à faible latence. Les serrer ensemble ferait tomber les
+  // métriques dès qu'on durcit le délai RCON.
+  DOCKER_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+  // Plancher à 5 s : chaque relevé Docker immobilise le démon ~1 s pour calculer
+  // le delta CPU, et un échantillon RCON traverse la file sérialisée.
+  METRICS_INTERVAL_MS: z.coerce.number().int().min(5000).default(15_000),
+  METRICS_RETENTION_DAYS: z.coerce.number().int().positive().max(365).default(7),
+  // Mesure l'UPS via une commande Lua : à couper si les succès de la sauvegarde
+  // comptent (ils sont de toute façon désactivés en multijoueur).
+  METRICS_UPS: booleanish.default(true),
+
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
 });
 

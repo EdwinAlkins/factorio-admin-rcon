@@ -85,6 +85,92 @@ export type AuditResult = {
   entries: AuditEntryDto[];
 };
 
+/**
+ * Agrégat neutre d'une métrique sur une tranche de temps.
+ *
+ * `min`/`max` plutôt qu'un « extrême » orienté : c'est la présentation qui sait
+ * que le CPU s'inquiète du maximum et l'UPS du minimum, pas le modèle.
+ *
+ * `samples` est le nombre de mesures **réelles** (les NULL ne comptent pas).
+ * Sans lui, un bucket d'une heure bâti sur un seul relevé produit exactement la
+ * même courbe qu'un bucket complet.
+ */
+export type MetricsAggregateDto = {
+  samples: number;
+  avg: number | null;
+  min: number | null;
+  max: number | null;
+};
+
+/** Idem, plus la dernière valeur connue de la fenêtre. */
+export type MetricsCurrentDto = MetricsAggregateDto & { current: number | null };
+
+export type MetricsBucketDto = {
+  /** Début de la tranche, pas le premier échantillon qu'elle contient. */
+  ts: number;
+  bucketMs: number;
+  /** Mesures attendues sur la tranche : `samples / expectedSamples` = couverture. */
+  expectedSamples: number;
+  cpu: MetricsAggregateDto;
+  memory: MetricsAggregateDto;
+  players: MetricsAggregateDto;
+  ups: MetricsAggregateDto;
+};
+
+export type MetricsSummaryDto = {
+  /** Tours du collecteur, à ne pas confondre avec le nombre de mesures. */
+  cycles: number;
+  expectedSamples: number;
+  cpu: MetricsCurrentDto;
+  memory: MetricsCurrentDto;
+  players: MetricsCurrentDto;
+  ups: MetricsCurrentDto;
+  /** Dernière limite connue du conteneur, `null` s'il n'en a pas. */
+  memLimit: number | null;
+};
+
+export type MetricsSourceDto = {
+  enabled: boolean;
+  healthy: boolean;
+  lastSuccessAt: number | null;
+  consecutiveFailures: number;
+};
+
+/**
+ * Santé rapportée par le collecteur lui-même.
+ *
+ * Déduire la disponibilité de la présence de points confondait « aucune donnée
+ * pour l'instant » et « la source est tombée » — deux situations qui appellent
+ * des réactions opposées.
+ */
+export type MetricsHealthDto = {
+  running: boolean;
+  startedAt: number | null;
+  lastRunAt: number | null;
+  lastDurationMs: number | null;
+  intervalMs: number;
+  storageFailures: number;
+  docker: MetricsSourceDto;
+  rcon: MetricsSourceDto;
+};
+
+export type MetricsRange = "1h" | "6h" | "24h" | "7d";
+
+export type MetricsResult = {
+  ok: true;
+  range: MetricsRange;
+  /**
+   * Fenêtre demandée, bornes faisant foi pour l'axe des abscisses. Sans elles,
+   * le graphe étirerait dix minutes de relevés sur toute la largeur d'une plage
+   * de sept jours et laisserait croire à un historique complet.
+   */
+  from: number;
+  to: number;
+  buckets: MetricsBucketDto[];
+  summary: MetricsSummaryDto;
+  health: MetricsHealthDto;
+};
+
 export type SessionInfo = {
   username: string;
   role: Role;

@@ -1,15 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchJson } from "@/lib/fetch-json";
 import { useErrorMessage } from "@/hooks/useErrorMessage";
+import { usePolling } from "@/hooks/usePolling";
 import type { StatusResult } from "@/lib/api-types";
 import type { ServerStatus } from "@/lib/types";
 
 /**
- * Statut du serveur, rafraîchi périodiquement.
- * Le polling est suspendu quand l'onglet n'est pas visible : inutile de
- * solliciter la file RCON pour un onglet en arrière-plan.
+ * Statut du serveur, rafraîchi périodiquement via `usePolling` (qui suspend le
+ * sondage quand l'onglet n'est pas visible).
  */
 export function useServerStatus(options: {
   enabled: boolean;
@@ -42,30 +42,24 @@ export function useServerStatus(options: {
     else setStatus(next);
   }, [load, onUnauthorized]);
 
+  // Une mesure encore en vol au démontage ne doit plus toucher l'état.
+  const alive = useRef(true);
   useEffect(() => {
-    if (!enabled) return;
-
-    let cancelled = false;
-
-    const tick = () => {
-      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
-      void load().then((next) => {
-        if (cancelled) return;
-        if (next === "unauthorized") onUnauthorized();
-        else setStatus(next);
-      });
-    };
-
-    tick();
-    const timer = window.setInterval(tick, intervalMs);
-    document.addEventListener("visibilitychange", tick);
-
+    alive.current = true;
     return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", tick);
+      alive.current = false;
     };
-  }, [enabled, intervalMs, load, onUnauthorized]);
+  }, []);
+
+  const tick = useCallback(() => {
+    void load().then((next) => {
+      if (!alive.current) return;
+      if (next === "unauthorized") onUnauthorized();
+      else setStatus(next);
+    });
+  }, [load, onUnauthorized]);
+
+  usePolling(tick, { enabled, intervalMs });
 
   return { status, refresh };
 }

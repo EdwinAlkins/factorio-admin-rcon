@@ -139,7 +139,34 @@
       }
     }
   },
+  "tabs": {
+    "console": "Console",
+    "metrics": "Statistics"
+  },
+
+  "metrics": {
+    "title": "Statistics",
+    "loading": "Loading…",
+    "empty": "No data over this range yet.",
+    "rangeLabel": "Time range",
+    "ranges": { "1h": "1 h", "6h": "6 h", "24h": "24 h", "7d": "7 d" },
+    "cpu": "CPU",
+    "memory": "Memory",
+    "players": "Players",
+    "ups": "UPS",
+    "average": "avg",
+    "peak": "peak",
+    "low": "low",
+    "memoryOf": "{used} / {limit}",
+    "chartLabel": "{metric} over the selected range, currently {current}",
+    "dockerUnavailable": "Container metrics unavailable (Docker proxy unreachable).",
+    "sparse": "sparse data over this slice",
+    "dockerDisabled": "Container metrics disabled (METRICS_DOCKER=false).",
+    "upsUnavailable": "UPS measurement disabled or server unreachable."
+  },
+
   "errors": {
+    "metrics_disabled": "Metrics are disabled on this panel.",
     "unknown": "Unexpected error.",
     "network": "Panel unreachable (network request failed).",
     "unreadable": "Unreadable response from the server (HTTP {status}).",

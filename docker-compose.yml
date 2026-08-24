@@ -5,10 +5,24 @@ services:
     image: factoriotools/factorio:stable
     restart: unless-stopped
     ports:
+      # Game port: must stay reachable, that is how players connect.
       - "34197:34197/udp"
-      - "27015:27015/tcp"
+      # RCON is deliberately NOT published. The admin panel reaches it over the
+      # compose network (RCON_HOST=factorio), so publishing buys nothing here --
+      # and RCON hands full server control to anyone who reaches the port with
+      # the password, with no rate limiting of its own.
+      # Uncomment to run the panel with `npm run dev` from the host, or to drive
+      # RCON with your own tooling. Keep it bound to loopback: a bare
+      # "27015:27015/tcp" would expose the port to the whole LAN.
+      # - "127.0.0.1:27015:27015/tcp"
     volumes:
       - ./data:/factorio
+    # Left unconfined on purpose: the server writes saves, mods and config to
+    # /factorio, so a read-only root would break it.
+    # Setting a memory limit here is safe, though, and is what gives the panel's
+    # memory graph a real ceiling -- without one the Docker API reports the
+    # host's RAM. Size it for your map:
+    # mem_limit: 4g
     environment:
       - UPDATE_MODS_ON_START=true
       # - DLC_SPACE_AGE=false
@@ -22,13 +36,55 @@ services:
     #  - com.centurylinklabs.watchtower.scope=factorio
     #  - com.centurylinklabs.watchtower.lifecycle.pre-update="/players-online.sh"
 
+  # Read-only window onto the Docker API, for the panel's CPU/memory metrics.
+  # With METRICS_ENABLED=false, DELETE this service: it is the only component
+  # here that mounts the Docker socket, and keeping it running for a disabled
+  # feature keeps the attack surface without the benefit.
+  # The panel never sees the socket itself: this proxy exposes only
+  # GET /containers/... and refuses every write (POST=0), so a compromised
+  # panel cannot start, stop or exec into anything on the host.
+  # Not published on any port: reachable only from the compose network.
+  # Drop this service to lose CPU/memory graphs; the rest of the panel is fine.
+  docker-proxy:
+    container_name: factorio-docker-proxy
+    image: tecnativa/docker-socket-proxy:latest
+    restart: unless-stopped
+    environment:
+      - CONTAINERS=1
+      - POST=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # This is the container holding the socket, so it is the one worth confining
+    # most. haproxy writes its pidfile to /run, hence the tmpfs -- read_only
+    # alone makes it exit with "Cannot create pidfile /run/haproxy.pid".
+    read_only: true
+    tmpfs:
+      - /run:rw,noexec,nosuid,size=8m
+      - /tmp:rw,noexec,nosuid,size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+    pids_limit: 64
+
   # Web admin panel (Next.js) to run RCON commands - see admin/README.md
   factorio-admin:
     container_name: factorio-admin-panel
-    build: .
+    build:
+      context: .
+      # Spelled out rather than the `build: .` shorthand so the alternative is
+      # visible here. Swap the line below for the hardened variant, which ships
+      # Node and nothing else -- no shell, no package manager, no busybox:
+      dockerfile: Dockerfile.distroless
+      # Both images run as uid 1000 and share the same volume layout, so you can
+      # switch either way without touching the database. The trade-off is that
+      # `docker exec ... sh` no longer works -- see README, "Hardened image".
+      # dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       - factorio
+      - docker-proxy
     ports:
       # Bound to localhost only: the panel gives full RCON access.
       # Both stacks, so browsers resolving "localhost" to ::1 also reach it.
@@ -39,6 +95,22 @@ services:
       - ./data/config:/factorio-config:ro
       # Sessions and audit log (SQLite)
       - factorio-admin-data:/data
+    # The panel writes only to /data, which is a volume, so the root filesystem
+    # can stay read-only. /tmp is a tmpfs purely as insurance: nothing needs it
+    # today, but a Node diagnostic report or a future dependency would.
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    # It binds port 3000 as uid 1000 and never changes identity, so it needs no
+    # capability at all.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Measured at ~60 MB under 180 concurrent queries over a full 7-day series;
+    # 256m leaves a wide margin.
+    mem_limit: 256m
+    pids_limit: 128
     environment:
       - RCON_HOST=factorio
       - RCON_PORT=27015
@@ -63,6 +135,19 @@ services:
       - RCON_TIMEOUT_MS=${RCON_TIMEOUT_MS:-}
       - STATUS_CACHE_MS=${STATUS_CACHE_MS:-}
       - AUDIT_RETENTION_DAYS=${AUDIT_RETENTION_DAYS:-}
+      # Metrics, master switch first, then one flag per source.
+      # METRICS_ENABLED=false turns the whole feature off: no collector, no
+      # Statistics tab, no /api/metrics -- and the two source flags are ignored.
+      # METRICS_DOCKER=false keeps players and UPS but stops reading the Docker
+      # API, which is what to set if you removed the docker-proxy service.
+      - METRICS_ENABLED=${METRICS_ENABLED:-}
+      - METRICS_DOCKER=${METRICS_DOCKER:-}
+      - DOCKER_API_URL=http://docker-proxy:2375
+      - METRICS_CONTAINER=factorio
+      - DOCKER_TIMEOUT_MS=${DOCKER_TIMEOUT_MS:-}
+      - METRICS_INTERVAL_MS=${METRICS_INTERVAL_MS:-}
+      - METRICS_RETENTION_DAYS=${METRICS_RETENTION_DAYS:-}
+      - METRICS_UPS=${METRICS_UPS:-}
 
   # Uncomment the following files to use watchtower for updating the factorio container
   # Full documentation of watchtower: https://github.com/containrrr/watchtower

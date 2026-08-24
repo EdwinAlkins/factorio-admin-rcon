@@ -1,0 +1,61 @@
+# RCON admin panel — hardened variant of ./Dockerfile.
+#
+# Same build, different runtime base: `distroless` ships Node and nothing else.
+# No shell, no package manager, no busybox — /bin, /usr/bin and /sbin are empty.
+#
+# What that actually buys, and what it does not: `node` remains the most capable
+# binary in the image, so anyone able to run JS in the container can still read
+# files and open sockets. What disappears is the rest of the toolbox — `nc`,
+# `apk`, `npm`, `vi`, `wget` — and, more importantly, `/bin/sh`: without it
+# `child_process.exec()` cannot spawn anything, so command injection fails at
+# the root, and most off-the-shelf reverse shells stop working.
+#
+# Build it explicitly, the default Dockerfile is unchanged:
+#   docker build -f Dockerfile.distroless -t factorio-admin-rcon:distroless .
+#
+# Trade-off: no `docker exec … sh` for troubleshooting. See README, "Hardened
+# image", for how to attach a throwaway toolbox container instead.
+
+FROM node:24-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+FROM node:24-alpine AS builder
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+# The runtime stage has no shell, so `mkdir`/`chown` must happen here. This
+# empty directory is copied over as /data with the right ownership: without it
+# Docker would create the mountpoint as root and the panel could not write.
+RUN mkdir -p /data-skeleton
+
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runner
+WORKDIR /app
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0 \
+    DATA_DIR=/data
+
+# Sessions, audit log and metrics (SQLite via node:sqlite, no native dependency).
+COPY --from=builder --chown=1000:1000 /data-skeleton /data
+# `standalone` bundles the Node server and only the dependencies actually used.
+COPY --from=builder --chown=1000:1000 /app/.next/standalone ./
+COPY --from=builder --chown=1000:1000 /app/.next/static ./.next/static
+
+# Deliberately 1000 and not the base image's own `nonroot` (65532): the
+# `factorio-admin-data` volume is already owned by 1000, and switching would
+# make an existing database unwritable on upgrade. A numeric uid needs no
+# /etc/passwd entry.
+USER 1000:1000
+EXPOSE 3000
+VOLUME ["/data"]
+# Liveness only: a Factorio outage must not restart the panel.
+# Absolute path required — the exec form bypasses the image's ENTRYPOINT.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+# ENTRYPOINT is already ["/nodejs/bin/node"], so CMD carries only the script.
+CMD ["server.js"]

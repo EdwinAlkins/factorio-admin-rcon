@@ -4,6 +4,7 @@ import AdminPanel from "@/components/AdminPanel";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { readSession } from "@/server/http/context";
+import { env } from "@/server/config/env";
 import { catalogFor } from "@/server/actions/service";
 import { permissionsOf } from "@/lib/permissions";
 import type { SessionInfo } from "@/lib/api-types";
@@ -26,5 +27,14 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
   // Le catalogue est filtré côté serveur : l'interface ne connaît que les
   // actions que ce rôle a effectivement le droit d'exécuter. Il ne transporte
   // que des identifiants — les libellés sont résolus côté client.
-  return <AdminPanel session={info} actions={catalogFor(session!)} />;
+  //
+  // `metricsEnabled` est lu ici plutôt que via une requête du client : l'onglet
+  // ne doit pas apparaître une fraction de seconde avant de disparaître.
+  return (
+    <AdminPanel
+      session={info}
+      actions={catalogFor(session!)}
+      metricsEnabled={env().METRICS_ENABLED}
+    />
+  );
 }

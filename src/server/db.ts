@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { env } from "@/server/config/env";
 
 /**
- * Stockage local : sessions révocables et journal d'audit.
+ * Stockage local : sessions révocables, journal d'audit et séries de métriques.
  *
  * `node:sqlite` est intégré à Node 22+ : aucune dépendance native à compiler,
  * ce qui garde l'image Docker simple. Une seule instance du panneau écrit dans
@@ -39,6 +39,16 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 CREATE INDEX IF NOT EXISTS audit_log_ts ON audit_log (ts DESC);
+
+CREATE TABLE IF NOT EXISTS metrics (
+  ts          INTEGER PRIMARY KEY,
+  cpu_percent REAL,
+  mem_bytes   INTEGER,
+  mem_limit   INTEGER,
+  players     INTEGER,
+  game_tick   INTEGER,
+  ups         REAL
+);
 `;
 
 export function openDatabase(path: string): DatabaseSync {

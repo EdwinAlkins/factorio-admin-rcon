@@ -28,9 +28,12 @@ type Props = {
   canRun: boolean;
   onRun: (command: string) => void | Promise<void>;
   onClear: () => void;
+  /** Sert à masquer la console (`hidden`) sans la démonter : la saisie et le
+   *  défilement en cours survivent au passage sur l'onglet Statistiques. */
+  className?: string;
 };
 
-export default function Console({ entries, busy, canRun, onRun, onClear }: Props) {
+export default function Console({ entries, busy, canRun, onRun, onClear, className }: Props) {
   const t = useTranslations("console");
   const [input, setInput] = useState("");
   // L'historique n'est jamais rendu dans le DOM (uniquement ↑/↓) : le lire au
@@ -111,7 +114,9 @@ export default function Console({ entries, busy, canRun, onRun, onClear }: Props
   }
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-line bg-surface">
+    <section
+      className={`flex min-h-0 flex-1 flex-col rounded-lg border border-line bg-surface ${className ?? ""}`}
+    >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2">
         <h2 className="text-sm font-medium">{canRun ? t("title") : t("titleReadOnly")}</h2>
         <div className="flex items-center gap-3 text-xs text-muted">

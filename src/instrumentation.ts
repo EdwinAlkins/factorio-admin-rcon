@@ -29,12 +29,25 @@ export async function register() {
     const { purgeAudit } = await import("@/server/audit/service");
     purgeExpiredSessions();
     const purged = purgeAudit();
+
+    // Métriques coupées : rien à purger, et surtout rien à démarrer. Les lignes
+    // déjà collectées restent en base — les réactiver doit rendre l'historique,
+    // pas repartir de zéro.
+    if (config.METRICS_ENABLED) {
+      const { purgeMetrics } = await import("@/server/metrics/service");
+      purgeMetrics();
+    }
+
     logger.info("panel started", {
       rcon: `${config.RCON_HOST}:${config.RCON_PORT}`,
       dataDir: config.DATA_DIR,
       auditPurged: purged,
+      metrics: config.METRICS_ENABLED,
       trustProxy: config.TRUST_PROXY,
     });
+
+    const { startMetricsCollector } = await import("@/server/metrics/collector");
+    startMetricsCollector();
   } catch (error) {
     logger.error("storage initialisation failed", errorFields(error));
   }

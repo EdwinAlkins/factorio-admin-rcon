@@ -139,7 +139,34 @@
       }
     }
   },
+  "tabs": {
+    "console": "Console",
+    "metrics": "Statistiques"
+  },
+
+  "metrics": {
+    "title": "Statistiques",
+    "loading": "Chargement…",
+    "empty": "Aucune donnée sur cette plage pour le moment.",
+    "rangeLabel": "Plage de temps",
+    "ranges": { "1h": "1 h", "6h": "6 h", "24h": "24 h", "7d": "7 j" },
+    "cpu": "Processeur",
+    "memory": "Mémoire",
+    "players": "Joueurs",
+    "ups": "UPS",
+    "average": "moy.",
+    "peak": "pic",
+    "low": "min.",
+    "memoryOf": "{used} / {limit}",
+    "chartLabel": "{metric} sur la plage sélectionnée, actuellement {current}",
+    "dockerUnavailable": "Métriques du conteneur indisponibles (proxy Docker injoignable).",
+    "sparse": "données clairsemées sur cette tranche",
+    "dockerDisabled": "Métriques du conteneur désactivées (METRICS_DOCKER=false).",
+    "upsUnavailable": "Mesure de l'UPS désactivée ou serveur injoignable."
+  },
+
   "errors": {
+    "metrics_disabled": "Les métriques sont désactivées sur ce panneau.",
     "unknown": "Erreur inattendue.",
     "network": "Panneau injoignable (requête réseau échouée).",
     "unreadable": "Réponse illisible du serveur (HTTP {status}).",
