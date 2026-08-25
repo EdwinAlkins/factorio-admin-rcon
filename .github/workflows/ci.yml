@@ -55,9 +55,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # The hardened variant is not published, but it shares the build stages
-      # and would rot unnoticed if nothing ever built it. It reuses the cache
-      # above, so this only rebuilds its own runtime stage.
+      # Same gate for the hardened variant, which release.yml publishes under
+      # `-distroless` tags. It reuses the cache above, so only its own runtime
+      # stage is rebuilt here.
       - uses: docker/build-push-action@v7
         with:
           context: .

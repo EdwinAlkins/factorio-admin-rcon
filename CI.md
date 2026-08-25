@@ -74,8 +74,17 @@ For version `1.4.2`, CI creates:
 Pre-releases (branch `beta` → `1.5.0-beta.1`) get **only** their exact tag: no `1.5`, no `1`, no
 `latest`.
 
-The image is built for `linux/amd64` and `linux/arm64`, with the standard OCI labels, a provenance
-attestation and an SBOM.
+Every one of those tags also exists with a `-distroless` suffix (`1.4.2-distroless` …
+`latest-distroless`): the same application on a base that ships Node and nothing else — no shell, no
+package manager. See "Hardened image" in the README for what that buys and what it costs. Both
+variants run as uid 1000 and share the same volume layout, so switching is just a tag change.
+
+A guard in the publish job fails the release if a hardened tag ever comes out without its suffix:
+that would mean pushing a bare `latest` over the default image.
+
+Both images are built for `linux/amd64` and `linux/arm64`, with the standard OCI labels, a
+provenance attestation and an SBOM. They share the `deps` and `builder` stages, so the second build
+only replays its runtime stage.
 
 > Provenance and SBOM are stored as extra `unknown/unknown` manifests in the OCI index. The Docker
 > Hub interface hides them — you will only see `linux/amd64` and `linux/arm64` — but they are

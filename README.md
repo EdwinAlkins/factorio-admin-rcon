@@ -50,6 +50,7 @@ An image is published on every release to `williamnauroy/factorio-admin-rcon` (`
 
 ```bash
 docker pull williamnauroy/factorio-admin-rcon:1.0.0
+docker pull williamnauroy/factorio-admin-rcon:1.0.0-distroless   # hardened, see below
 ```
 
 Versioning and publishing are automated — see [CI.md](CI.md).
@@ -58,11 +59,16 @@ Versioning and publishing are automated — see [CI.md](CI.md).
 
 `Dockerfile.distroless` builds the same application on `gcr.io/distroless/nodejs24-debian13`, which
 ships Node and nothing else — `/bin`, `/usr/bin` and `/sbin` are empty. The default `Dockerfile` is
-unchanged; this one is opt-in:
+unchanged; this one is opt-in, either by pulling its published tag or by building it:
 
 ```bash
+docker pull williamnauroy/factorio-admin-rcon:1.0.0-distroless
+# or, from source
 docker build -f Dockerfile.distroless -t factorio-admin-rcon:distroless .
 ```
+
+To build it through compose instead, swap `dockerfile:` under `factorio-admin` — the alternative is
+spelled out in a comment there.
 
 Gone from the image: `sh`, `nc`, `wget`, `vi`, `cat`, `apk`, `npm`. The most valuable of those is
 the shell — `child_process.exec()` spawns `/bin/sh -c`, so without it command injection has nothing

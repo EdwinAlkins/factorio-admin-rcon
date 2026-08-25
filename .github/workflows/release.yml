@@ -143,3 +143,57 @@ jobs:
           # Build-chain traceability + package inventory.
           provenance: mode=max
           sbom: true
+
+      # Same tags with a `-distroless` suffix: 1.4.2-distroless … latest-distroless.
+      # `onlatest=true` is what makes the suffix apply to `latest` too — without
+      # it the hardened build would publish a bare `latest` and overwrite the
+      # default image.
+      - name: Metadata — hardened variant
+        id: meta-distroless
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}},value=${{ env.VERSION }}
+          flavor: |
+            latest=auto
+            suffix=-distroless,onlatest=true
+          labels: |
+            org.opencontainers.image.title=Factorio RCON Admin Panel (distroless)
+            org.opencontainers.image.description=Same panel on a distroless base — no shell, no package manager
+
+      # Safety net, not paranoia: if `onlatest` ever stopped applying, the
+      # hardened build would push a bare `latest` and silently replace the
+      # default image on Docker Hub. Cheaper to fail here than to find out from
+      # users. Also asserts the suffix was applied at all.
+      - name: Check the hardened tags cannot clobber the default image
+        env:
+          TAGS: ${{ steps.meta-distroless.outputs.tags }}
+        run: |
+          echo "$TAGS"
+          if grep -qxE '.*:latest' <<< "$TAGS"; then
+            echo "::error::a hardened tag would overwrite the default image's :latest"
+            exit 1
+          fi
+          if grep -qvE '.*-distroless$' <<< "$TAGS"; then
+            echo "::error::some hardened tag is missing the -distroless suffix"
+            exit 1
+          fi
+
+      # The `deps` and `builder` stages are identical to the build above, so this
+      # only replays the runtime stage (a few COPY) on each architecture.
+      - name: Build and push — hardened variant
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.distroless
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta-distroless.outputs.tags }}
+          labels: ${{ steps.meta-distroless.outputs.labels }}
+          annotations: ${{ steps.meta-distroless.outputs.annotations }}
+          cache-from: type=gha
+          provenance: mode=max
+          sbom: true
