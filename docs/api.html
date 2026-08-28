@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTP API &mdash; Factorio admin panel</title>
+<meta name="description" content="The routes the panel exposes, their access control and the shape of their errors.">
+<link rel="stylesheet" href="./assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<div class="topbar">
+  <a class="brand" href="./index.html">Factorio <span>admin panel</span></a>
+  <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
+</div>
+
+<div class="shell">
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./index.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html" aria-current="page">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<main id="content">
+<header>
+  <h1>HTTP API</h1>
+  <p class="lede">The routes the panel exposes, their access control and the shape of their errors.</p>
+</header>
+
+<p>Every route lives under <code>/api</code>, answers JSON and authenticates with
+the session cookie. They are usable from <code>curl</code>: a request with no
+<code>Origin</code> header is accepted, since it did not come from a browser and
+therefore cannot be a CSRF attack.</p>
+<h2 id="routes">Routes<a class="anchor" href="#routes" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Route</th><th>Access</th><th>Purpose</th></tr></thead><tbody><tr><td><span class='pill pill-post'>POST</span> <code>/api/login</code></td><td>Public</td><td>Opens a session, sets the cookie</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/logout</code></td><td>Session</td><td>Revokes the session in the database and clears the cookie</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/status</code></td><td><code>status:read</code></td><td>Server status, cached</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/actions</code></td><td>Session</td><td>Catalogue filtered by role. <code>?locale=fr</code> for custom command text</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/actions</code></td><td>Per action</td><td>Runs a catalogue action</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/rcon</code></td><td><code>rcon:raw</code></td><td>Raw console</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/audit</code></td><td><code>audit:read</code></td><td>Latest audit entries, <code>?limit=</code></td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/metrics</code></td><td><code>status:read</code></td><td>Time series, <code>?range=1h|6h|24h|7d</code>. <code>404</code> when metrics are off</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/health</code></td><td>Public</td><td>Liveness: the process is alive</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/ready</code></td><td>Public</td><td>Readiness: configuration, command catalogue, database and RCON</td></tr></tbody></table></div><h2 id="sign-in">Signing in<a class="anchor" href="#sign-in" aria-label="Link to this section">#</a></h2><div class="snippet" data-lang="bash"><pre><code>curl -sc cookies.txt \
+  -H 'Content-Type: application/json' \
+  -d '{"password":"your-admin-password"}' \
+  http://127.0.0.1:3010/api/login
+# {"ok":true,"username":"admin","role":"admin"}
+
+curl -sb cookies.txt http://127.0.0.1:3010/api/status</code></pre></div><h2 id="actions">Running an action<a class="anchor" href="#actions" aria-label="Link to this section">#</a></h2>
+<p>The body only carries an id and values. The server builds the command.</p>
+<div class="snippet" data-lang="bash"><pre><code>curl -sb cookies.txt \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"kick","values":{"player":"bob","reason":"spam"}}' \
+  http://127.0.0.1:3010/api/actions</code></pre></div>
+<p>A custom command is called by its prefixed id:</p>
+<div class="snippet" data-lang="bash"><pre><code>curl -sb cookies.txt \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"custom:kill-enemies","values":{"player":"Edwins"}}' \
+  http://127.0.0.1:3010/api/actions</code></pre></div><h2 id="errors">Error format<a class="anchor" href="#errors" aria-label="Link to this section">#</a></h2>
+<p>An error always carries the same envelope. <code>code</code> is the
+translation key and is authoritative for the interface; <code>error</code> is
+only an <strong>English</strong> fallback, readable for whoever calls the API
+from a shell.</p>
+<div class="snippet" data-lang="json"><pre><code>{
+  "ok": false,
+  "error": "player: invalid player name (no spaces or quotes, 60 max).",
+  "code": "validation_player",
+  "params": { "field": "player" }
+}</code></pre></div><h3 id="statuses">HTTP statuses<a class="anchor" href="#statuses" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Status</th><th>When</th></tr></thead><tbody><tr><td><code>400</code></td><td>Malformed body, or input rejected by validation</td></tr><tr><td><code>401</code></td><td>No session, expired, revoked, or invalid signature</td></tr><tr><td><code>403</code></td><td>Insufficient permission, or foreign origin on a mutating request</td></tr><tr><td><code>404</code></td><td>Unknown action, or feature turned off (metrics)</td></tr><tr><td><code>413</code></td><td>Request body beyond 16 KiB</td></tr><tr><td><code>429</code></td><td>Rate limit reached; the <code>Retry-After</code> header is set</td></tr><tr><td><code>500</code></td><td>Invalid configuration, or internal error</td></tr><tr><td><code>502</code> / <code>504</code></td><td>Factorio unreachable, RCON authentication refused, or timeout</td></tr><tr><td><code>503</code></td><td>RCON queue full, or panel shutting down</td></tr></tbody></table></div><h3 id="validation">Validation codes<a class="anchor" href="#validation" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody><tr><td><code>validation_required</code></td><td>Required field left empty</td></tr><tr><td><code>validation_player</code></td><td>Invalid player name</td></tr><tr><td><code>validation_identifier</code></td><td>Invalid prototype name</td></tr><tr><td><code>validation_number</code></td><td>A number was expected</td></tr><tr><td><code>validation_min</code> / <code>validation_max</code></td><td>Outside the declared bounds</td></tr><tr><td><code>validation_enum</code></td><td>Value outside the list</td></tr><tr><td><code>validation_bool</code></td><td>A yes/no value was expected</td></tr><tr><td><code>validation_too_long</code></td><td>Maximum length exceeded</td></tr><tr><td><code>validation_newline</code></td><td>Line breaks are not allowed</td></tr><tr><td><code>validation_control_char</code></td><td>Control characters are not allowed</td></tr><tr><td><code>validation_comment</code></td><td><code>--</code> is not allowed in a value</td></tr></tbody></table></div>
+<nav class="pager"><a href="./security.html">&larr; Security model</a><a href="./development.html">Development &rarr;</a></nav>
+</main>
+</div>
+
+<footer class="site">
+  Factorio admin panel documentation &mdash;
+  <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">EdwinAlkins/factorio-admin-rcon</a>
+</footer>
+</body>
+</html>

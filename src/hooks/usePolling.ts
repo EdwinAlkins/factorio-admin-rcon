@@ -3,12 +3,12 @@
 import { useEffect } from "react";
 
 /**
- * Sondage périodique suspendu quand l'onglet n'est pas visible.
+ * Periodic polling, suspended while the tab is not visible.
  *
- * Un onglet en arrière-plan n'a rien à afficher : le laisser interroger le
- * serveur solliciterait la file RCON — volontairement sérialisée — pour rien.
- * La reprise est immédiate au retour sur l'onglet, sans attendre le prochain
- * intervalle, sinon l'écran resterait périmé plusieurs secondes.
+ * A background tab has nothing to display: letting it query the server would
+ * exercise the deliberately serialised RCON queue for nothing. Polling resumes
+ * immediately when the tab comes back, without waiting for the next interval —
+ * otherwise the screen would stay stale for several seconds.
  */
 export function usePolling(
   tick: () => void,

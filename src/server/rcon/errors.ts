@@ -2,13 +2,13 @@ import { englishError } from "@/server/error-text";
 import type { ErrorParams } from "@/lib/api-types";
 
 /**
- * Taxonomie d'erreurs RCON.
+ * RCON error taxonomy.
  *
- * `code` porte la sémantique technique (statut HTTP, politique de réessai),
- * `key` la clé de traduction affichée à l'utilisateur : plusieurs situations
- * distinctes peuvent partager un code sans partager un message. `detail` reste
- * réservé aux logs : l'utilisateur voit « serveur inaccessible », l'exploitant
- * voit `host=factorio port=27015 error=ECONNREFUSED`.
+ * `code` carries the technical semantics (HTTP status, retry policy), `key` the
+ * translation key shown to the user: several distinct situations can share a
+ * code without sharing a message. `detail` stays reserved for the logs: the
+ * user sees "server unreachable", the operator sees
+ * `host=factorio port=27015 error=ECONNREFUSED`.
  */
 
 export type RconErrorCode =
@@ -19,6 +19,7 @@ export type RconErrorCode =
   | "protocol"
   | "invalid_command"
   | "backpressure"
+  | "unavailable"
   | "internal";
 
 export type RconErrorKey =
@@ -31,6 +32,7 @@ export type RconErrorKey =
   | "command_empty"
   | "command_too_long"
   | "backpressure"
+  | "service_stopping"
   | "probe_failed"
   | "internal";
 
@@ -44,6 +46,7 @@ export const RCON_ERROR_CODE: Record<RconErrorKey, RconErrorCode> = {
   command_empty: "invalid_command",
   command_too_long: "invalid_command",
   backpressure: "backpressure",
+  service_stopping: "unavailable",
   probe_failed: "internal",
   internal: "internal",
 };
@@ -56,10 +59,30 @@ export const RCON_HTTP_STATUS: Record<RconErrorCode, number> = {
   protocol: 502,
   invalid_command: 400,
   backpressure: 503,
+  unavailable: 503,
   internal: 500,
 };
 
+/**
+ * Recognition mark, taken from the **global** symbol registry.
+ *
+ * `instanceof` compares class references, so it fails as soon as the module is
+ * instantiated twice — which `next dev` does routinely (the metrics collector
+ * and the API routes do not share a module graph, yet they share the RCON
+ * service through `globalThis`). The error was then treated as an internal
+ * failure: a 500 "internal" instead of its real code.
+ *
+ * `Symbol.for` resolves in a registry shared by the whole process, so two
+ * copies of the module get the same symbol and recognise each other.
+ */
+const BRAND = Symbol.for("factorio-admin.RconError");
+
+export function isRconError(value: unknown): value is RconError {
+  return typeof value === "object" && value !== null && BRAND in value;
+}
+
 export class RconError extends Error {
+  readonly [BRAND] = true;
   readonly key: RconErrorKey;
   readonly code: RconErrorCode;
   readonly detail: string;
@@ -75,7 +98,7 @@ export class RconError extends Error {
   }
 }
 
-/** Code errno Node (ECONNREFUSED, ENOTFOUND…) si l'erreur en porte un. */
+/** Node errno code (ECONNREFUSED, ENOTFOUND…) when the error carries one. */
 export function errnoOf(error: unknown): string | null {
   const code = (error as NodeJS.ErrnoException | undefined)?.code;
   return typeof code === "string" ? code : null;

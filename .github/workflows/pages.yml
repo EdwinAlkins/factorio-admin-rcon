@@ -1,0 +1,45 @@
+name: Docs
+
+# The documentation site is static HTML in docs/: nothing to build, the folder
+# is published as-is.
+#
+# This workflow assumes "Settings → Pages → Source: GitHub Actions". If you
+# prefer "Deploy from a branch" (main, folder /docs), this file becomes
+# unnecessary and can be deleted.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, without interrupting the one in progress: a
+# half-deployed page helps nobody.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish docs/
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

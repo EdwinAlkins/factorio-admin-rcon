@@ -1,15 +1,15 @@
 /**
- * Arrondi des bornes d'axe, partagé par les graphes de métriques.
+ * Axis bound rounding, shared by the metric charts.
  *
- * Sans lui, un axe se cale sur le maximum brut et affiche « 202,4 % » ou
- * « 23 Mio » : des graduations exactes, mais que l'œil ne sait pas situer.
+ * Without it an axis snaps to the raw maximum and shows "202.4%" or "23 MiB":
+ * exact ticks, but ones the eye cannot place.
  */
 
 const STEPS = [1, 2, 2.5, 5, 10];
 
-/** Palier « lisible » immédiatement supérieur à `value` (1, 2, 2,5 ou 5 × 10ⁿ). */
+/** The next "readable" step above `value` (1, 2, 2.5 or 5 × 10ⁿ). */
 export function niceCeil(value: number): number {
-  // Une échelle nulle ou négative produirait une division par zéro au tracé.
+  // A zero or negative scale would divide by zero when plotting.
   if (!Number.isFinite(value) || value <= 0) return 1;
 
   const magnitude = 10 ** Math.floor(Math.log10(value));

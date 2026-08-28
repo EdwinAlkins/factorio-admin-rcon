@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 type Check = { name: string; ok: boolean };
 
 /**
- * Readiness : configuration valide, base accessible, serveur Factorio joignable.
- * Distincte de /api/health pour qu'une panne de Factorio ne provoque pas le
- * redémarrage en boucle du panneau.
+ * Readiness: valid configuration, reachable database, reachable Factorio
+ * server. Kept distinct from /api/health so a Factorio outage does not restart
+ * the panel in a loop.
  */
 export async function GET() {
   const checks: Check[] = [];
@@ -29,8 +29,8 @@ export async function GET() {
 
   checks.push({ name: "accounts", ok: hasAnyAccount() });
 
-  // Fichier absent = fonctionnalité inactive, donc « ok ». Seul un fichier
-  // présent mais illisible ou mal formé est un défaut de configuration.
+  // An absent file means the feature is inactive, hence "ok". Only a file that
+  // is present but unreadable or malformed is a configuration fault.
   const commands = loadCustomCatalog();
   if (commands.error) {
     logger.error("readiness: catalogue de commandes illisible", {

@@ -3,6 +3,10 @@
 Next.js (App Router) application that drives a Factorio server: free-form RCON console, built-in
 actions (players, save, moderation, chat), roles, audit log.
 
+📖 **[Full documentation](https://edwinalkins.github.io/factorio-admin-rcon/)** — installation,
+configuration, custom commands, security model and API reference. The site lives in
+[`docs/`](docs/): static HTML, no build step.
+
 It speaks the RCON protocol over TCP — the repository's C client (`docker/rcon/main.c`) hardcodes
 `127.0.0.1` and is only usable from within the server container.
 
@@ -31,6 +35,40 @@ npm run typecheck   # next typegen && tsc --noEmit
 npm test            # vitest
 npm run build
 ```
+
+Tests come in three layers:
+
+| Path | Covers |
+| --- | --- |
+| `tests/<domain>/` | pure logic: RCON queue and lifecycle, Lua escaping, catalogue validation, sessions, rate limiters, metrics, dictionaries |
+| `tests/api/` | the route handlers, called with a real `Request`: auth, roles, validation, error codes, audit trail |
+| `tests/security/` | what must not regress: origin checking on every mutating route, `X-Forwarded-For` only trusted behind `TRUST_PROXY`, cookie flags, CSP nonce |
+
+## Dependencies
+
+[Dependabot](https://docs.github.com/code-security/dependabot) keeps npm packages, Docker base
+images and GitHub Actions up to date; `.github/dependabot.yml` holds the policy. Nothing to install
+— the file is enough.
+
+The choice that matters is the commit prefix, because semantic-release reads it:
+
+| Source | Commit | Effect |
+| --- | --- | --- |
+| `dependencies` | `fix(deps): …` | Cuts a version and rebuilds the image — a security fix has to reach deployments |
+| `devDependencies` | `chore(deps-dev): …` | No release |
+| Docker, GitHub Actions | `chore(deps): …` | No release |
+
+Updates are grouped so you do not get one PR per package: `next` + `react` together (a major of one
+forces the major of the other), then `eslint`, `vitest`, `tailwindcss`, and the rest of the tooling
+in a single PR.
+
+The Node version lives in four places. Dependabot follows the `Dockerfile`s; `engines` in
+`package.json` and `node-version` in `.github/workflows/ci.yml` must be aligned by hand in the same
+PR.
+
+> **Security updates are a separate switch.** This file only governs version updates. Vulnerability
+> fixes depend on Dependabot alerts, enabled under *Settings → Advanced Security* — currently off on
+> this repository.
 
 ## Production
 
@@ -317,14 +355,32 @@ plots the Factorio container, so a limit on the panel changes nothing there.
 
 What is in place:
 
-- sessions persisted in SQLite: signing out really **revokes** the cookie;
+- sessions persisted in SQLite: signing out really **revokes** the cookie. The cookie is signed
+  with `SESSION_SECRET`, which is **required** and independent from the passwords — rotating a
+  password no longer signs everybody out, and the signing key is not something a human picked.
+  `./setup-admin.sh` generates one; without it the panel starts but `/api/ready` reports it
+  unavailable and every request fails;
 - constant-time password comparison, login attempt limiting (per IP when it is trustworthy, plus a
   global cap that is always active);
-- per-session command rate limiting and a **bounded RCON queue** (503 beyond it);
+- per-session command rate limiting and a **bounded RCON queue** (503 beyond it), with a terminal
+  shutdown: on `SIGTERM` the service stops accepting, rejects what is still queued (`503`) and
+  never reopens a socket — a queued command must not reconnect after the signal;
 - origin checking on every mutating request, `httpOnly`/`SameSite=Lax` cookie, `secure` set
   automatically over HTTPS;
-- CSP, `nosniff`, `Referrer-Policy`, `Permissions-Policy` and HSTS headers;
-- audit log of every action, refusals included;
+- a **nonce-based CSP**: `script-src` carries a fresh 128-bit nonce per request plus
+  `'strict-dynamic'`, so only scripts the server emitted run — `'unsafe-inline'` is inert once a
+  nonce is present, which is the point. It is built in `src/proxy.ts` because it must change on
+  every request; API routes get `default-src 'none'` from `next.config.ts` instead. `style-src`
+  deliberately keeps `'unsafe-inline'`: the charts set `style` attributes on SVG elements, and CSS
+  injection does not carry the reach of script injection;
+- `nosniff`, `Referrer-Policy`, `Permissions-Policy` and HSTS headers;
+- a bounded request body (16 KiB), enforced on `Content-Length` **and** while reading, so an
+  oversized payload is refused before `JSON.parse` allocates it;
+- audit log of every action, refusals included. Catalogue actions are recorded in full — the
+  command is server-built from validated fields, which is exactly what makes the log worth
+  keeping. Commands typed in the **raw console** are not: only a 48-character prefix and a
+  SHA-256 fingerprint are stored, so a token pasted there does not end up living a second life in
+  the database and its backups. Set `AUDIT_FULL_COMMANDS=true` to keep them verbatim;
 - **no Docker socket in the panel**. CPU and memory metrics go through the `docker-proxy`
   service, which holds the socket and exposes only `GET /containers/...` (`CONTAINERS=1`,
   `POST=0`). Mounting the socket into the panel itself would hand an attacker who compromised it

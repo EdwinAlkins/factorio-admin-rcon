@@ -1,14 +1,14 @@
 import type { Permission, Role } from "@/lib/permissions";
 
-/** Contrat des réponses JSON, partagé par les routes et les composants. */
+/** Contract of the JSON responses, shared by the routes and the components. */
 
-/** Valeurs injectées dans le message traduit (`{seconds}`, `{field}`…). */
+/** Values injected into the translated message (`{seconds}`, `{field}`…). */
 export type ErrorParams = Record<string, string | number>;
 
 /**
- * `code` est la clé de traduction (`errors.<code>` dans les dictionnaires) et
- * fait foi pour l'interface ; `error` n'est qu'un repli **en anglais**, lisible
- * pour qui appelle l'API au curl.
+ * `code` is the translation key (`errors.<code>` in the dictionaries) and is
+ * authoritative for the interface; `error` is only an **English** fallback,
+ * readable for whoever calls the API with curl.
  */
 export type ApiError = {
   ok: false;
@@ -36,7 +36,7 @@ export type StatusResult = {
   count: number;
   version: string;
   target: string;
-  /** Horodatage de la mesure : le statut est mis en cache côté serveur. */
+  /** When the reading was taken: the status is cached server-side. */
   cachedAt: number;
 };
 
@@ -55,7 +55,7 @@ export type ActionFieldDto = {
   name: string;
   required: boolean;
   kind: ActionFieldKindDto;
-  /** Renseignés seulement par les commandes du fichier de l'opérateur. */
+  /** Only filled in by commands from the operator's file. */
   label?: string;
   placeholder?: string;
   help?: string;
@@ -66,20 +66,20 @@ export type ActionFieldDto = {
 };
 
 /**
- * Le catalogue ne transporte que des identifiants : libellés, indices et
- * messages de confirmation sont résolus côté interface via les clés
- * `actions.items.<id>.*`.
+ * The catalogue carries identifiers only: labels, hints and confirmation
+ * messages are resolved on the interface side through the
+ * `actions.items.<id>.*` keys.
  *
- * Unique exception, `text` : les commandes définies par l'opérateur dans son
- * fichier JSON ne peuvent pas alimenter les dictionnaires. Le serveur résout
- * alors le texte pour la locale demandée et le joint au DTO.
+ * The single exception is `text`: commands the operator defines in their JSON
+ * file cannot feed the dictionaries. The server therefore resolves the text for
+ * the requested locale and attaches it to the DTO.
  */
 export type ActionDto = {
   id: string;
-  /** Union fermée pour les actions intégrées, libre pour celles du fichier. */
+  /** A closed union for built-in actions, free-form for those from the file. */
   group: string;
   risk: "none" | "dangerous";
-  /** Le texte vit dans les dictionnaires ; ce drapeau dit seulement s'il existe. */
+  /** The text lives in the dictionaries; this flag only says whether it exists. */
   confirm: boolean;
   fields: ActionFieldDto[];
   text?: {
@@ -88,7 +88,7 @@ export type ActionDto = {
     confirmation?: string;
     group?: string;
   };
-  /** Gabarit source, présent si l'entrée demande un aperçu avant confirmation. */
+  /** Source template, present when the entry asks for a preview before confirming. */
   template?: string;
 };
 
@@ -105,6 +105,8 @@ export type AuditEntryDto = {
   kind: string;
   action: string;
   command: string | null;
+  /** Fingerprint of the full raw command, of which `command` is only a prefix. */
+  commandHash: string | null;
   status: string;
   detail: string | null;
   durationMs: number | null;
@@ -117,14 +119,14 @@ export type AuditResult = {
 };
 
 /**
- * Agrégat neutre d'une métrique sur une tranche de temps.
+ * Neutral aggregate of one metric over a time slice.
  *
- * `min`/`max` plutôt qu'un « extrême » orienté : c'est la présentation qui sait
- * que le CPU s'inquiète du maximum et l'UPS du minimum, pas le modèle.
+ * `min`/`max` rather than an opinionated "extreme": it is the presentation that
+ * knows CPU worries about the maximum and UPS about the minimum, not the model.
  *
- * `samples` est le nombre de mesures **réelles** (les NULL ne comptent pas).
- * Sans lui, un bucket d'une heure bâti sur un seul relevé produit exactement la
- * même courbe qu'un bucket complet.
+ * `samples` is the number of **real** readings (NULLs do not count). Without
+ * it, an hour-long bucket built from a single reading draws exactly the same
+ * curve as a full one.
  */
 export type MetricsAggregateDto = {
   samples: number;
@@ -133,14 +135,14 @@ export type MetricsAggregateDto = {
   max: number | null;
 };
 
-/** Idem, plus la dernière valeur connue de la fenêtre. */
+/** The same, plus the last known value in the window. */
 export type MetricsCurrentDto = MetricsAggregateDto & { current: number | null };
 
 export type MetricsBucketDto = {
-  /** Début de la tranche, pas le premier échantillon qu'elle contient. */
+  /** Start of the slice, not the first sample it contains. */
   ts: number;
   bucketMs: number;
-  /** Mesures attendues sur la tranche : `samples / expectedSamples` = couverture. */
+  /** Readings expected over the slice: `samples / expectedSamples` = coverage. */
   expectedSamples: number;
   cpu: MetricsAggregateDto;
   memory: MetricsAggregateDto;
@@ -149,30 +151,32 @@ export type MetricsBucketDto = {
 };
 
 export type MetricsSummaryDto = {
-  /** Tours du collecteur, à ne pas confondre avec le nombre de mesures. */
+  /** Collector rounds, not to be confused with the number of readings. */
   cycles: number;
   expectedSamples: number;
   cpu: MetricsCurrentDto;
   memory: MetricsCurrentDto;
   players: MetricsCurrentDto;
   ups: MetricsCurrentDto;
-  /** Dernière limite connue du conteneur, `null` s'il n'en a pas. */
+  /** Last known container limit, `null` when it has none. */
   memLimit: number | null;
 };
 
+/** See `HealthState` in `src/server/metrics/collector.ts`. */
+export type MetricsHealthState = "disabled" | "unknown" | "healthy" | "degraded" | "failed";
+
 export type MetricsSourceDto = {
-  enabled: boolean;
-  healthy: boolean;
+  state: MetricsHealthState;
   lastSuccessAt: number | null;
   consecutiveFailures: number;
 };
 
 /**
- * Santé rapportée par le collecteur lui-même.
+ * Health as reported by the collector itself.
  *
- * Déduire la disponibilité de la présence de points confondait « aucune donnée
- * pour l'instant » et « la source est tombée » — deux situations qui appellent
- * des réactions opposées.
+ * Inferring availability from the presence of points conflated "no data yet"
+ * with "the source is down" — two situations calling for opposite reactions.
+ * Hence a named state rather than a boolean.
  */
 export type MetricsHealthDto = {
   running: boolean;
@@ -191,9 +195,9 @@ export type MetricsResult = {
   ok: true;
   range: MetricsRange;
   /**
-   * Fenêtre demandée, bornes faisant foi pour l'axe des abscisses. Sans elles,
-   * le graphe étirerait dix minutes de relevés sur toute la largeur d'une plage
-   * de sept jours et laisserait croire à un historique complet.
+   * The requested window, whose bounds are authoritative for the x axis.
+   * Without them the chart would stretch ten minutes of readings across the
+   * full width of a seven-day range and suggest a complete history.
    */
   from: number;
   to: number;

@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { ConfigError, parseEnv } from "@/server/config/env";
+import { ConfigError, parseEnv, type EnvSource } from "@/server/config/env";
+
+/** The session secret is required: every valid source carries one. */
+const SECRET = "cle-de-signature-de-test-32-octets";
+const source = (overrides: EnvSource = {}): EnvSource => ({
+  SESSION_SECRET: SECRET,
+  ...overrides,
+});
 
 describe("parseEnv", () => {
-  it("applique les valeurs par défaut", () => {
-    const env = parseEnv({});
+  it("applies the defaults", () => {
+    const env = parseEnv(source());
     expect(env.RCON_HOST).toBe("factorio");
     expect(env.RCON_PORT).toBe(27015);
     expect(env.SESSION_TTL_HOURS).toBe(12);
@@ -11,38 +18,41 @@ describe("parseEnv", () => {
     expect(env.COOKIE_SECURE).toBe("auto");
   });
 
-  it("rejette un port non numérique au lieu de propager NaN", () => {
-    expect(() => parseEnv({ RCON_PORT: "lol" })).toThrow(ConfigError);
+  it("rejects a non-numeric port instead of propagating NaN", () => {
+    expect(() => parseEnv(source({ RCON_PORT: "lol" }))).toThrow(ConfigError);
   });
 
-  it("rejette un port hors plage", () => {
-    expect(() => parseEnv({ RCON_PORT: "70000" })).toThrow(ConfigError);
+  it("rejects an out-of-range port", () => {
+    expect(() => parseEnv(source({ RCON_PORT: "70000" }))).toThrow(ConfigError);
   });
 
-  it("rejette un délai négatif", () => {
-    expect(() => parseEnv({ RCON_TIMEOUT_MS: "-1" })).toThrow(ConfigError);
+  it("rejects a negative timeout", () => {
+    expect(() => parseEnv(source({ RCON_TIMEOUT_MS: "-1" }))).toThrow(ConfigError);
   });
 
-  it("traite une variable vide comme non définie", () => {
-    // docker-compose passe SESSION_SECRET= quand le .env ne le définit pas.
-    const env = parseEnv({ SESSION_SECRET: "", RCON_PORT: "" });
-    expect(env.SESSION_SECRET).toBeUndefined();
+  it("treats an empty variable as unset", () => {
+    // docker-compose passes RCON_PORT= when the .env does not define it.
+    const env = parseEnv(source({ RCON_PORT: "" }));
     expect(env.RCON_PORT).toBe(27015);
   });
 
-  it("refuse un secret de session trop court", () => {
-    expect(() => parseEnv({ SESSION_SECRET: "court" })).toThrow(ConfigError);
+  it("requires a session secret, with no password-derived fallback", () => {
+    expect(() => parseEnv({})).toThrow(ConfigError);
+    // An empty variable counts as "unset": it does not satisfy the requirement.
+    expect(() => parseEnv({ SESSION_SECRET: "" })).toThrow(ConfigError);
+    expect(() => parseEnv({ SESSION_SECRET: "trop-court" })).toThrow(ConfigError);
+    expect(parseEnv(source()).SESSION_SECRET).toBe(SECRET);
   });
 
-  it("convertit les booléens textuels", () => {
-    expect(parseEnv({ TRUST_PROXY: "true" }).TRUST_PROXY).toBe(true);
-    expect(parseEnv({ TRUST_PROXY: "1" }).TRUST_PROXY).toBe(true);
-    expect(parseEnv({ TRUST_PROXY: "0" }).TRUST_PROXY).toBe(false);
-    expect(() => parseEnv({ TRUST_PROXY: "oui" })).toThrow(ConfigError);
+  it("converts textual booleans", () => {
+    expect(parseEnv(source({ TRUST_PROXY: "true" })).TRUST_PROXY).toBe(true);
+    expect(parseEnv(source({ TRUST_PROXY: "1" })).TRUST_PROXY).toBe(true);
+    expect(parseEnv(source({ TRUST_PROXY: "0" })).TRUST_PROXY).toBe(false);
+    expect(() => parseEnv(source({ TRUST_PROXY: "oui" }))).toThrow(ConfigError);
   });
 
-  it("fournit des métriques activées par défaut", () => {
-    const env = parseEnv({});
+  it("enables metrics by default", () => {
+    const env = parseEnv(source());
     expect(env.METRICS_ENABLED).toBe(true);
     expect(env.METRICS_DOCKER).toBe(true);
     expect(env.METRICS_UPS).toBe(true);
@@ -51,35 +61,35 @@ describe("parseEnv", () => {
     expect(env.DOCKER_API_URL).toBe("http://docker-proxy:2375");
   });
 
-  it("distingue l'interrupteur maître de la source Docker", () => {
-    // Couper Docker laisse la fonctionnalité debout (joueurs, UPS)…
-    expect(parseEnv({ METRICS_DOCKER: "false" })).toMatchObject({
+  it("tells the master switch from the Docker source", () => {
+    // Turning Docker off leaves the feature standing (players, UPS)…
+    expect(parseEnv(source({ METRICS_DOCKER: "false" }))).toMatchObject({
       METRICS_ENABLED: true,
       METRICS_DOCKER: false,
     });
-    // …alors que couper le maître ne présume rien des sources : elles ne sont
-    // simplement plus consultées.
-    expect(parseEnv({ METRICS_ENABLED: "false" }).METRICS_ENABLED).toBe(false);
+    // …whereas turning off the master switch presumes nothing about the
+    // sources: they are simply no longer consulted.
+    expect(parseEnv(source({ METRICS_ENABLED: "false" })).METRICS_ENABLED).toBe(false);
   });
 
-  it("valide les réglages métriques même quand la fonctionnalité est coupée", () => {
-    // Sinon une valeur fautive n'apparaîtrait que le jour de la réactivation.
+  it("validates metric settings even when the feature is off", () => {
+    // Otherwise a faulty value would only surface on the day it is re-enabled.
     expect(() =>
-      parseEnv({ METRICS_ENABLED: "false", METRICS_INTERVAL_MS: "10" }),
+      parseEnv(source({ METRICS_ENABLED: "false", METRICS_INTERVAL_MS: "10" })),
     ).toThrow(ConfigError);
   });
 
-  it("refuse une URL de démon Docker mal formée", () => {
-    expect(() => parseEnv({ DOCKER_API_URL: "docker-proxy:2375" })).toThrow(ConfigError);
+  it("refuses a malformed Docker daemon URL", () => {
+    expect(() => parseEnv(source({ DOCKER_API_URL: "docker-proxy:2375" }))).toThrow(ConfigError);
   });
 
-  it("refuse un intervalle d'échantillonnage trop court", () => {
-    // Sous 5 s, deux relevés Docker se chevaucheraient.
-    expect(() => parseEnv({ METRICS_INTERVAL_MS: "1000" })).toThrow(ConfigError);
+  it("refuses too short a sampling interval", () => {
+    // Below 5 s, two Docker readings would overlap.
+    expect(() => parseEnv(source({ METRICS_INTERVAL_MS: "1000" }))).toThrow(ConfigError);
   });
 
-  it("refuse une rétention nulle ou démesurée", () => {
-    expect(() => parseEnv({ METRICS_RETENTION_DAYS: "0" })).toThrow(ConfigError);
-    expect(() => parseEnv({ METRICS_RETENTION_DAYS: "9999" })).toThrow(ConfigError);
+  it("refuses a zero or outsized retention", () => {
+    expect(() => parseEnv(source({ METRICS_RETENTION_DAYS: "0" }))).toThrow(ConfigError);
+    expect(() => parseEnv(source({ METRICS_RETENTION_DAYS: "9999" }))).toThrow(ConfigError);
   });
 });

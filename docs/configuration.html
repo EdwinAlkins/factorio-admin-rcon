@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration &mdash; Factorio admin panel</title>
+<meta name="description" content="Every environment variable, its default, and what it actually changes.">
+<link rel="stylesheet" href="./assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<div class="topbar">
+  <a class="brand" href="./index.html">Factorio <span>admin panel</span></a>
+  <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
+</div>
+
+<div class="shell">
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./index.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html" aria-current="page">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<main id="content">
+<header>
+  <h1>Configuration</h1>
+  <p class="lede">Every environment variable, its default, and what it actually changes.</p>
+</header>
+
+<p>All configuration comes from environment variables, validated once at startup
+by a zod schema. A malformed value &mdash; a port that is not a number, a
+negative duration &mdash; is caught there rather than in the middle of a request
+six hours later.</p>
+
+<div class="note">
+  <strong>An empty variable counts as unset</strong>
+  <code>docker compose</code> passes <code>FOO=</code> when the <code>.env</code>
+  does not define <code>FOO</code>. The panel treats that as an absence and
+  applies the default, rather than rejecting an empty string.
+</div>
+
+<p>If the configuration is invalid the panel still starts: it logs the problem,
+<code>/api/ready</code> answers <code>503</code>, and every request returns an
+explicit error. Failing loudly beats refusing to boot without saying why.</p>
+<h2 id="auth">Accounts and sessions<a class="anchor" href="#auth" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>ADMIN_PASSWORD</code></td><td>&mdash;</td><td>Password for the administrator role. With no password set at all, the panel starts but refuses every sign-in.</td></tr><tr><td><code>MODERATOR_PASSWORD</code></td><td>&mdash;</td><td>Password for the moderator role.</td></tr><tr><td><code>VIEWER_PASSWORD</code></td><td>&mdash;</td><td>Password for the viewer role.</td></tr><tr><td><code>SESSION_SECRET</code></td><td><span class='pill pill-danger'>required</span></td><td>Session cookie signing key, 32 characters minimum. Independent from the passwords: rotating one signs nobody out. <code>openssl rand -hex 32</code>.</td></tr><tr><td><code>SESSION_TTL_HOURS</code></td><td><code>12</code></td><td>Session lifetime, 720 h at most.</td></tr><tr><td><code>COOKIE_SECURE</code></td><td><code>auto</code></td><td><code>auto</code> sets <code>secure</code> as soon as the request arrives over HTTPS. <code>true</code> forces it, <code>false</code> forbids it.</td></tr><tr><td><code>TRUST_PROXY</code></td><td><code>false</code></td><td>Trusts <code>X-Forwarded-For</code> and <code>X-Forwarded-Proto</code>. Only enable behind a proxy you control.</td></tr><tr><td><code>LOGIN_MAX_ATTEMPTS</code></td><td><code>5</code></td><td>Sign-in attempts per IP, when the IP is trustworthy.</td></tr><tr><td><code>LOGIN_WINDOW_MINUTES</code></td><td><code>15</code></td><td>Sliding window for the limit above.</td></tr><tr><td><code>LOGIN_GLOBAL_MAX_ATTEMPTS</code></td><td><code>50</code></td><td>Global cap, always active, including without a trustworthy IP.</td></tr></tbody></table></div><h2 id="rcon">RCON connection<a class="anchor" href="#rcon" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>RCON_HOST</code></td><td><code>factorio</code></td><td>Game server host, on the Compose network.</td></tr><tr><td><code>RCON_PORT</code></td><td><code>27015</code></td><td>RCON port.</td></tr><tr><td><code>RCON_PASSWORD</code></td><td>&mdash;</td><td>RCON password in clear. Takes precedence over the file below.</td></tr><tr><td><code>RCON_PASSWORD_FILE</code></td><td><code>/factorio-config/rconpw</code></td><td>File holding the password, re-read on every connection: a regeneration on the Factorio side is picked up without restarting the panel.</td></tr><tr><td><code>RCON_TIMEOUT_MS</code></td><td><code>5000</code></td><td>How long to wait for an RCON reply.</td></tr><tr><td><code>RCON_MAX_QUEUE</code></td><td><code>20</code></td><td>Queued commands beyond which the panel refuses (<code>503</code>) instead of piling up.</td></tr><tr><td><code>RCON_MAX_PER_MINUTE</code></td><td><code>60</code></td><td>Commands per minute, per session.</td></tr><tr><td><code>STATUS_CACHE_MS</code></td><td><code>5000</code></td><td>Server status cache duration. Without it, every open tab would fire two RCON commands every few seconds.</td></tr></tbody></table></div><h2 id="commands">Custom commands<a class="anchor" href="#commands" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>CUSTOM_COMMANDS_FILE</code></td><td><code>/factorio-config/commands.json</code></td><td>The operator's command catalogue. File absent: the feature is simply inactive. See <a href='./commands.html'>Custom commands</a>.</td></tr></tbody></table></div><h2 id="storage">Storage and audit<a class="anchor" href="#storage" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>DATA_DIR</code></td><td><code>./.data</code></td><td>Directory of the SQLite database. It is <code>/data</code> inside the image.</td></tr><tr><td><code>AUDIT_RETENTION_DAYS</code></td><td><code>90</code></td><td>Older audit entries are purged at startup.</td></tr><tr><td><code>AUDIT_FULL_COMMANDS</code></td><td><code>false</code></td><td>Keeps raw-console commands verbatim. Off by default: see <a href='./security.html#audit'>the audit log</a>.</td></tr></tbody></table></div><h2 id="metrics">Metrics<a class="anchor" href="#metrics" aria-label="Link to this section">#</a></h2>
+<p>Three levels: a master switch, then one flag per source.
+<code>METRICS_ENABLED=false</code> turns the whole feature off &mdash; no
+collector, no tab, no route &mdash; and the two source flags are then not even
+consulted.</p>
+<div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>METRICS_ENABLED</code></td><td><code>true</code></td><td>Master switch.</td></tr><tr><td><code>METRICS_DOCKER</code></td><td><code>true</code></td><td>Docker source (CPU and memory). At <code>false</code>, players and UPS keep being collected.</td></tr><tr><td><code>DOCKER_API_URL</code></td><td><code>http://docker-proxy:2375</code></td><td>Read-only Docker proxy. The panel never mounts the Docker socket.</td></tr><tr><td><code>METRICS_CONTAINER</code></td><td><code>factorio</code></td><td>Value of the <code>com.docker.compose.service</code> label, falling back to the container name.</td></tr><tr><td><code>DOCKER_TIMEOUT_MS</code></td><td><code>10000</code></td><td>Distinct from the RCON timeout: a Docker reading ties up the daemon for about a second to compute its CPU delta.</td></tr><tr><td><code>METRICS_INTERVAL_MS</code></td><td><code>15000</code></td><td>Collection period, 5,000 ms minimum.</td></tr><tr><td><code>METRICS_RETENTION_DAYS</code></td><td><code>7</code></td><td>Series retention, 365 days at most.</td></tr><tr><td><code>METRICS_UPS</code></td><td><code>true</code></td><td>Measures UPS through a Lua command. Turn it off if the save's achievements matter &mdash; they are disabled in multiplayer anyway.</td></tr></tbody></table></div><h2 id="logs">Logging<a class="anchor" href="#logs" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>LOG_LEVEL</code></td><td><code>info</code></td><td><code>debug</code>, <code>info</code>, <code>warn</code> or <code>error</code>. Logs are JSON on standard output, readable by any collector.</td></tr></tbody></table></div><h2 id="dev">Development only<a class="anchor" href="#dev" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>NEXT_DEV_ORIGINS</code></td><td>&mdash;</td><td>Hosts allowed to load <code>next dev</code> resources, hot reload included. Needed to open the panel from another machine on the network: <code>NEXT_DEV_ORIGINS=192.168.1.17</code>. No effect in production.</td></tr></tbody></table></div>
+<nav class="pager"><a href="./installation.html">&larr; Installation</a><a href="./commands.html">Custom commands &rarr;</a></nav>
+</main>
+</div>
+
+<footer class="site">
+  Factorio admin panel documentation &mdash;
+  <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">EdwinAlkins/factorio-admin-rcon</a>
+</footer>
+</body>
+</html>

@@ -2,11 +2,11 @@ import { env } from "@/server/config/env";
 import { RconService } from "@/server/rcon/service";
 
 /**
- * Instance unique par processus (une connexion RCON, une file).
- * Conservée sur `globalThis` pour survivre au hot-reload de `next dev`.
+ * One instance per process (one RCON connection, one queue), kept on
+ * `globalThis` to survive `next dev`'s hot reload.
  *
- * Contrainte de déploiement assumée : 1 conteneur = 1 processus Node =
- * 1 connexion RCON. Voir « modèle de sécurité » dans le README.
+ * Deliberate deployment constraint: 1 container = 1 Node process = 1 RCON
+ * connection. See "security model" in the README.
  */
 const globalRef = globalThis as typeof globalThis & { __factorioRconService?: RconService };
 
@@ -26,10 +26,15 @@ export function getRcon(): RconService {
   return globalRef.__factorioRconService;
 }
 
+/**
+ * Permanent shutdown of the process's RCON connection.
+ *
+ * The singleton is deliberately **not** cleared: a request arriving after the
+ * signal must land on the shutting-down service, which refuses it, rather than
+ * building a fresh one that would reopen a socket right after the SIGTERM.
+ */
 export async function shutdownRcon(): Promise<void> {
-  const service = globalRef.__factorioRconService;
-  globalRef.__factorioRconService = undefined;
-  await service?.shutdown();
+  await globalRef.__factorioRconService?.shutdown();
 }
 
 export function rconTarget(): string {

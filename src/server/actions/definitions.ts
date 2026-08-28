@@ -4,25 +4,25 @@ import { hasControlChar, type LuaKind } from "@/lib/lua-template";
 import type { ActionDto, ActionFieldDto } from "@/lib/api-types";
 
 /**
- * Catalogue des actions métier, défini **côté serveur**.
+ * Catalogue of business actions, defined **server-side**.
  *
- * L'interface envoie `{ action: "ban", values: { player, reason } }` : c'est le
- * serveur qui valide, applique la permission et construit la commande RCON.
- * Le client ne peut donc pas fabriquer une commande arbitraire via ce chemin.
+ * The interface sends `{ action: "ban", values: { player, reason } }`: it is the
+ * server that validates, enforces the permission and builds the RCON command.
+ * The client therefore cannot craft an arbitrary command through this path.
  *
- * Aucun texte d'interface ici : libellés, indices et confirmations sont des
- * clés `actions.items.<id>.*` dans `messages/*.json`, résolues côté client.
- * `tests/i18n/messages.test.ts` vérifie qu'aucune action n'a de clé manquante.
+ * No interface text here: labels, hints and confirmations are
+ * `actions.items.<id>.*` keys in `messages/*.json`, resolved on the client.
+ * `tests/i18n/messages.test.ts` checks that no action is missing a key.
  */
 
 export type ActionFieldKind = LuaKind;
 
 /**
- * Texte porté par la définition elle-même, par locale (`{ en, fr }`).
+ * Text carried by the definition itself, per locale (`{ en, fr }`).
  *
- * Les actions intégrées n'en ont pas : leurs libellés vivent dans les
- * dictionnaires. Seules les actions du fichier de l'opérateur en portent — un
- * catalogue écrit hors du dépôt ne peut pas alimenter `messages/*.json`.
+ * Built-in actions have none: their labels live in the dictionaries. Only
+ * actions from the operator's file carry text — a catalogue written outside the
+ * repository cannot feed `messages/*.json`.
  */
 export type LocalizedText = Record<string, string>;
 
@@ -34,11 +34,11 @@ export type ActionField = {
   /** `int`/`float` uniquement. */
   min?: number;
   max?: number;
-  /** `enum` uniquement : liste close des valeurs acceptées. */
+  /** `enum` only: the closed list of accepted values. */
   options?: string[];
-  /** `enum` uniquement : insérer la valeur nue plutôt qu'un littéral chaîne. */
+  /** `enum` only: insert the bare value rather than a string literal. */
   raw?: boolean;
-  /** Valeur retenue quand le champ est laissé vide. */
+  /** Value used when the field is left empty. */
   default?: string;
   label?: LocalizedText;
   placeholder?: LocalizedText;
@@ -47,28 +47,28 @@ export type ActionField = {
 
 export type ActionDefinition = {
   id: string;
-  /** Union fermée pour les actions intégrées, libre pour celles du fichier. */
+  /** A closed union for built-in actions, free-form for those from the file. */
   group: string;
   permission: Permission;
   risk: "none" | "dangerous";
-  /** Une confirmation est demandée ; son texte vit dans les dictionnaires. */
+  /** A confirmation is asked for; its text lives in the dictionaries. */
   confirm?: boolean;
   fields: ActionField[];
   build: (values: Record<string, string>) => string;
-  /** Actions du fichier de l'opérateur : textes et gabarit portés ici. */
+  /** Actions from the operator's file: text and template carried here. */
   text?: {
     label: LocalizedText;
     hint?: LocalizedText;
     confirmation?: LocalizedText;
     group?: LocalizedText;
   };
-  /** Gabarit source, transmis à l'interface pour l'aperçu avant confirmation. */
+  /** Source template, sent to the interface for the pre-confirmation preview. */
   template?: string;
   preview?: boolean;
 };
 
-// Un nom de joueur Factorio ne contient pas d'espace ; les guillemets et
-// l'antislash sont refusés en amont de tout échappement (cf. `lua-template`).
+// A Factorio player name contains no space; quotes and backslashes are refused
+// upstream of any escaping (see `lua-template`).
 const PLAYER_PATTERN = /^[^\s\r\n"'\\]{1,60}$/;
 const NO_NEWLINE = /^[^\r\n]*$/;
 // Noms de prototypes Factorio : `iron-plate`, `steel-processing`, `crude-oil`.
@@ -77,14 +77,14 @@ const IDENTIFIER_PATTERN = /^[A-Za-z0-9_.-]{1,80}$/;
 export const DEFAULT_MAX_LENGTH = 200;
 
 /**
- * Les messages zod ne sont pas des phrases mais des clés de traduction : c'est
- * `executeAction` qui les transforme en `{ code, params }` pour le client.
+ * zod messages are not sentences but translation keys: it is `executeAction`
+ * that turns them into `{ code, params }` for the client.
  */
 function base(field: ActionField): z.ZodString {
   return field.required ? z.string().min(1, "validation_required") : z.string();
 }
 
-/** Un champ facultatif laissé vide n'est pas une erreur de format. */
+/** An optional field left empty is not a formatting error. */
 function matches(field: ActionField, regex: RegExp) {
   return (value: string) => (value === "" && !field.required) || regex.test(value);
 }
@@ -97,9 +97,9 @@ function textual(field: ActionField, regex: RegExp, code: string): z.ZodType<str
 }
 
 /**
- * Les valeurs transitent en chaîne (`values: Record<string, string>`) : on
- * valide le nombre puis on rend sa forme canonique, pour que le gabarit n'ait
- * jamais à réinterpréter la saisie.
+ * Values travel as strings (`values: Record<string, string>`): the number is
+ * validated and then rendered in canonical form, so the template never has to
+ * reinterpret the input.
  */
 function numeric(field: ActionField): z.ZodType<string, string> {
   return z
@@ -133,7 +133,7 @@ function fieldSchema(field: ActionField): z.ZodType<string, string> {
       return numeric(field);
 
     case "bool":
-      // Une case à cocher envoie toujours une valeur : jamais « requise ».
+      // A checkbox always sends a value, so it is never "required".
       return z
         .string()
         .refine((value) => ["", "true", "false", "1", "0"].includes(value), "validation_bool")
@@ -157,11 +157,11 @@ function fieldSchema(field: ActionField): z.ZodType<string, string> {
 }
 
 /**
- * Schéma zod dérivé des champs déclarés par l'action.
+ * zod schema derived from the fields the action declares.
  *
- * Un champ absent ou vide retombe sur sa valeur par défaut *avant* validation :
- * les types non textuels (`int`, `enum`…) exigent donc un `default` s'ils sont
- * facultatifs, ce que le chargeur du fichier vérifie.
+ * A missing or empty field falls back to its default *before* validation, so
+ * non-textual types (`int`, `enum`…) require a `default` when they are
+ * optional — which the file loader checks.
  */
 export function schemaOf(definition: Pick<ActionDefinition, "fields">) {
   const shape: Record<string, z.ZodType<string>> = {};
@@ -326,7 +326,7 @@ export const ACTIONS: ActionDefinition[] = [
     permission: "action:moderate",
     risk: "none",
     fields: [MESSAGE],
-    // Sans « / » initial, Factorio diffuse le texte dans le chat de la partie.
+    // With no leading "/", Factorio broadcasts the text to the game chat.
     build: (v) => v.message,
   },
   {
@@ -343,7 +343,7 @@ export function findAction(id: string): ActionDefinition | undefined {
   return ACTIONS.find((action) => action.id === id);
 }
 
-/** Texte de la locale demandée, avec repli anglais puis première clé connue. */
+/** Text for the requested locale, falling back to English then the first key. */
 export function localized(text: LocalizedText | undefined, locale: string): string | undefined {
   if (!text) return undefined;
   return text[locale] ?? text.en ?? Object.values(text)[0];
@@ -387,8 +387,8 @@ export function toDto(definition: ActionDefinition, locale = "en"): ActionDto {
           },
         }
       : {}),
-    // Le gabarit ne quitte le serveur que si l'entrée demande un aperçu : il est
-    // de toute façon écrit par l'opérateur, jamais par un utilisateur du panneau.
+    // The template only leaves the server when the entry asks for a preview; it
+    // is written by the operator anyway, never by a user of the panel.
     ...(definition.preview && definition.template ? { template: definition.template } : {}),
   };
 }

@@ -13,55 +13,54 @@ import {
 } from "recharts";
 
 /**
- * Graphe temporel d'une métrique.
+ * Time chart for one metric.
  *
- * Deux couches superposées : une bande allant du minimum au maximum observés
- * dans le bucket, puis la courbe de la moyenne. C'est la bande qui rend les
- * pics visibles — l'agrégation les lisserait sinon précisément quand on les
- * cherche.
+ * Two stacked layers: a band from the minimum to the maximum observed in the
+ * bucket, then the average as a line. It is the band that makes spikes visible
+ * — aggregation would otherwise smooth them away exactly when you are looking
+ * for them.
  *
- * La bande part du **minimum**, pas de la moyenne : une tranche à
- * `10 10 10 10 95 10 10` remplie de la moyenne (≈22) jusqu'au pic donnerait à
- * voir une charge constamment située entre 22 et 95, ce que les données ne
- * disent pas. Du min au max, la zone décrit l'amplitude réellement observée.
+ * The band starts at the **minimum**, not the average: a slice of
+ * `10 10 10 10 95 10 10` filled from the average (≈22) up to the spike would
+ * suggest a load constantly between 22 and 95, which the data does not say.
+ * From min to max, the area describes the amplitude actually observed.
  *
- * `connectNulls` reste à sa valeur par défaut (`false`) : un trou de collecte
- * doit apparaître comme un trou, pas comme une droite reliant deux instants
- * sans rapport.
+ * `connectNulls` keeps its default (`false`): a collection gap must look like a
+ * gap, not like a straight line joining two unrelated moments.
  */
 
 export type ChartPoint = {
   ts: number;
-  /** Moyenne du bucket : la courbe. */
+  /** The bucket's average: the line. */
   value: number | null;
-  /** Bornes observées : la bande. */
+  /** Observed bounds: the band. */
   min: number | null;
   max: number | null;
-  /** Mesures réelles rapportées à celles attendues, dans [0, 1]. */
+  /** Real readings over expected readings, in [0, 1]. */
   coverage: number;
 };
 
 type Props = {
   points: ChartPoint[];
-  /** Couleur CSS ; les appelants passent un token de `globals.css`. */
+  /** CSS colour; callers pass a token from `globals.css`. */
   color: string;
-  /** Fenêtre demandée, pas l'étendue des données : voir `MetricsResult.from`. */
+  /** The requested window, not the data's extent: see `MetricsResult.from`. */
   from: number;
   to: number;
-  /** Borne haute de l'axe des ordonnées, arrondie par l'appelant. */
+  /** Upper bound of the y axis, rounded by the caller. */
   yMax: number;
-  /** Résumé chiffré lu par les lecteurs d'écran, le SVG leur étant opaque. */
+  /** Numeric summary for screen readers, to which the SVG is opaque. */
   label: string;
   averageLabel: string;
   extremeLabel: string;
   /**
-   * Borne intéressante de la bande : le maximum pour le CPU, le minimum pour
-   * l'UPS. Le modèle reste neutre, seule la présentation choisit son côté.
+   * The interesting end of the band: the maximum for CPU, the minimum for UPS.
+   * The model stays neutral; only the presentation picks a side.
    */
   extremeOf: (band: [number, number]) => number;
-  /** Affiché quand un bucket repose sur trop peu de mesures. */
+  /** Shown when a bucket rests on too few readings. */
   sparseLabel: string;
-  /** Mise en forme partagée avec l'en-tête chiffré du bloc. */
+  /** Formatting shared with the block's numeric header. */
   formatValue: (value: number) => string;
 };
 
@@ -75,12 +74,12 @@ type Row = {
 };
 
 /**
- * Couverture en dessous de laquelle la bande est masquée.
+ * Coverage below which the band is hidden.
  *
- * Un bucket d'une heure bâti sur deux relevés a un min et un max parfaitement
- * exacts, mais qui ne décrivent pas la période : afficher la zone reviendrait à
- * transformer une absence de mesure en information. La moyenne, elle, reste
- * tracée — c'est bien la valeur observée.
+ * An hour-long bucket built from two readings has a perfectly exact min and
+ * max, but they do not describe the period: drawing the area would turn an
+ * absence of measurement into information. The average is still plotted — that
+ * one really is the observed value.
  */
 const MIN_BAND_COVERAGE = 0.5;
 
@@ -110,7 +109,7 @@ export default function MetricsChart({
   const format = useFormatter();
   const rows = toRows(points);
 
-  // Au-delà d'une journée affichée, l'heure seule devient ambiguë.
+  // Past a day on screen, the time alone becomes ambiguous.
   const withDate = to - from > 24 * 60 * 60 * 1000;
 
   const formatTime = (ts: number) =>
@@ -133,9 +132,9 @@ export default function MetricsChart({
             dataKey="ts"
             type="number"
             scale="time"
-            // La fenêtre demandée, pas l'étendue des données : dix minutes de
-            // relevés sur une plage de 7 j doivent occuper un dixième de la
-            // largeur, pas la totalité.
+            // The requested window, not the data's extent: ten minutes of
+            // readings over a 7-day range must take a tenth of the width, not
+            // all of it.
             domain={[from, to]}
             tickFormatter={formatTime}
             stroke="var(--color-muted)"
@@ -199,8 +198,8 @@ function MetricTooltip({
   extremeLabel,
   extremeOf,
   sparseLabel,
-  // Recharts injecte `active`/`payload` à l'exécution : les rendre optionnels
-  // est ce qui permet d'écrire l'élément avec nos seules props à nous.
+  // Recharts injects `active`/`payload` at runtime: making them optional is
+  // what lets us write the element with only our own props.
 }: Partial<TooltipContentProps<number, string>> & {
   formatTime: (ts: number) => string;
   formatValue: (value: number) => string;
@@ -212,8 +211,8 @@ function MetricTooltip({
   const row = active ? (payload?.[0]?.payload as Row | undefined) : undefined;
   if (!row || row.value === null) return null;
 
-  // L'extrême n'est affiché que lorsqu'il se distingue de la moyenne : sur un
-  // bucket à un seul échantillon, le répéter n'apprendrait rien.
+  // The extreme is only shown when it differs from the average: on a
+  // single-sample bucket, repeating it would teach nothing.
   const extreme = row.band && row.band[1] !== row.band[0] ? extremeOf(row.band) : null;
 
   return (

@@ -8,6 +8,7 @@ import { usePolling } from "@/hooks/usePolling";
 import { useErrorMessage } from "@/hooks/useErrorMessage";
 import { fetchJson } from "@/lib/fetch-json";
 import type {
+  MetricsHealthState,
   MetricsAggregateDto,
   MetricsBucketDto,
   MetricsRange,
@@ -15,18 +16,18 @@ import type {
 } from "@/lib/api-types";
 
 /**
- * Historique de consommation du serveur.
+ * The server's consumption history.
  *
- * Le panneau reste monté quand l'onglet Console est actif (pour ne pas perdre
- * la saisie en cours côté Console) : c'est `active` qui coupe le sondage, pas
- * le démontage.
+ * The panel stays mounted while the Console tab is active (so the Console's
+ * in-progress input is not lost): it is `active` that stops polling, not
+ * unmounting.
  */
 
 const RANGES: MetricsRange[] = ["1h", "6h", "24h", "7d"];
 
-/** Cadence cible du moteur Factorio. */
+/** Factorio's target engine rate. */
 const NOMINAL_UPS = 60;
-/** En dessous, le serveur ne tient plus la cadence : la courbe passe au rouge. */
+/** Below this the server no longer keeps up: the line turns red. */
 const DEGRADED_UPS = 55;
 const REFRESH_MS = 30_000;
 
@@ -87,11 +88,11 @@ export default function MetricsPanel({ active, onUnauthorized, className }: Prop
     value === null ? "—" : `${format.number(value, { maximumFractionDigits: 1 })} %`;
 
   /**
-   * Mise en forme d'un nombre d'octets.
+   * Formatting for a byte count.
    *
-   * `scale` fige l'unité sur une valeur de référence. Sans lui, chaque
-   * graduation choisit la sienne et l'axe finit par afficher « 2,33 Gio » puis
-   * « 0 Mio » — deux échelles différentes sur la même règle.
+   * `scale` pins the unit to a reference value. Without it, every tick picks
+   * its own and the axis ends up showing "2.33 GiB" then "0 MiB" — two
+   * different scales on the same ruler.
    */
   const bytesOn = (scale: number) => (value: number | null) => {
     if (value === null) return "—";
@@ -100,7 +101,7 @@ export default function MetricsPanel({ active, onUnauthorized, className }: Prop
       : `${format.number(value / 1024 ** 2, { maximumFractionDigits: 0 })} Mio`;
   };
 
-  /** Pour les chiffres d'en-tête, isolés : l'unité s'adapte à chaque valeur. */
+  /** For the standalone header figures: the unit adapts to each value. */
   const bytes = (value: number | null) => bytesOn(value ?? 0)(value);
 
   const plain = (value: number | null, digits = 0) =>
@@ -109,41 +110,44 @@ export default function MetricsPanel({ active, onUnauthorized, className }: Prop
   const noData = data !== null && data.summary.cycles === 0;
 
   /**
-   * Bornes hautes des ordonnées.
+   * Upper bounds of the y axes.
    *
-   * Le CPU n'est volontairement pas plafonné à 100 % : la convention de
-   * `docker stats` compte 100 % par cœur, et un serveur Factorio sur quatre
-   * cœurs monte légitimement à 400 %. Le plancher à 100 évite seulement qu'un
-   * serveur au repos affiche une échelle de 3 %.
+   * CPU is deliberately not capped at 100%: `docker stats`'s convention counts
+   * 100% per core, and a Factorio server on four cores legitimately reaches
+   * 400%. The floor at 100 only keeps an idle server from showing a 3% scale.
    */
   const cpuMax = niceCeil(Math.max(100, summary?.cpu.max ?? 0));
   const memMax = niceCeil(summary?.memory.max ?? 0);
   const playersMax = niceCeil(Math.max(1, summary?.players.max ?? 0));
   /**
-   * 60 est la cadence nominale de Factorio, donc une borne d'axe en soi : la
-   * passer par `niceCeil` la ferait remonter à 100 et écraserait les creux dans
-   * les deux tiers inférieurs du cadre. On ne réarrondit que si le serveur
-   * dépasse réellement la cadence.
+   * 60 is Factorio's nominal rate, so it is an axis bound in itself: passing it
+   * through `niceCeil` would push it to 100 and squash the dips into the lower
+   * two thirds of the frame. It is only re-rounded when the server genuinely
+   * exceeds the rate.
    */
   const upsPeak = summary?.ups.max ?? 0;
   const upsMax = upsPeak > NOMINAL_UPS ? niceCeil(upsPeak) : NOMINAL_UPS;
 
   /**
-   * État de la source Docker, affiché **à côté** des courbes et non à leur
-   * place : une source tombée n'invalide pas l'historique déjà mesuré, qui
-   * reste précisément ce qu'on vient consulter après une panne.
+   * State of the Docker source, shown **next to** the charts rather than in
+   * their place: a source going down does not invalidate the history already
+   * measured, which is precisely what you come to read after an outage.
    */
-  const dockerNotice = !data
-    ? null
-    : !data.health.docker.enabled
-      ? t("dockerDisabled")
-      : !data.health.docker.healthy
-        ? t("dockerUnavailable")
-        : null;
+  const DOCKER_NOTICE: Record<MetricsHealthState, string | null> = {
+    disabled: t("dockerDisabled"),
+    // "Nothing measured yet" is not an outage: the collector's first round has
+    // not happened, and calling it unavailable would be a false positive.
+    unknown: t("dockerPending"),
+    healthy: null,
+    degraded: t("dockerDegraded"),
+    failed: t("dockerUnavailable"),
+  };
+
+  const dockerNotice = data ? DOCKER_NOTICE[data.health.docker.state] : null;
 
   /**
-   * Un bloc par métrique. La liste porte les seules différences réelles entre
-   * eux : l'unité, la couleur, et de quel côté se trouve l'extrême qui inquiète.
+   * One block per metric. The list carries the only real differences between
+   * them: the unit, the colour, and which end holds the worrying extreme.
    */
   const blocks = summary
     ? ([
@@ -193,8 +197,8 @@ export default function MetricsPanel({ active, onUnauthorized, className }: Prop
           headline: plain(summary.ups.current, 1),
           stats: summary.ups,
           points: series.ups,
-          // Sous 55 UPS le serveur ne tient plus la cadence : la courbe doit le
-          // dire sans qu'on ait à lire l'échelle.
+          // Below 55 UPS the server is no longer keeping up: the line must say
+          // so without anyone having to read the scale.
           color:
             (summary.ups.min ?? NOMINAL_UPS) < DEGRADED_UPS
               ? "var(--color-danger)"
@@ -281,11 +285,11 @@ function Block({
 }: {
   title: string;
   current: string;
-  /** `null` quand la métrique n'a aucune mesure : pas de légende à afficher. */
+  /** `null` when the metric has no reading: no legend to display. */
   stats: string | null;
-  /** État de la source, affiché en plus du graphe et non à sa place. */
+  /** Source state, shown alongside the chart rather than in its place. */
   notice: string | null;
-  /** Aucune mesure du tout : là, le graphe n'a rien à montrer. */
+  /** No reading at all: here the chart has nothing to show. */
   empty: boolean;
   children: React.ReactNode;
 }) {

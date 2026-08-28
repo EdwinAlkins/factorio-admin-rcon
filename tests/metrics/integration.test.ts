@@ -5,10 +5,10 @@ import { deriveUps } from "@/server/metrics/collector";
 import { resetEnvCache, useMemoryDatabase, withEnv } from "../helpers";
 
 /**
- * Chaîne complète relevé Docker → échantillon → SQLite → agrégation.
+ * The full chain: Docker reading → sample → SQLite → aggregation.
  *
- * Les tests unitaires valident chaque maillon isolément ; celui-ci vérifie que
- * les unités et la sémantique survivent au passage de l'un à l'autre.
+ * The unit tests validate each link in isolation; this one checks that units
+ * and semantics survive the passage from one to the next.
  */
 
 function dockerStats(totalUsage: number, systemUsage: number, memBytes: number) {
@@ -31,7 +31,7 @@ function dockerStats(totalUsage: number, systemUsage: number, memBytes: number) 
   };
 }
 
-describe("chaîne complète Docker → base → agrégation", () => {
+describe("full chain: Docker → database → aggregation", () => {
   beforeEach(() => {
     withEnv({ METRICS_RETENTION_DAYS: "7", METRICS_INTERVAL_MS: "15000" });
     useMemoryDatabase();
@@ -43,7 +43,7 @@ describe("chaîne complète Docker → base → agrégation", () => {
     vi.restoreAllMocks();
   });
 
-  it("conserve les unités du relevé Docker jusqu'au résumé", () => {
+  it("keeps the Docker reading's units all the way to the summary", () => {
     const now = Date.now();
     const stats = dockerStats(2_000_000_000, 40_000_000_000, 1_500_000_000);
 
@@ -61,14 +61,14 @@ describe("chaîne complète Docker → base → agrégation", () => {
     );
 
     const summary = readSummary("1h", now);
-    // 0,2 s de CPU sur 1 s de système et 2 cœurs → 40 %.
+    // 0.2 s of CPU per 1 s of system across 2 cores → 40%.
     expect(summary.cpu.current).toBeCloseTo(40, 5);
-    // Le cache inactif a bien été retranché avant l'écriture.
+    // The inactive cache was indeed subtracted before writing.
     expect(summary.memory.current).toBe(1_500_000_000);
     expect(summary.memLimit).toBe(4 * 1024 ** 3);
   });
 
-  it("reflète une limite mémoire modifiée par la recréation du conteneur", () => {
+  it("reflects a memory limit changed by recreating the container", () => {
     const now = Date.now();
     const base = (limit: number, ts: number) =>
       recordSample(
@@ -77,13 +77,13 @@ describe("chaîne complète Docker → base → agrégation", () => {
       );
 
     base(4 * 1024 ** 3, now - 60_000);
-    base(1 * 1024 ** 3, now); // conteneur recréé avec une limite plus basse
+    base(1 * 1024 ** 3, now); // container recreated with a lower limit
 
-    // `MAX(mem_limit)` aurait renvoyé 4 Gio : exact historiquement, faux à présent.
+    // `MAX(mem_limit)` would have returned 4 GiB: historically exact, wrong now.
     expect(readSummary("1h", now).memLimit).toBe(1 * 1024 ** 3);
   });
 
-  it("traverse une panne Docker sans perdre les mesures RCON", () => {
+  it("rides out a Docker outage without losing the RCON readings", () => {
     const now = Date.now();
     const partial = (cpu: number | null, players: number, ts: number) =>
       recordSample(
@@ -92,7 +92,7 @@ describe("chaîne complète Docker → base → agrégation", () => {
       );
 
     partial(40, 2, now - 45_000);
-    partial(null, 3, now - 30_000); // proxy tombé
+    partial(null, 3, now - 30_000); // proxy down
     partial(null, 4, now - 15_000);
     partial(55, 5, now); // proxy revenu
 
@@ -104,7 +104,7 @@ describe("chaîne complète Docker → base → agrégation", () => {
     expect(summary.players.current).toBe(5);
   });
 
-  it("dérive une UPS cohérente à partir de deux relevés successifs stockés", () => {
+  it("derives a consistent UPS from two successive stored readings", () => {
     const now = Date.now();
     const first = { tick: 100_000, at: now - 15_000 };
     const second = { tick: 100_900, at: now };
@@ -127,16 +127,16 @@ describe("chaîne complète Docker → base → agrégation", () => {
 
     const summary = readSummary("1h", now);
     expect(summary.ups.current).toBeCloseTo(60, 5);
-    // Le premier relevé n'a pas d'UPS : il n'avait pas de point de comparaison.
+    // The first reading has no UPS: it had nothing to compare against.
     expect(summary.ups.samples).toBe(1);
     expect(summary.cycles).toBe(2);
   });
 
-  it("agrège en buckets ce que le collecteur a écrit tour par tour", () => {
+  it("aggregates into buckets what the collector wrote round by round", () => {
     const bucketMs = 30_000;
     const now = Math.floor(Date.now() / bucketMs) * bucketMs;
 
-    // Une heure de tours réguliers, avec une bouffée de charge au milieu.
+    // An hour of regular rounds, with a burst of load in the middle.
     for (let i = 0; i < 240; i += 1) {
       const ts = now - 60 * 60 * 1000 + i * 15_000;
       const busy = i >= 120 && i < 128;
@@ -155,11 +155,11 @@ describe("chaîne complète Docker → base → agrégation", () => {
 
     const buckets = readSeries("1h", now);
     expect(buckets.length).toBeGreaterThan(50);
-    // Chaque bucket est plein : deux relevés à 15 s pour 30 s de tranche.
+    // Every bucket is full: two readings at 15 s for a 30 s slice.
     expect(buckets.every((b) => b.cpu.samples === b.expectedSamples)).toBe(true);
 
     const busy = buckets.filter((b) => (b.cpu.max ?? 0) > 100);
-    expect(busy.length).toBe(4); // 8 relevés ÷ 2 par bucket
+    expect(busy.length).toBe(4); // 8 readings ÷ 2 per bucket
     expect(busy.every((b) => b.ups.min === 41)).toBe(true);
     expect(readSummary("1h", now).ups.min).toBe(41);
   });

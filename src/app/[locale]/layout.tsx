@@ -24,7 +24,7 @@ export async function generateMetadata({
 export default async function RootLayout({ children, params }: LayoutProps<"/[locale]">) {
   const { locale } = await params;
 
-  // Une locale inconnue dans l'URL doit donner un 404, pas un dictionnaire vide.
+  // An unknown locale in the URL must give a 404, not an empty dictionary.
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 

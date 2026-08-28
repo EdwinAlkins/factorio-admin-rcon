@@ -9,53 +9,53 @@ function build(id: string, values: Record<string, string>) {
   return action.build(parsed.data as Record<string, string>);
 }
 
-describe("catalogue d'actions", () => {
-  it("n'a pas d'identifiant en double", () => {
+describe("action catalogue", () => {
+  it("has no duplicate id", () => {
     const ids = ACTIONS.map((action) => action.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("déclare une permission connue pour chaque action", () => {
+  it("declares a known permission for every action", () => {
     for (const action of ACTIONS) {
       expect(permissionsOf("admin")).toContain(action.permission);
     }
   });
 
-  it("construit les commandes attendues", () => {
+  it("builds the expected commands", () => {
     expect(build("players-online", {})).toBe("/players online");
     expect(build("kick", { player: "bob", reason: "spam" })).toBe("/kick bob spam");
     expect(build("kick", { player: "bob" })).toBe("/kick bob");
     expect(build("ban", { player: "bob", reason: "griefing" })).toBe("/ban bob griefing");
     expect(build("whisper", { player: "bob", message: "salut" })).toBe("/whisper bob salut");
-    // Sans « / » initial : Factorio diffuse le texte dans le chat.
+    // With no leading "/": Factorio broadcasts the text to the chat.
     expect(build("broadcast", { message: "redémarrage" })).toBe("redémarrage");
   });
 
-  it("refuse un nom de joueur avec espace ou saut de ligne", () => {
+  it("refuses a player name with a space or a line break", () => {
     expect(() => build("kick", { player: "bob smith" })).toThrow();
     expect(() => build("kick", { player: "bob\n/server-save" })).toThrow();
   });
 
-  it("refuse une raison contenant un saut de ligne", () => {
+  it("refuses a reason containing a line break", () => {
     expect(() => build("ban", { player: "bob", reason: "spam\n/promote bob" })).toThrow();
   });
 
-  it("refuse un champ obligatoire vide", () => {
+  it("refuses an empty required field", () => {
     expect(() => build("broadcast", { message: "" })).toThrow();
     expect(() => build("kick", {})).toThrow();
   });
 
-  it("refuse un champ non déclaré", () => {
+  it("refuses an undeclared field", () => {
     expect(() => build("players", { player: "bob" })).toThrow();
   });
 
-  it("limite la longueur des messages", () => {
+  it("limits message length", () => {
     expect(() => build("broadcast", { message: "a".repeat(500) })).toThrow();
   });
 });
 
-describe("permissions par rôle", () => {
-  it("donne à l'observateur les infos mais rien d'autre", () => {
+describe("permissions per role", () => {
+  it("gives the viewer info and nothing else", () => {
     expect(can("viewer", "action:info")).toBe(true);
     expect(can("viewer", "action:moderate")).toBe(false);
     expect(can("viewer", "action:server")).toBe(false);
@@ -63,13 +63,13 @@ describe("permissions par rôle", () => {
     expect(can("viewer", "audit:read")).toBe(false);
   });
 
-  it("donne au modérateur la modération mais pas la console brute", () => {
+  it("gives the moderator moderation but not the raw console", () => {
     expect(can("moderator", "action:moderate")).toBe(true);
     expect(can("moderator", "action:server")).toBe(false);
     expect(can("moderator", "rcon:raw")).toBe(false);
   });
 
-  it("réserve la console RCON brute et l'audit à l'administrateur", () => {
+  it("reserves the raw RCON console and the audit log for the administrator", () => {
     expect(can("admin", "rcon:raw")).toBe(true);
     expect(can("admin", "audit:read")).toBe(true);
     for (const role of ROLES) {
@@ -77,7 +77,7 @@ describe("permissions par rôle", () => {
     }
   });
 
-  it("laisse le bannissement derrière une permission de modération", () => {
+  it("keeps banning behind a moderation permission", () => {
     const ban = findAction("ban")!;
     expect(ban.permission).toBe("action:moderate");
     expect(ban.confirm).toBe(true);

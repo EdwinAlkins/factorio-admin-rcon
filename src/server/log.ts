@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { env } from "@/server/config/env";
 
 /**
- * Logs structurés en JSON, exploitables par n'importe quel collecteur.
- * Aucun secret n'est jamais passé à ces fonctions (mots de passe, cookies).
+ * Structured JSON logs, readable by any collector.
+ * No secret is ever passed to these functions (passwords, cookies).
  */
 
 type Level = "debug" | "info" | "warn" | "error";
@@ -17,7 +17,7 @@ function emit(level: Level, message: string, fields: LogFields = {}) {
   try {
     threshold = ORDER[env().LOG_LEVEL];
   } catch {
-    // Configuration invalide : on log quand même, c'est justement le moment.
+    // Invalid configuration: log anyway — this is precisely the moment to.
   }
   if (ORDER[level] < threshold) return;
 

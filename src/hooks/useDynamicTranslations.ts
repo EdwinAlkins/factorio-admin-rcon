@@ -4,18 +4,18 @@ import { useTranslations } from "next-intl";
 import type { ErrorParams } from "@/lib/api-types";
 
 /**
- * Traducteur à clé dynamique.
+ * Translator for dynamically built keys.
  *
- * Certaines clés sont construites à l'exécution (`items.<id>.label` à partir du
- * catalogue, `errors.<code>` à partir d'une réponse API) : le typage littéral
- * de next-intl ne peut rien vérifier dans ce cas. On l'échange donc contre une
- * signature `string`, et c'est `tests/i18n/messages.test.ts` qui garantit que
- * chaque clé attendue existe bien dans les deux dictionnaires.
+ * Some keys are built at runtime (`items.<id>.label` from the catalogue,
+ * `errors.<code>` from an API response), and next-intl's literal typing cannot
+ * check anything there. It is traded for a `string` signature, and
+ * `tests/i18n/messages.test.ts` is what guarantees every expected key really
+ * exists in both dictionaries.
  */
 export type DynamicTranslator = {
   (key: string, values?: ErrorParams): string;
   has: (key: string) => boolean;
-  /** Message brut, sans passage par ICU. Cf. `useActionText.hint`. */
+  /** Raw message, bypassing ICU. See `useActionText.hint`. */
   raw: (key: string) => string;
 };
 

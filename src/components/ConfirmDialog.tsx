@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 type Props = {
   title: string;
   message: string;
-  /** Commande exacte qui sera envoyée : dernière chance de voir une erreur. */
+  /** The exact command that will be sent: the last chance to spot a mistake. */
   details?: string;
   confirmLabel?: string;
   onConfirm: () => void;
@@ -14,8 +14,8 @@ type Props = {
 };
 
 /**
- * Remplace `window.confirm` : non bloquant pour le thread, stylé comme le reste
- * du panneau et accessible (rôle dialog, focus initial, Échap pour annuler).
+ * Replaces `window.confirm`: non-blocking for the thread, styled like the rest
+ * of the panel and accessible (dialog role, initial focus, Escape to cancel).
  */
 export default function ConfirmDialog({
   title,

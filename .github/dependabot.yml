@@ -1,0 +1,90 @@
+# Dependency updates.
+#
+# What matters for this repository: semantic-release reads commit messages. A
+# `fix` prefix cuts a version and rebuilds the image, `chore` releases nothing.
+# The split below is therefore deliberate, not cosmetic.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Paris
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+
+    commit-message:
+      # dependencies    -> fix(deps): …        cuts a version, hence an image
+      # devDependencies -> chore(deps-dev): …  tooling, no release
+      prefix: fix
+      prefix-development: chore
+      include: scope
+
+    groups:
+      # Next and React move together: a major of Next forces the matching major
+      # of React. Splitting them gives two PRs, neither of which passes CI.
+      next-react:
+        patterns:
+          - next
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
+          - eslint-config-next
+
+      eslint:
+        patterns:
+          - eslint
+          - "@eslint/*"
+          - typescript-eslint
+
+      vitest:
+        patterns:
+          - vitest
+          - "@vitest/*"
+
+      tailwindcss:
+        patterns:
+          - tailwindcss
+          - "@tailwindcss/*"
+
+      # The rest of the tooling in a single PR: these updates only affect CI,
+      # and reviewing them one by one teaches nothing.
+      tooling:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+  # Base images of both Dockerfiles. Careful: the Node version also lives in
+  # `engines` (package.json) and in ci.yml's `node-version`, neither of which
+  # Dependabot sees — align them by hand in the same PR.
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Paris
+    labels: ["dependencies"]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Paris
+    labels: ["dependencies"]
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      github-actions:
+        patterns: ["*"]

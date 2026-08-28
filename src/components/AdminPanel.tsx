@@ -29,10 +29,10 @@ type Pending = {
 type Tab = "console" | "metrics";
 
 /**
- * Commande telle qu'elle partira, affichée avant confirmation. Purement
- * informative : le serveur refait le rendu à partir du gabarit qu'il détient,
- * et seul le sien fait foi. Un rendu impossible (saisie encore incomplète)
- * n'empêche donc pas l'envoi — le serveur répondra par une erreur de saisie.
+ * The command as it will be sent, shown before confirming. Purely informative:
+ * the server re-renders it from the template it holds, and only its version is
+ * authoritative. A rendering that fails (input still incomplete) therefore does
+ * not block sending — the server will answer with a validation error.
  */
 function preview(action: ActionDto, values: Record<string, string>): string | undefined {
   if (!action.template) return undefined;
@@ -49,7 +49,7 @@ const TABS: Tab[] = ["console", "metrics"];
 type Props = {
   session: SessionInfo;
   actions: ActionDto[];
-  /** `false` : fonctionnalité coupée côté serveur, l'onglet n'existe pas. */
+  /** `false`: the feature is off server-side, so the tab does not exist. */
   metricsEnabled: boolean;
 };
 
@@ -120,8 +120,8 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
     const outcome = await fetchJson<{ ok: true }>("/api/logout", { method: "POST" });
 
     if (outcome.kind === "error") {
-      // La session reste valide côté serveur : mieux vaut le dire que de
-      // rediriger en laissant croire à une déconnexion effective.
+      // The session is still valid server-side: better to say so than to
+      // redirect and imply the sign-out actually happened.
       setLogoutError(t("errors.logout_failed"));
       return;
     }
@@ -159,9 +159,9 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
             unique n'est pas un onglet, et l'écran redevient exactement celui
             d'avant la fonctionnalité. */}
         {metricsEnabled ? (
-          // Les deux panneaux restent montés : masquer plutôt que démonter
-          // préserve la saisie et le défilement de la console d'un onglet à
-          // l'autre. Le sondage des métriques est coupé par `active`.
+          // Both panels stay mounted: hiding rather than unmounting preserves
+          // the console's input and scroll position across tabs. Metric polling
+          // is stopped by `active`.
           <div className="flex min-h-0 flex-col gap-3">
             <nav className="flex gap-2">
               {TABS.map((key) => (

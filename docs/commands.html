@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom commands &mdash; Factorio admin panel</title>
+<meta name="description" content="Describe your own commands in a JSON file, input fields included, without handing anyone the raw console.">
+<link rel="stylesheet" href="./assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<div class="topbar">
+  <a class="brand" href="./index.html">Factorio <span>admin panel</span></a>
+  <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
+</div>
+
+<div class="shell">
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./index.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html" aria-current="page">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<main id="content">
+<header>
+  <h1>Custom commands</h1>
+  <p class="lede">Describe your own commands in a JSON file, input fields included, without handing anyone the raw console.</p>
+</header>
+
+<p>The built-in catalogue covers moderation: kick, ban, mute, broadcast. Anything
+beyond that &mdash; the Lua incantations every server ends up keeping in a text
+file &mdash; is described in a JSON catalogue you provide.</p>
+
+<p>The point is not only convenience. A command declared here is
+<strong>bounded</strong>: a moderator gets a &ldquo;Kill all enemies&rdquo; button
+with a player field, without ever receiving <code>rcon:raw</code> &mdash; that
+is, without being able to run arbitrary Lua.</p>
+<h2 id="location">Where the file lives<a class="anchor" href="#location" aria-label="Link to this section">#</a></h2>
+<p>The path comes from <code>CUSTOM_COMMANDS_FILE</code>, by default
+<code>/factorio-config/commands.json</code> &mdash; already mounted read-only by
+the <code>docker-compose.yml</code>. Dropping the file into
+<code>./data/config/</code> is therefore enough.</p>
+
+<p>A complete, ready-to-use example lives in
+<a href="https://github.com/EdwinAlkins/factorio-admin-rcon/blob/main/examples/commands.json"><code>examples/commands.json</code></a>.</p>
+
+<div class="note">
+  <strong>Re-read on change, and forgiving</strong>
+  The file is re-read whenever it changes, so you can fix your catalogue without
+  restarting the container. An invalid entry is skipped with a log line naming
+  it; an unparseable file leaves the panel running with the built-in actions
+  only, and <code>/api/ready</code> reports <code>commands: false</code>.
+</div>
+<h2 id="example">A complete example<a class="anchor" href="#example" aria-label="Link to this section">#</a></h2><div class="snippet" data-lang="json"><pre><code>{
+  "version": 1,
+  "groups": {
+    "cleanup": { "en": "Cleanup", "fr": "Nettoyage" }
+  },
+  "commands": [
+    {
+      "id": "kill-enemies",
+      "group": "cleanup",
+      "permission": "action:moderate",
+      "label": { "en": "Kill all enemies", "fr": "Tuer tous les ennemis" },
+      "hint": { "en": "Every enemy entity on the player's surface" },
+      "confirmation": { "en": "Destroy every enemy entity?" },
+      "params": [
+        {
+          "name": "player",
+          "type": "player",
+          "label": { "en": "Player" },
+          "help": { "en": "Only used to pick the surface" }
+        }
+      ],
+      "template": "/c local s = game.players[{{player}}].surface local n = 0 for _, e in pairs(s.find_entities_filtered({force = \"enemy\"})) do e.destroy() n = n + 1 end rcon.print(n .. \" entities destroyed\")"
+    }
+  ]
+}</code></pre></div><h2 id="keys">A command's keys<a class="anchor" href="#keys" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Key</th><th>Default</th><th>Meaning</th></tr></thead><tbody><tr><td><code>id</code></td><td><span class='pill'>required</span></td><td>Unique. Exposed and audited as <code>custom:&lt;id&gt;</code>, so it can never collide with a built-in action.</td></tr><tr><td><code>label</code></td><td><span class='pill'>required</span></td><td>Button text. A plain string, or an object per language: <code>{ "en": …, "fr": … }</code>.</td></tr><tr><td><code>template</code></td><td><span class='pill'>required</span></td><td>The command, with its <code>{{name}}</code> markers.</td></tr><tr><td><code>group</code></td><td><code>custom</code></td><td>Heading in the quick actions. Its label comes from the <code>groups</code> table.</td></tr><tr><td><code>permission</code></td><td><code>action:custom</code></td><td><code>action:info</code>, <code>action:moderate</code>, <code>action:server</code> or <code>action:custom</code>. See below.</td></tr><tr><td><code>risk</code></td><td><code>dangerous</code></td><td><code>dangerous</code> colours the button as destructive.</td></tr><tr><td><code>confirm</code></td><td><code>true</code></td><td>Ask for confirmation before running.</td></tr><tr><td><code>preview</code></td><td><code>true</code></td><td>Show the rendered command in that confirmation.</td></tr><tr><td><code>hint</code></td><td>&mdash;</td><td>Help line under the button.</td></tr><tr><td><code>confirmation</code></td><td>&mdash;</td><td>Text of the confirmation dialog.</td></tr><tr><td><code>params</code></td><td><code>[]</code></td><td>The fields the user fills in.</td></tr></tbody></table></div>
+<div class="warn">
+  <strong>The <code>permission</code> default is deliberately strict</strong>
+  An entry that says nothing stays administrator-only. Opening a command to
+  moderators is an explicit gesture, not an oversight. <code>rcon:raw</code> is
+  not offerable: a catalogue action is bounded by definition, and the raw console
+  already exists for the rest.
+</div>
+<h2 id="types">Field types<a class="anchor" href="#types" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th><code>type</code></th><th>Accepts</th><th>Inserted as</th></tr></thead><tbody><tr><td><code>player</code></td><td>No space, quote or backslash; 60 characters</td><td>Lua string</td></tr><tr><td><code>text</code></td><td>No line break; <code>maxLength</code> (200 by default)</td><td>Lua string</td></tr><tr><td><code>identifier</code></td><td>A prototype name: <code>iron-plate</code>, <code>steel-processing</code></td><td>Lua string</td></tr><tr><td><code>int</code> / <code>float</code></td><td>A number within <code>min</code>…<code>max</code></td><td>Bare number</td></tr><tr><td><code>bool</code></td><td>A checkbox</td><td><code>true</code> / <code>false</code></td></tr><tr><td><code>enum</code></td><td>One value out of <code>options</code></td><td>Lua string, or bare with <code>"raw": true</code></td></tr></tbody></table></div>
+<p>Every field also takes <code>required</code> (<code>true</code> by default),
+<code>default</code>, <code>label</code>, <code>placeholder</code> and
+<code>help</code>.</p>
+
+<div class="note">
+  <strong>A non-textual optional field must declare a <code>default</code></strong>
+  Otherwise an empty field has no meaning: the empty string is not a number. The
+  loader rejects the entry rather than failing at execution time.
+</div>
+<h2 id="templates">Writing a template<a class="anchor" href="#templates" aria-label="Link to this section">#</a></h2><h3 id="quotes">The template never writes its own quotes<a class="anchor" href="#quotes" aria-label="Link to this section">#</a></h3>
+<p>You write <code>game.players[{{player}}]</code>, not
+<code>game.players[&quot;{{player}}&quot;]</code>. The panel builds the complete
+Lua literal, quotes included, and escapes whatever the user typed.</p>
+
+<p>This is what makes the delegation safe: a value cannot break out of the string
+it lands in. A template that wrote its own quotes would bring the problem back,
+since imperfect escaping would then be enough to escape.</p>
+<h3 id="insertion">Two insertion modes<a class="anchor" href="#insertion" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Marker</th><th>Produces</th><th>For</th></tr></thead><tbody><tr><td><code>{{name}}</code></td><td>A complete Lua literal: <code>&quot;Edwins&quot;</code>, <code>250</code>, <code>true</code></td><td>Lua commands (<code>/c</code>, <code>/silent-command</code>)</td></tr><tr><td><code>{{arg:name}}</code></td><td>The bare, already-validated value: <code>Edwins</code></td><td>Regular commands: <code>/kick {{arg:player}} {{arg:reason}}</code></td></tr></tbody></table></div>
+<div class="warn">
+  <strong><code>--</code> is refused inside a template</strong>
+  Line breaks are flattened into spaces before sending &mdash; which is what lets
+  you write a template across several lines &mdash; but a Lua comment would then
+  swallow the rest of the command. Negative numbers are parenthesised for the
+  same reason: <code>x-{{n}}</code> would otherwise produce <code>x--5</code>.
+</div>
+<h2 id="pitfalls">Two Factorio pitfalls<a class="anchor" href="#pitfalls" aria-label="Link to this section">#</a></h2><h3 id="game-player">game.player does not exist over RCON<a class="anchor" href="#game-player" aria-label="Link to this section">#</a></h3>
+<p>Nearly every example on the <a href="https://wiki.factorio.com/console">wiki</a>
+is written for a game client's console and uses <code>game.player</code>.
+<strong>Over RCON there is no current player: <code>game.player</code> is
+<code>nil</code> and the command fails.</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Wiki (game client)</th><th>Server / RCON</th></tr></thead><tbody><tr><td><code>game.player</code></td><td><code>game.players["Name"]</code> or <code>game.get_player("Name")</code></td></tr><tr><td><code>game.player.surface</code></td><td><code>game.players["Name"].surface</code> or <code>game.surfaces["nauvis"]</code></td></tr><tr><td><code>game.player.force</code></td><td><code>game.forces["player"]</code></td></tr><tr><td><code>game.player.print(x)</code></td><td><code>rcon.print(x)</code> &mdash; otherwise the output never reaches the panel</td></tr></tbody></table></div>
+<p>This is why the <code>player</code> field type is the central case rather than
+an edge case, and why the shipped example catalogue is rewritten for a server
+instead of copied from the wiki.</p>
+<h3 id="achievements">/c disables achievements<a class="anchor" href="#achievements" aria-label="Link to this section">#</a></h3>
+<p>Permanently, for the save in question. They are disabled in multiplayer
+anyway, but it is worth knowing before handing out <code>/c</code> buttons.</p>
+<h2 id="refusals">What the panel refuses<a class="anchor" href="#refusals" aria-label="Link to this section">#</a></h2>
+<p>The file is trusted: it is written by whoever deploys the container, on the
+same footing as an environment variable. What is <strong>not</strong> trusted is
+the values typed into the interface. The boundary between the two is where
+everything is decided.</p>
+
+<ul>
+  <li><strong>Per-type allow-list</strong> &mdash; a <code>player</code> refuses
+      quotes, backslashes, spaces and control characters.</li>
+  <li><strong>Literal built, never concatenated</strong> &mdash; a single function
+      produces Lua literals, so there is only one place to audit.</li>
+  <li><strong>Unknown marker refused at load time</strong> &mdash; every
+      <code>{{…}}</code> must match a declared parameter.</li>
+  <li><strong>Template size bounded</strong> &mdash; 4,000 bytes, the limit of an
+      RCON frame.</li>
+  <li><strong>Unique ids</strong>, prefixed <code>custom:</code>.</li>
+</ul>
+
+<p>Concretely, a moderator typing
+<code>x&quot;] rcon.print(&quot;pwned&quot;) [</code> into a <code>player</code>
+field gets a <code>400</code> and nothing reaches RCON. In a <code>text</code>
+field, where quotes are legitimate, the value is escaped and the literal stays
+closed.</p>
+<h2 id="checking">Checking your catalogue<a class="anchor" href="#checking" aria-label="Link to this section">#</a></h2>
+<p>At startup the panel logs what it loaded:</p>
+<div class="snippet" data-lang="json"><pre><code>{"level":"info","msg":"commands: catalogue loaded","file":"/factorio-config/commands.json","loaded":11,"rejected":0}</code></pre></div>
+<p>A rejected entry appears at <code>warn</code> level with its id and the
+reason. And <code>/api/ready</code> tells the two cases apart: file absent
+(feature inactive, <code>ok</code>) versus file present but unreadable
+(<code>commands: false</code>).</p>
+
+<nav class="pager"><a href="./configuration.html">&larr; Configuration</a><a href="./security.html">Security model &rarr;</a></nav>
+</main>
+</div>
+
+<footer class="site">
+  Factorio admin panel documentation &mdash;
+  <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">EdwinAlkins/factorio-admin-rcon</a>
+</footer>
+</body>
+</html>

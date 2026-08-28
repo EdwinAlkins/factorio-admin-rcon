@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Development &mdash; Factorio admin panel</title>
+<meta name="description" content="Code layout, test layers, internationalisation and the release chain.">
+<link rel="stylesheet" href="./assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<div class="topbar">
+  <a class="brand" href="./index.html">Factorio <span>admin panel</span></a>
+  <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
+</div>
+
+<div class="shell">
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./index.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html" aria-current="page">Development</a></li></ul></nav>
+<main id="content">
+<header>
+  <h1>Development</h1>
+  <p class="lede">Code layout, test layers, internationalisation and the release chain.</p>
+</header>
+<h2 id="start">Getting started<a class="anchor" href="#start" aria-label="Link to this section">#</a></h2><div class="snippet" data-lang="bash"><pre><code>cp .env.example .env.local   # at minimum ADMIN_PASSWORD and SESSION_SECRET
+npm install
+npm run dev                  # http://localhost:3000</code></pre></div><div class="snippet" data-lang="bash"><pre><code>npm run lint        # eslint
+npm run typecheck   # next typegen &amp;&amp; tsc --noEmit
+npm test            # vitest
+npm run build</code></pre></div>
+<div class="note">
+  <strong>Developing without a Factorio server</strong>
+  The panel works: the status bar simply shows the RCON error. Your
+  <code>.env</code> must set <code>RCON_PASSWORD_FILE</code> (for instance
+  <code>../data/config/rconpw</code>) or <code>RCON_PASSWORD</code>, otherwise the
+  default path <code>/factorio-config/rconpw</code> does not exist on the host. To
+  open the panel from another machine, set <code>NEXT_DEV_ORIGINS</code>, or hot
+  reload is blocked.
+</div>
+<h2 id="architecture">Architecture<a class="anchor" href="#architecture" aria-label="Link to this section">#</a></h2><div class="snippet" data-lang="text"><pre><code>src/
+├── app/            pages + API routes (pages live under `[locale]/`)
+├── components/     interface (console, actions, audit, metrics, dialog)
+├── hooks/          server status, command execution, translations
+├── i18n/           routing, dictionary loading, locale-aware navigation
+├── lib/            shared client/server code (types, permissions, Lua templates)
+└── server/         server-only code
+    ├── actions/    business definitions, operator catalogue, execution
+    ├── audit/      SQLite log
+    ├── auth/       accounts, sessions, rate limiters
+    ├── config/     validated environment variables (zod)
+    ├── http/       route wrapper (session, permission, origin, logs)
+    ├── metrics/    Docker client, collector, time series
+    └── rcon/       service, queue, parsing, status cache
+
+messages/           dictionaries (en.json is the reference)
+docs/               this site</code></pre></div>
+<p>Two rules shape the server code:</p>
+<ul>
+  <li><strong>No interface text under <code>src/server/</code></strong>. The API
+      only returns identifiers (<code>ban</code>, <code>moderation</code>) and
+      error codes (<code>validation_player</code>), which the interface
+      translates. The single documented exception is custom commands, which carry
+      their own text since a catalogue written outside the repository cannot feed
+      the dictionaries.</li>
+  <li><strong>Singletons live on <code>globalThis</code></strong> to survive hot
+      reload. The corollary: two module graphs can share an object without
+      sharing the class that created it &mdash; which is why errors carry a mark
+      taken from the global symbol registry instead of being recognised by
+      <code>instanceof</code>.</li>
+</ul>
+<h2 id="tests">Tests<a class="anchor" href="#tests" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Path</th><th>Covers</th></tr></thead><tbody><tr><td><code>tests/&lt;domain&gt;/</code></td><td>Pure logic: RCON queue and lifecycle, Lua escaping, catalogue validation, sessions, rate limiters, metrics, dictionaries</td></tr><tr><td><code>tests/api/</code></td><td>The route handlers, called with a real <code>Request</code>: authentication, roles, validation, error codes, audit trail</td></tr><tr><td><code>tests/security/</code></td><td>What must not regress: origin checking on every mutating route, <code>X-Forwarded-For</code> ignored without <code>TRUST_PROXY</code>, cookie flags, CSP nonce</td></tr><tr><td><code>tests/proxy/</code></td><td>The session guard: no combination of cookie state may produce a redirect cycle</td></tr></tbody></table></div><h2 id="i18n">Internationalisation<a class="anchor" href="#i18n" aria-label="Link to this section">#</a></h2>
+<p>English (default, unprefixed) and French (<code>/fr</code>). The language is
+inferred from <code>Accept-Language</code> on the first visit, switchable from
+the status bar, and remembered in a cookie.</p>
+
+<p>To add a language:</p>
+<ol>
+  <li>copy <code>messages/en.json</code> to <code>messages/&lt;code&gt;.json</code>
+      and translate the values;</li>
+  <li>add the code to <code>locales</code> in <code>src/i18n/routing.ts</code>;</li>
+  <li>add its name under <code>localeSwitcher</code> in every dictionary;</li>
+  <li><code>npm test</code> &mdash; the suite checks that all dictionaries expose
+      exactly the same keys, that no catalogue action is missing a label, and that
+      every message compiles as ICU.</li>
+</ol>
+
+<p>Deliberately left untranslated: raw Factorio output, RCON commands and server
+logs &mdash; they are aimed at the operator.</p>
+<h2 id="releases">Releases<a class="anchor" href="#releases" aria-label="Link to this section">#</a></h2>
+<p>semantic-release reads commit messages following the <em>conventional
+commits</em> convention: <code>fix:</code> cuts a patch, <code>feat:</code> a
+minor, <code>chore:</code> releases nothing. The released version is tagged,
+<code>CHANGELOG.md</code> is updated, and the Docker images are pushed.</p>
+<h3 id="dependabot">Dependabot<a class="anchor" href="#dependabot" aria-label="Link to this section">#</a></h3>
+<p><code>.github/dependabot.yml</code> drives dependency updates. Dependabot is
+native to GitHub: there is no app to install, the file is enough. Three
+ecosystems are tracked &mdash; <code>npm</code>, <code>docker</code> (base
+images) and <code>github-actions</code>.</p>
+
+<p>The choice that matters is the commit prefix, because semantic-release reads
+it:</p>
+<div class="table-wrap"><table><thead><tr><th>Source</th><th>Commit produced</th><th>Effect</th></tr></thead><tbody><tr><td><code>dependencies</code></td><td><code>fix(deps): …</code></td><td>Cuts a version and rebuilds the image. That is deliberate: a security fix has to reach deployments.</td></tr><tr><td><code>devDependencies</code></td><td><code>chore(deps-dev): …</code></td><td>No release.</td></tr><tr><td>Docker, GitHub Actions</td><td><code>chore(deps): …</code></td><td>No release.</td></tr></tbody></table></div>
+<p>Updates are grouped to avoid one PR per package: <code>next</code> and
+<code>react</code> together &mdash; a major of one forces the major of the other
+&mdash; then <code>eslint</code>, <code>vitest</code>, <code>tailwindcss</code>,
+and the rest of the tooling in a single PR.</p>
+
+<div class="note">
+  <strong>The Node version lives in four places</strong>
+  Dependabot follows the <code>Dockerfile</code>s. Left to align by hand, in the
+  same PR: <code>engines</code> in <code>package.json</code> and
+  <code>node-version</code> in <code>.github/workflows/ci.yml</code>.
+</div>
+
+<div class="warn">
+  <strong>Security updates are a separate switch</strong>
+  This file only governs version updates. Vulnerability fixes depend on
+  Dependabot alerts, enabled under <em>Settings → Advanced Security</em>. Without
+  them, a vulnerability waits for the weekly run.
+</div>
+<h2 id="site">This site<a class="anchor" href="#site" aria-label="Link to this section">#</a></h2>
+<p>The documentation is static HTML in <code>docs/</code>: no build step, no
+dependency, no external resource. Editing a page means editing an
+<code>.html</code> file; the styling lives in
+<code>docs/assets/style.css</code>.</p>
+
+<p>It is published by GitHub Pages. Two ways to enable it:</p>
+<ul>
+  <li><strong>Actions</strong> &mdash; <em>Settings → Pages → Source: GitHub
+      Actions</em>. The <code>.github/workflows/pages.yml</code> workflow publishes
+      <code>docs/</code> on every push to <code>main</code>;</li>
+  <li><strong>Branch</strong> &mdash; <em>Settings → Pages → Source: Deploy from a
+      branch</em>, branch <code>main</code>, folder <code>/docs</code>. The workflow
+      then becomes unnecessary and can be deleted.</li>
+</ul>
+
+<nav class="pager"><a href="./api.html">&larr; HTTP API</a></nav>
+</main>
+</div>
+
+<footer class="site">
+  Factorio admin panel documentation &mdash;
+  <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">EdwinAlkins/factorio-admin-rcon</a>
+</footer>
+</body>
+</html>

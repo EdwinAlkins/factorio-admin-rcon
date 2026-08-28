@@ -140,6 +140,11 @@
       }
     }
   },
+  "notFound": {
+    "title": "Page not found",
+    "description": "This address does not match any page of the panel.",
+    "back": "Back to the panel"
+  },
   "tabs": {
     "console": "Console",
     "metrics": "Statistics"
@@ -161,6 +166,8 @@
     "memoryOf": "{used} / {limit}",
     "chartLabel": "{metric} over the selected range, currently {current}",
     "dockerUnavailable": "Container metrics unavailable (Docker proxy unreachable).",
+    "dockerPending": "Container metrics not collected yet.",
+    "dockerDegraded": "Container metrics are lagging (recent readings failed).",
     "sparse": "sparse data over this slice",
     "dockerDisabled": "Container metrics disabled (METRICS_DOCKER=false).",
     "upsUnavailable": "UPS measurement disabled or server unreachable."
@@ -189,6 +196,7 @@
 
     "command_missing": "Missing or invalid `command` field.",
     "action_body_invalid": "Invalid action request.",
+    "body_too_large": "Request body too large ({max} bytes maximum).",
     "unknown_action": "Unknown action: {action}",
     "invalid_arguments": "Invalid arguments for this action.",
 
@@ -215,6 +223,7 @@
     "command_empty": "Empty command.",
     "command_too_long": "Command too long (maximum {max} bytes).",
     "backpressure": "Too many commands queued, try again in a few seconds.",
+    "service_stopping": "The panel is shutting down.",
     "probe_failed": "RCON check failed."
   }
 }

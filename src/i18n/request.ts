@@ -3,10 +3,10 @@ import { getRequestConfig } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 
 /**
- * `timeZone` est fixé explicitement : sans lui, next-intl utiliserait le fuseau
- * du process Node pour tout rendu serveur, qui n'est pas celui du navigateur.
- * Les horodatages affichés sont malgré tout formatés côté client (fuseau local
- * de l'admin) ; ce réglage ne sert que d'éventuels formats rendus côté serveur.
+ * `timeZone` is set explicitly: without it, next-intl would use the Node
+ * process's zone for any server rendering, which is not the browser's.
+ * Displayed timestamps are formatted client-side anyway (the admin's local
+ * zone); this setting only covers formats that happen to render server-side.
  */
 export default getRequestConfig(async ({ requestLocale }) => {
   const requested = await requestLocale;

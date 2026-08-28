@@ -1,6 +1,6 @@
 /**
- * Modèle de permissions, partagé client/serveur.
- * L'interface s'en sert pour masquer ce qui est interdit, l'API pour le refuser.
+ * Permission model, shared between client and server.
+ * The interface uses it to hide what is forbidden, the API to refuse it.
  */
 
 export const ROLES = ["viewer", "moderator", "admin"] as const;
@@ -11,8 +11,8 @@ export const PERMISSIONS = [
   "action:info",
   "action:moderate",
   "action:server",
-  // Commandes du fichier de l'opérateur qui ne s'ouvrent pas explicitement à un
-  // rôle inférieur : elles exécutent souvent du Lua, donc admin par défaut.
+  // Commands from the operator's file that do not explicitly open themselves to
+  // a lower role: they often run Lua, so administrator by default.
   "action:custom",
   "rcon:raw",
   "audit:read",

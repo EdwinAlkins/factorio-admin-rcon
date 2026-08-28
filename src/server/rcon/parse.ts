@@ -1,6 +1,6 @@
 /**
- * Analyse des sorties texte de Factorio. Isolé et testé : le format n'est pas
- * un contrat stable, ces fonctions sont le seul endroit à corriger s'il change.
+ * Parsing of Factorio's text output. Isolated and tested: the format is not a
+ * stable contract, and these functions are the only place to fix if it changes.
  */
 
 const HEADER = /^\s*(online\s+)?players?\b.*:\s*$/i;
@@ -10,7 +10,7 @@ const BULLET = /^[-*•]\s*/;
 
 export type PlayersOutput = {
   players: string[];
-  /** Nombre annoncé par l'en-tête, s'il diffère des lignes réellement listées. */
+  /** Count announced by the header, when it differs from the rows listed. */
   declared: number | null;
 };
 
@@ -36,7 +36,7 @@ export function parsePlayers(output: string): PlayersOutput {
   return { players, declared };
 }
 
-/** Joueurs connectés, à partir de la sortie de `/players online`. */
+/** Online players, from the output of `/players online`. */
 export function parseOnlinePlayers(output: string): string[] {
   return parsePlayers(output).players;
 }

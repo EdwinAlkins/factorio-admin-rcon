@@ -1,14 +1,13 @@
 import { openDatabase, setDb } from "@/server/db";
 import { resetLimiters } from "@/server/auth/limiters";
 
-/** Réinitialise la configuration mise en cache pour la durée du processus. */
+/** Resets the configuration cached for the lifetime of the process. */
 export function resetEnvCache() {
   (globalThis as Record<string, unknown>).__factorioEnv = undefined;
-  (globalThis as Record<string, unknown>).__factorioFallbackKey = undefined;
   resetLimiters();
 }
 
-/** Base SQLite en mémoire, isolée pour chaque test. */
+/** In-memory SQLite database, isolated per test. */
 export function useMemoryDatabase() {
   const db = openDatabase(":memory:");
   setDb(db);

@@ -3,9 +3,9 @@ import { shutdownRcon } from "@/server/rcon";
 import { stopMetricsCollector } from "@/server/metrics/collector";
 
 /**
- * Arrêt propre : collecteur de métriques arrêté et connexion RCON fermée
- * quand le conteneur est stoppé.
- * Isolé dans son module pour n'être chargé que depuis le runtime Node.
+ * Clean shutdown: the metrics collector is stopped and the RCON connection
+ * closed when the container is stopped.
+ * Isolated in its own module so it is only loaded from the Node runtime.
  */
 export function registerShutdownHooks() {
   const shutdown = async (signal: string) => {

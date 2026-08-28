@@ -3,8 +3,8 @@ import { env } from "@/server/config/env";
 import type { Role } from "@/lib/permissions";
 
 /**
- * Comptes dérivés de la configuration : un mot de passe par rôle.
- * `ADMIN_PASSWORD` garde le comportement historique (accès complet).
+ * Accounts derived from the configuration: one password per role.
+ * `ADMIN_PASSWORD` keeps its historical behaviour (full access).
  */
 
 export type User = { username: string; role: Role };
@@ -33,8 +33,9 @@ function digest(value: string): Buffer {
 }
 
 /**
- * Compare le mot de passe fourni à tous les comptes configurés, sans court-circuit :
- * la durée ne dépend ni du compte trouvé ni de la longueur des mots de passe.
+ * Compares the supplied password against every configured account without
+ * short-circuiting: the duration depends neither on which account matched nor
+ * on the length of the passwords.
  */
 export function authenticate(candidate: string): User | null {
   const given = digest(candidate);

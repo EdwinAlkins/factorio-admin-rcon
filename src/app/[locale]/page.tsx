@@ -24,13 +24,13 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
     permissions: permissionsOf(session!.role),
   };
 
-  // Le catalogue est filtré côté serveur : l'interface ne connaît que les
-  // actions que ce rôle a effectivement le droit d'exécuter. Il ne transporte
-  // que des identifiants — les libellés sont résolus côté client, sauf pour les
-  // commandes du fichier de l'opérateur, qui portent leur texte (d'où `locale`).
+  // The catalogue is filtered server-side: the interface only knows the actions
+  // this role is actually allowed to run. It carries identifiers only — labels
+  // are resolved on the client, except for commands from the operator's file,
+  // which carry their own text (hence `locale`).
   //
-  // `metricsEnabled` est lu ici plutôt que via une requête du client : l'onglet
-  // ne doit pas apparaître une fraction de seconde avant de disparaître.
+  // `metricsEnabled` is read here rather than through a client request: the tab
+  // must not appear for a fraction of a second before vanishing.
   return (
     <AdminPanel
       session={info}

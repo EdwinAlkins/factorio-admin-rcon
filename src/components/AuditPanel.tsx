@@ -19,11 +19,11 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 /**
- * Journal d'audit : trace serveur durable de ce qui a été fait via le panneau.
+ * Audit log: the durable server-side trace of what was done through the panel.
  *
- * Les lignes stockées ne contiennent que des identifiants (`ban`, `denied`…),
- * jamais de texte traduit : l'historique reste donc lisible dans n'importe
- * quelle langue, y compris pour des entrées écrites avant l'ajout de celle-ci.
+ * Stored rows contain identifiers only (`ban`, `denied`…), never translated
+ * text, so the history stays readable in any language — including for entries
+ * written before that language was added.
  */
 export default function AuditPanel({ onUnauthorized }: { onUnauthorized: () => void }) {
   const t = useTranslations("audit");
@@ -36,7 +36,7 @@ export default function AuditPanel({ onUnauthorized }: { onUnauthorized: () => v
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  /** `action` est un id du catalogue pour les actions, un verbe interne sinon. */
+  /** `action` is a catalogue id for actions, an internal verb otherwise. */
   function actionLabel(entry: AuditEntryDto): string {
     const catalogKey = `items.${entry.action}.label`;
     if (entry.kind === "action" && actionText.has(catalogKey)) return actionText(catalogKey);
@@ -137,7 +137,13 @@ export default function AuditPanel({ onUnauthorized }: { onUnauthorized: () => v
                     </td>
                     <td className="py-1 pr-3">
                       {actionLabel(entry)}
-                      {entry.command && <div className="text-muted">{entry.command}</div>}
+                      {entry.command && (
+                        // The fingerprint in `title`: a raw command is only
+                        // logged as a prefix, but stays identifiable.
+                        <div className="text-muted" title={entry.commandHash ?? undefined}>
+                          {entry.command}
+                        </div>
+                      )}
                       {entry.detail && <div className="text-muted">{entry.detail}</div>}
                     </td>
                     <td className={`py-1 pr-3 ${STATUS_STYLE[entry.status] ?? ""}`}>

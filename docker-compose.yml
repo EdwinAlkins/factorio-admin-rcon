@@ -124,7 +124,9 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - MODERATOR_PASSWORD=${MODERATOR_PASSWORD:-}
       - VIEWER_PASSWORD=${VIEWER_PASSWORD:-}
-      - SESSION_SECRET=${SESSION_SECRET:-}
+      # Required: without it the panel starts but /api/ready reports it
+      # unavailable and every request fails. ./setup-admin.sh generates one.
+      - SESSION_SECRET=${SESSION_SECRET:?set SESSION_SECRET (see .env.example)}
       # auto = secure cookie as soon as the request arrives over HTTPS
       - COOKIE_SECURE=${COOKIE_SECURE:-auto}
       # Only enable behind a reverse proxy you control: it makes the panel
@@ -138,6 +140,7 @@ services:
       - RCON_TIMEOUT_MS=${RCON_TIMEOUT_MS:-}
       - STATUS_CACHE_MS=${STATUS_CACHE_MS:-}
       - AUDIT_RETENTION_DAYS=${AUDIT_RETENTION_DAYS:-}
+      - AUDIT_FULL_COMMANDS=${AUDIT_FULL_COMMANDS:-}
       # Metrics, master switch first, then one flag per source.
       # METRICS_ENABLED=false turns the whole feature off: no collector, no
       # Statistics tab, no /api/metrics -- and the two source flags are ignored.

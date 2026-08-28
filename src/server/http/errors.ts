@@ -2,13 +2,21 @@ import { englishError } from "@/server/error-text";
 import type { ErrorParams } from "@/lib/api-types";
 
 /**
- * Erreur applicative portant son code HTTP, transformée en JSON par `route()`.
+ * Application error carrying its HTTP status, turned into JSON by `route()`.
  *
- * On ne manipule plus de texte ici : `code` est la clé de traduction et
- * `params` ses valeurs. Le message anglais n'est calculé que pour rester
- * lisible dans les logs et pour les appels hors interface.
+ * No text is handled here any more: `code` is the translation key and `params`
+ * its values. The English message is only computed to stay readable in the logs
+ * and for callers outside the interface.
  */
+/** See `isRconError`: `instanceof` does not survive a duplicated module. */
+const BRAND = Symbol.for("factorio-admin.ApiFailure");
+
+export function isApiFailure(value: unknown): value is ApiFailure {
+  return typeof value === "object" && value !== null && BRAND in value;
+}
+
 export class ApiFailure extends Error {
+  readonly [BRAND] = true;
   readonly status: number;
   readonly code: string;
   readonly params?: ErrorParams;

@@ -1,25 +1,25 @@
 import { env } from "@/server/config/env";
 
 /**
- * Client minimal de l'API Docker Engine, sans dépendance.
+ * Minimal Docker Engine API client, with no dependency.
  *
- * Le panneau ne parle jamais au socket Docker : il interroge un proxy en
- * lecture seule (`tecnativa/docker-socket-proxy`, `CONTAINERS=1 POST=0`) placé
- * devant lui. Le proxy expose de l'HTTP sur un hôte du réseau Compose, donc un
- * `fetch` suffit — inutile d'embarquer `dockerode` pour deux requêtes GET.
+ * The panel never talks to the Docker socket: it queries a read-only proxy
+ * (`tecnativa/docker-socket-proxy`, `CONTAINERS=1 POST=0`) sitting in front of
+ * it. The proxy speaks HTTP on a Compose-network host, so `fetch` is enough —
+ * no need to pull in `dockerode` for two GET requests.
  *
- * Aucune fonction de ce module ne lève : une panne du proxy doit dégrader les
- * métriques, pas interrompre la collecte.
+ * No function in this module throws: a proxy outage must degrade the metrics,
+ * not interrupt collection.
  */
 
-/** Sous-ensemble de `GET /containers/{id}/stats` réellement utilisé. */
+/** The subset of `GET /containers/{id}/stats` actually used. */
 export type DockerStats = {
   cpu_stats?: CpuStats;
   precpu_stats?: CpuStats;
   memory_stats?: {
     usage?: number;
     limit?: number;
-    // cgroup v2 expose `inactive_file`, cgroup v1 `total_inactive_file`.
+    // cgroup v2 exposes `inactive_file`, cgroup v1 `total_inactive_file`.
     stats?: { inactive_file?: number; total_inactive_file?: number };
   };
 };
@@ -33,23 +33,23 @@ type CpuStats = {
 export type MemoryUsage = { bytes: number; limit: number | null };
 
 /**
- * Charge CPU en pourcentage d'un cœur × nombre de cœurs (même convention que
- * `docker stats` : 100 % = un cœur saturé, 400 % = quatre).
+ * CPU load as a percentage of one core × core count (same convention as
+ * `docker stats`: 100% = one saturated core, 400% = four).
  *
- * `stream=false` fait remplir `precpu_stats` par le démon lui-même avec le
- * relevé qu'il vient d'effectuer ~1 s plus tôt : les deux bornes du delta sont
- * donc dans la **même** réponse. Conserver un relevé précédent entre deux
- * échantillons donnerait un delta décalé d'un cran, et donc faux.
+ * `stream=false` makes the daemon fill `precpu_stats` itself with the reading
+ * it took ~1 s earlier, so both ends of the delta come from the **same**
+ * response. Keeping a previous reading between two samples would yield a delta
+ * shifted by one step, and therefore wrong.
  */
 export function cpuPercent(stats: DockerStats): number | null {
   const current = stats.cpu_stats;
   const previous = stats.precpu_stats;
   if (!current || !previous) return null;
 
-  // Un `system_cpu_usage` antérieur absent ou nul signale l'absence de point de
-  // comparaison (tout premier relevé du conteneur). Sans ce garde, les `?? 0`
-  // ci-dessous mesureraient le delta depuis le démarrage de la machine et
-  // renverraient un pourcentage inventé.
+  // A missing or zero previous `system_cpu_usage` means there is nothing to
+  // compare against (the container's very first reading). Without this guard
+  // the `?? 0` below would measure the delta since the machine booted and
+  // return an invented percentage.
   if (!previous.system_cpu_usage) return null;
 
   const cpuDelta = (current.cpu_usage?.total_usage ?? 0) - (previous.cpu_usage?.total_usage ?? 0);
@@ -62,15 +62,15 @@ export function cpuPercent(stats: DockerStats): number | null {
 }
 
 /**
- * Mémoire réellement utilisée, au sens de `docker stats`.
+ * Memory actually in use, in the sense `docker stats` means it.
  *
- * `memory_stats.usage` inclut le cache de fichiers inactifs, que le noyau peut
- * récupérer à tout moment : sans le retrancher, la valeur affichée dérive vers
- * la limite et ne veut plus rien dire.
+ * `memory_stats.usage` includes the inactive file cache, which the kernel can
+ * reclaim at any time: without subtracting it, the displayed value drifts
+ * towards the limit and stops meaning anything.
  *
- * `limit` n'est qu'indicatif : faute de limite propre au conteneur, le démon y
- * renvoie la RAM de l'hôte. Le graphe s'échelonne donc sur le maximum observé
- * et n'affiche la limite qu'en repère chiffré.
+ * `limit` is indicative only: absent a container-specific limit, the daemon
+ * returns the host's RAM there. The chart therefore scales on the observed
+ * maximum and shows the limit as a numeric reference only.
  */
 export function memoryUsage(stats: DockerStats): MemoryUsage | null {
   const memory = stats.memory_stats;
@@ -98,7 +98,7 @@ async function dockerGet<T>(path: string): Promise<T | null> {
   });
 
   if (!response.ok) {
-    // Consommer le corps évite de laisser la socket en attente côté undici.
+    // Draining the body keeps undici from leaving the socket hanging.
     await response.body?.cancel();
     if (response.status === 404) return null;
     throw new Error(`docker ${path} → HTTP ${response.status}`);
@@ -110,10 +110,11 @@ async function dockerGet<T>(path: string): Promise<T | null> {
 const globalRef = globalThis as typeof globalThis & { __factorioContainerId?: string };
 
 /**
- * Identifiant du conteneur surveillé, mémorisé entre les échantillons.
+ * Id of the watched container, remembered between samples.
  *
- * Recherche d'abord par label Compose, puis par nom : la pile peut avoir été
- * démarrée autrement que par `docker compose`, auquel cas le label est absent.
+ * Looked up by Compose label first, then by name: the stack may have been
+ * started by something other than `docker compose`, in which case the label is
+ * absent.
  */
 export async function findContainerId(): Promise<string | null> {
   if (globalRef.__factorioContainerId) return globalRef.__factorioContainerId;
@@ -121,10 +122,10 @@ export async function findContainerId(): Promise<string | null> {
   const service = env().METRICS_CONTAINER;
   const filters = [
     { label: [`com.docker.compose.service=${service}`] },
-    // Le filtre `name` de Docker est une expression rationnelle appliquée en
-    // sous-chaîne : « factorio » attraperait aussi « factorio-admin-panel », et
-    // le panneau finirait par se mesurer lui-même. On l'ancre donc au nom exact
-    // (l'API préfixe les noms d'un « / »).
+    // Docker's `name` filter is a regular expression matched as a substring:
+    // "factorio" would also catch "factorio-admin-panel", and the panel would
+    // end up measuring itself. So it is anchored to the exact name (the API
+    // prefixes names with a "/").
     { name: [`^/${escapeRegExp(service)}$`] },
   ];
 
@@ -141,7 +142,7 @@ export async function findContainerId(): Promise<string | null> {
   return null;
 }
 
-/** À appeler dès qu'une lecture échoue : le conteneur a pu être recréé. */
+/** Call this whenever a read fails: the container may have been recreated. */
 export function forgetContainerId() {
   globalRef.__factorioContainerId = undefined;
 }

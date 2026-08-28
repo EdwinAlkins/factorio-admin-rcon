@@ -8,8 +8,8 @@ import type { StatusResult } from "@/lib/api-types";
 import type { ServerStatus } from "@/lib/types";
 
 /**
- * Statut du serveur, rafraîchi périodiquement via `usePolling` (qui suspend le
- * sondage quand l'onglet n'est pas visible).
+ * Server status, refreshed periodically through `usePolling` (which suspends
+ * polling while the tab is not visible).
  */
 export function useServerStatus(options: {
   enabled: boolean;
@@ -42,7 +42,7 @@ export function useServerStatus(options: {
     else setStatus(next);
   }, [load, onUnauthorized]);
 
-  // Une mesure encore en vol au démontage ne doit plus toucher l'état.
+  // A reading still in flight at unmount must no longer touch state.
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;

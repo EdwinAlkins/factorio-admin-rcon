@@ -3,12 +3,12 @@ import { getRcon, rconTarget } from "@/server/rcon";
 import { parseOnlinePlayers, parseVersion } from "@/server/rcon/parse";
 
 /**
- * Statut du serveur, mis en cache côté serveur.
+ * Server status, cached server-side.
  *
- * Sans cela, chaque onglet ouvert déclencherait deux commandes RCON toutes les
- * quelques secondes dans une file volontairement sérialisée. Le cache et la
- * déduplication des requêtes en vol garantissent au plus une mesure par TTL,
- * quel que soit le nombre de clients.
+ * Without it, every open tab would fire two RCON commands every few seconds
+ * into a deliberately serialised queue. The cache and the in-flight
+ * deduplication guarantee at most one reading per TTL, however many clients
+ * there are.
  */
 
 export type ServerStatusSnapshot = {
@@ -29,7 +29,7 @@ const cache: CacheState = (globalRef.__factorioStatusCache ??= { snapshot: null,
 
 async function measure(): Promise<ServerStatusSnapshot> {
   const rcon = getRcon();
-  // Séquentiel et assumé : la file RCON sérialise de toute façon les commandes.
+  // Sequential on purpose: the RCON queue serialises commands anyway.
   const players = await rcon.execute("/players online");
   const version = await rcon.execute("/version");
   const online = parseOnlinePlayers(players.output);
@@ -65,7 +65,7 @@ export async function getServerStatus(options: { force?: boolean } = {}): Promis
   return cache.inFlight;
 }
 
-/** Invalide le cache après une commande susceptible d'avoir changé l'état. */
+/** Invalidates the cache after a command that may have changed the state. */
 export function invalidateStatusCache() {
   cache.snapshot = null;
 }

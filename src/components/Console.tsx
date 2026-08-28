@@ -6,8 +6,8 @@ import type { LogEntry } from "@/lib/types";
 
 const HISTORY_KEY = "factorio-admin:history";
 /**
- * Historique volontairement court : il vit dans localStorage, lisible par tout
- * script de la page, et peut contenir des commandes sensibles (`/c …`).
+ * The history is deliberately short: it lives in localStorage, readable by any
+ * script on the page, and may hold sensitive commands (`/c …`).
  */
 const HISTORY_MAX = 50;
 
@@ -24,22 +24,22 @@ function readHistory(): string[] {
 type Props = {
   entries: LogEntry[];
   busy: boolean;
-  /** `false` pour un rôle sans permission `rcon:raw` : la saisie est masquée. */
+  /** `false` for a role without `rcon:raw`: the input is hidden. */
   canRun: boolean;
   onRun: (command: string) => void | Promise<void>;
   onClear: () => void;
-  /** Sert à masquer la console (`hidden`) sans la démonter : la saisie et le
-   *  défilement en cours survivent au passage sur l'onglet Statistiques. */
+  /** Used to hide the console (`hidden`) without unmounting it: the current
+   *  input and scroll position survive a switch to the Statistics tab. */
   className?: string;
 };
 
 export default function Console({ entries, busy, canRun, onRun, onClear, className }: Props) {
   const t = useTranslations("console");
   const [input, setInput] = useState("");
-  // L'historique n'est jamais rendu dans le DOM (uniquement ↑/↓) : le lire au
-  // premier render côté client ne crée donc pas d'écart d'hydratation.
+  // The history is never rendered into the DOM (only ↑/↓ use it), so reading it
+  // on the first client render creates no hydration mismatch.
   const [history, setHistory] = useState<string[]>(readHistory);
-  // -1 = saisie en cours, sinon index dans `history` (0 = plus récent).
+  // -1 = the current input, otherwise an index into `history` (0 = newest).
   const [cursor, setCursor] = useState(-1);
   const outputRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +51,7 @@ export default function Console({ entries, busy, canRun, onRun, onClear, classNa
     try {
       window.localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
     } catch {
-      // quota plein / mode privé : l'historique reste en mémoire
+      // quota exceeded / private mode: the history stays in memory
     }
   }
 
@@ -70,7 +70,7 @@ export default function Console({ entries, busy, canRun, onRun, onClear, classNa
     try {
       window.localStorage.removeItem(HISTORY_KEY);
     } catch {
-      // rien à faire : l'historique en mémoire est déjà vidé
+      // nothing to do: the in-memory history is already cleared
     }
   }
 

@@ -3,8 +3,8 @@ import { readSeries, readSummary, recordSample, type MetricSample } from "@/serv
 import { resetEnvCache, useMemoryDatabase, withEnv } from "../helpers";
 
 /**
- * La couverture est ce qui distingue « le serveur était calme » de « on n'a
- * presque rien mesuré » : deux situations qui produisent la même courbe.
+ * Coverage is what tells "the server was quiet" apart from "we barely measured
+ * anything": two situations that draw the same curve.
  */
 
 const EMPTY: MetricSample = {
@@ -18,7 +18,7 @@ const EMPTY: MetricSample = {
 
 const sample = (o: Partial<MetricSample>): MetricSample => ({ ...EMPTY, ...o });
 
-describe("couverture des mesures", () => {
+describe("reading coverage", () => {
   beforeEach(() => {
     withEnv({ METRICS_RETENTION_DAYS: "7", METRICS_INTERVAL_MS: "15000" });
     useMemoryDatabase();
@@ -29,9 +29,9 @@ describe("couverture des mesures", () => {
     resetEnvCache();
   });
 
-  it("compte les mesures réelles, pas les tours du collecteur", () => {
+  it("counts real readings, not collector rounds", () => {
     const now = Date.now();
-    // Dix tours, mais Docker n'a répondu que deux fois.
+    // Ten rounds, but Docker only answered twice.
     for (let i = 0; i < 10; i += 1) {
       recordSample(sample(i < 2 ? { cpuPercent: 50, players: 1 } : { players: 1 }), now - i * 15_000);
     }
@@ -42,11 +42,11 @@ describe("couverture des mesures", () => {
     expect(summary.players.samples).toBe(10);
   });
 
-  it("distingue un bucket clairsemé d'un bucket complet portant la même moyenne", () => {
+  it("tells a sparse bucket from a full one with the same average", () => {
     const bucketMs = 30_000; // plage 1 h → 120 buckets
     const now = Math.floor(Date.now() / bucketMs) * bucketMs;
 
-    // Bucket A : les deux mesures attendues. Bucket B : une seule.
+    // Bucket A: both expected readings. Bucket B: only one.
     recordSample(sample({ cpuPercent: 80 }), now - 10 * 60 * 1000);
     recordSample(sample({ cpuPercent: 80 }), now - 10 * 60 * 1000 + 15_000);
     recordSample(sample({ cpuPercent: 80 }), now - 5 * 60 * 1000);
@@ -55,45 +55,45 @@ describe("couverture des mesures", () => {
     const full = buckets.find((b) => b.cpu.samples === 2);
     const sparse = buckets.find((b) => b.cpu.samples === 1);
 
-    // Les deux ont exactement la même moyenne : seule la couverture les sépare.
+    // Both have exactly the same average: only coverage separates them.
     expect(full?.cpu.avg).toBe(80);
     expect(sparse?.cpu.avg).toBe(80);
     expect(full?.expectedSamples).toBe(2);
     expect(sparse?.expectedSamples).toBe(2);
   });
 
-  it("annonce des mesures attendues cohérentes avec l'intervalle configuré", () => {
+  it("announces expected readings consistent with the configured interval", () => {
     withEnv({ METRICS_INTERVAL_MS: "30000" });
     const now = Date.now();
     recordSample(sample({ cpuPercent: 1 }), now);
 
-    // Plage 1 h ÷ 120 buckets = 30 s par bucket, soit une mesure attendue.
+    // A 1 h range ÷ 120 buckets = 30 s per bucket, so one expected reading.
     expect(readSeries("1h", now)[0].expectedSamples).toBe(1);
-    // Et sur la fenêtre entière : 3600 s ÷ 30 s.
+    // And over the whole window: 3600 s ÷ 30 s.
     expect(readSummary("1h", now).expectedSamples).toBe(120);
   });
 
-  it("date chaque bucket sur son début, pas sur son premier échantillon", () => {
+  it("dates each bucket on its start, not on its first sample", () => {
     const bucketMs = 30_000;
     const now = Math.floor(Date.now() / bucketMs) * bucketMs;
-    // Unique mesure, tardive dans sa tranche.
+    // A single reading, late within its slice.
     const late = now - 10 * 60 * 1000 + 27_000;
     recordSample(sample({ cpuPercent: 30 }), late);
 
     const [bucket] = readSeries("1h", now).filter((b) => b.cpu.samples === 1);
-    // `MIN(ts)` aurait renvoyé `late` et décalé le point vers la droite.
+    // `MIN(ts)` would have returned `late` and shifted the point right.
     expect(bucket.ts).toBe(Math.floor(late / bucketMs) * bucketMs);
     expect(bucket.ts).toBeLessThan(late);
   });
 
-  it("expose min et max, sans orienter l'extrême", () => {
+  it("exposes min and max without picking a side", () => {
     const bucketMs = 30_000;
     const now = Math.floor(Date.now() / bucketMs) * bucketMs;
     recordSample(sample({ cpuPercent: 10, ups: 60 }), now - 10 * 60 * 1000);
     recordSample(sample({ cpuPercent: 95, ups: 22 }), now - 10 * 60 * 1000 + 15_000);
 
     const bucket = readSeries("1h", now).find((b) => b.cpu.samples === 2);
-    // Le modèle ne sait pas que le CPU s'inquiète du haut et l'UPS du bas.
+    // The model does not know CPU worries about the top and UPS the bottom.
     expect(bucket?.cpu).toMatchObject({ min: 10, max: 95 });
     expect(bucket?.ups).toMatchObject({ min: 22, max: 60 });
   });

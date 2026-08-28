@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security model &mdash; Factorio admin panel</title>
+<meta name="description" content="What the panel protects, how, and what it does not claim to protect.">
+<link rel="stylesheet" href="./assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<div class="topbar">
+  <a class="brand" href="./index.html">Factorio <span>admin panel</span></a>
+  <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
+</div>
+
+<div class="shell">
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./index.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html" aria-current="page">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<main id="content">
+<header>
+  <h1>Security model</h1>
+  <p class="lede">What the panel protects, how, and what it does not claim to protect.</p>
+</header>
+
+<p>The panel grants access to RCON, which is complete control of the game
+server. What follows describes what it protects, how, and &mdash; just as
+usefully &mdash; what it does not claim to protect.</p>
+<h2 id="roles">Roles and permissions<a class="anchor" href="#roles" aria-label="Link to this section">#</a></h2>
+<p>One password per role, no usernames: the role follows from the password used
+to sign in.</p>
+<div class="table-wrap"><table><thead><tr><th>Role</th><th>Variable</th><th>Can</th></tr></thead><tbody><tr><td><code>viewer</code></td><td><code>VIEWER_PASSWORD</code></td><td>Status, players, version, seed, evolution, admins, ban list</td></tr><tr><td><code>moderator</code></td><td><code>MODERATOR_PASSWORD</code></td><td>+ kick, ban, mute, server message, private message</td></tr><tr><td><code>admin</code></td><td><code>ADMIN_PASSWORD</code></td><td>+ save, promote, custom commands, <strong>raw RCON console</strong>, audit log</td></tr></tbody></table></div><div class="table-wrap"><table><thead><tr><th>Permission</th><th>viewer</th><th>moderator</th><th>admin</th></tr></thead><tbody><tr><td><code>status:read</code></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><code>action:info</code></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><code>action:moderate</code></td><td>&mdash;</td><td>✓</td><td>✓</td></tr><tr><td><code>action:server</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>action:custom</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>rcon:raw</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>audit:read</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr></tbody></table></div>
+<p>Permissions are enforced <strong>server-side</strong>: the catalogue is
+filtered by role before being sent, and <code>/api/actions</code> re-checks the
+permission before executing anything. The panel never trusts what the browser
+hands back.</p>
+<h2 id="paths">Two execution paths<a class="anchor" href="#paths" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Route</th><th>Who</th><th>What reaches RCON</th></tr></thead><tbody><tr><td><code>POST /api/actions</code></td><td>Every role, according to the action's permission</td><td>A command <strong>built by the server</strong> from an id and validated fields. The client cannot craft an arbitrary one.</td></tr><tr><td><code>POST /api/rcon</code></td><td><code>rcon:raw</code> &mdash; administrator</td><td>The typed line, as-is.</td></tr></tbody></table></div>
+<p>This split is what makes <a href="./commands.html">custom commands</a>
+interesting: they take the first path, so a moderator can be given a precise
+capability without being given the second.</p>
+<h2 id="sessions">Sessions<a class="anchor" href="#sessions" aria-label="Link to this section">#</a></h2>
+<ul>
+  <li>The cookie only carries a signed id (HMAC); <strong>state is
+      authoritative</strong> and lives in SQLite. Signing out therefore really
+      revokes the session, even if the cookie was stolen &mdash; something a
+      stateless token cannot do.</li>
+  <li>The signing key comes from <code>SESSION_SECRET</code>, required and
+      independent from the passwords. There is no derived key: it conflated two
+      unrelated rotations, and tied session signatures to a human-chosen
+      secret.</li>
+  <li>The cookie is <code>httpOnly</code>, <code>SameSite=Lax</code>, scoped to
+      <code>/</code>, and <code>secure</code> as soon as the request arrives over
+      HTTPS.</li>
+  <li>The proxy only checks the cookie's <strong>presence</strong> &mdash; it has
+      access to neither the key nor the database. It therefore only redirects in
+      the direction where absence is conclusive; the real check is done by the
+      pages and the routes.</li>
+</ul>
+<h2 id="csrf">Origin checking<a class="anchor" href="#csrf" aria-label="Link to this section">#</a></h2>
+<p>Every mutating request compares the <code>Origin</code> header against the
+host being served. It is the second barrier behind <code>SameSite=Lax</code>, and
+the one that survives a change of cookie policy. A request with no
+<code>Origin</code> is accepted: it did not come from a browser, so no CSRF is
+possible &mdash; which is what lets you call the API with <code>curl</code>.</p>
+<h2 id="limits">Limits and shutdown<a class="anchor" href="#limits" aria-label="Link to this section">#</a></h2>
+<ul>
+  <li><strong>Sign-in limiting</strong> per IP when the IP is trustworthy, plus a
+      global cap that is always active. Constant-time password comparison, with
+      no short-circuit.</li>
+  <li><strong>Command limiting</strong> per session
+      (<code>RCON_MAX_PER_MINUTE</code>): a legitimate account must not be able to
+      saturate the queue.</li>
+  <li><strong>Bounded RCON queue</strong> (<code>RCON_MAX_QUEUE</code>): beyond it
+      the panel refuses with a <code>503</code> rather than piling up in front of
+      a single socket.</li>
+  <li><strong>Terminal shutdown</strong>: on <code>SIGTERM</code> the service stops
+      accepting, rejects whatever is still queued, and never reopens a socket. A
+      queued command must not wake up after the signal and reconnect.</li>
+  <li><strong>Bounded request body</strong>, 16 KiB, enforced on
+      <code>Content-Length</code> <em>and</em> while reading &mdash; the former is
+      absent in <code>chunked</code> and does not bind the sender anyway.</li>
+</ul>
+<h2 id="csp">Headers and CSP<a class="anchor" href="#csp" aria-label="Link to this section">#</a></h2>
+<p>The content security policy carries a <strong>fresh 128-bit nonce per
+request</strong> on <code>script-src</code>, together with
+<code>'strict-dynamic'</code>: only scripts the server emitted run.
+<code>'unsafe-inline'</code> becomes inert as soon as a nonce is present, which
+is exactly the intended effect.</p>
+
+<p><code>style-src</code> deliberately keeps <code>'unsafe-inline'</code>: the
+charts set <code>style</code> attributes on SVG elements, which
+<code>style-src</code> would block without it. CSS injection does not carry the
+reach of script injection &mdash; the trade-off is accepted, and it no longer
+concerns JavaScript.</p>
+
+<p>Alongside it: <code>nosniff</code>, <code>Referrer-Policy</code>,
+<code>Permissions-Policy</code>, <code>X-Frame-Options</code> and HSTS. API
+routes, which never render HTML, get <code>default-src 'none'</code>.</p>
+<h2 id="audit">Audit log<a class="anchor" href="#audit" aria-label="Link to this section">#</a></h2>
+<p>Every action is recorded, refusals included: who, what, from which IP, with
+which outcome and how long it took.</p>
+
+<ul>
+  <li><strong>Catalogue actions</strong> are recorded in full. The command is
+      built by the server from validated fields: seeing what actually went out is
+      precisely the log's value.</li>
+  <li>Commands typed into the <strong>raw console</strong> are not. Only a
+      48-character prefix and a SHA-256 fingerprint are kept. A command typed
+      there may carry a token; the log must not become a second place where that
+      secret lives on, volume backups included.
+      <code>AUDIT_FULL_COMMANDS=true</code> restores verbatim storage.</li>
+</ul>
+<h2 id="container">Container isolation<a class="anchor" href="#container" aria-label="Link to this section">#</a></h2>
+<p>The panel and <code>docker-proxy</code> both run confined: read-only root,
+<code>cap_drop: [ALL]</code>, <code>no-new-privileges</code>, memory and PID
+caps.</p>
+
+<div class="note">
+  <strong>No Docker socket in the panel</strong>
+  CPU and memory metrics go through the <code>docker-proxy</code> service, which
+  holds the socket and only exposes <code>GET /containers/…</code>. Mounting the
+  socket into the panel would hand the whole host to anyone who compromised it
+  &mdash; and <code>:ro</code> would change nothing, the Docker API being a write
+  API.
+</div>
+
+<p>The <code>factorio</code> service is deliberately left alone: it writes its
+saves, mods and configuration, and a read-only root would break it.</p>
+<h2 id="assumptions">Deployment assumptions<a class="anchor" href="#assumptions" aria-label="Link to this section">#</a></h2>
+<ul>
+  <li><strong>A single instance</strong>: 1 container = 1 Node process = 1 RCON
+      connection. Rate limiters and the status cache live in process memory;
+      behind a load balancer they would be bypassable.</li>
+  <li><strong>Restricted network access</strong>: the panel is published on
+      <code>127.0.0.1</code> by default.</li>
+  <li><strong>The RCON port is only reachable by the panel</strong> in production.
+      The protocol offers a single password, no rate limiting, and full server
+      control to whoever gets through.</li>
+</ul>
+<h2 id="out-of-scope">Out of scope<a class="anchor" href="#out-of-scope" aria-label="Link to this section">#</a></h2>
+<p>The Lua command confirmation is an interface aid, not a protection: an
+administrator account has full RCON access by definition. The panel does not try
+to protect against that &mdash; it tries to make sure not everyone needs to be an
+administrator.</p>
+
+<nav class="pager"><a href="./commands.html">&larr; Custom commands</a><a href="./api.html">HTTP API &rarr;</a></nav>
+</main>
+</div>
+
+<footer class="site">
+  Factorio admin panel documentation &mdash;
+  <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">EdwinAlkins/factorio-admin-rcon</a>
+</footer>
+</body>
+</html>

@@ -11,7 +11,7 @@ type Props = {
   onRun: (action: ActionDto, values: Record<string, string>) => void;
 };
 
-/** Valeurs de départ du formulaire : les défauts déclarés par l'action. */
+/** The form's starting values: the defaults the action declares. */
 function initialValues(action: ActionDto): Record<string, string> {
   const values: Record<string, string> = {};
   for (const field of action.fields) {
@@ -62,7 +62,7 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
     setValues((current) => ({ ...current, [name]: value }));
   }
 
-  /** Le widget suit le type déclaré : une liste close mérite un menu, pas un champ libre. */
+  /** The widget follows the declared type: a closed list deserves a menu, not a free field. */
   function control(action: ActionDto, field: ActionFieldDto, id: string) {
     const value = values[field.name] ?? "";
 

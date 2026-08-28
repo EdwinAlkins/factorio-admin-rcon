@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FixedWindowLimiter } from "@/server/auth/rate-limit";
 
 describe("FixedWindowLimiter", () => {
-  it("autorise jusqu'à la limite puis refuse", () => {
+  it("allows up to the limit then refuses", () => {
     const limiter = new FixedWindowLimiter(3, 1000);
 
     expect(limiter.consume("a").allowed).toBe(true);
@@ -14,7 +14,7 @@ describe("FixedWindowLimiter", () => {
     expect(verdict.allowed === false && verdict.retryAfter).toBeGreaterThan(0);
   });
 
-  it("isole les clés", () => {
+  it("isolates keys", () => {
     const limiter = new FixedWindowLimiter(1, 1000);
 
     expect(limiter.consume("a").allowed).toBe(true);
@@ -22,7 +22,7 @@ describe("FixedWindowLimiter", () => {
     expect(limiter.consume("a").allowed).toBe(false);
   });
 
-  it("repart à zéro après la fenêtre", () => {
+  it("resets after the window", () => {
     const limiter = new FixedWindowLimiter(1, 1000);
     const start = 1_000_000;
 
@@ -31,7 +31,7 @@ describe("FixedWindowLimiter", () => {
     expect(limiter.consume("a", start + 1500).allowed).toBe(true);
   });
 
-  it("purge les entrées expirées au lieu de grossir indéfiniment", () => {
+  it("purges expired entries instead of growing forever", () => {
     const limiter = new FixedWindowLimiter(5, 1000);
     const start = 1_000_000;
 
@@ -42,7 +42,7 @@ describe("FixedWindowLimiter", () => {
     expect(limiter.size).toBe(1);
   });
 
-  it("refuse plutôt que d'accepter sans compter quand la table est pleine", () => {
+  it("refuses rather than accepting uncounted when the table is full", () => {
     const limiter = new FixedWindowLimiter(5, 1000, 2);
 
     expect(limiter.consume("a").allowed).toBe(true);
@@ -50,7 +50,7 @@ describe("FixedWindowLimiter", () => {
     expect(limiter.consume("c").allowed).toBe(false);
   });
 
-  it("libère une clé après un succès", () => {
+  it("releases a key after a success", () => {
     const limiter = new FixedWindowLimiter(1, 1000);
 
     limiter.consume("a");

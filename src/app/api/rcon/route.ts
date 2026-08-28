@@ -4,7 +4,7 @@ import { ApiFailure } from "@/server/http/errors";
 import { limiters } from "@/server/auth/limiters";
 import { getRcon } from "@/server/rcon";
 import { invalidateStatusCache } from "@/server/rcon/status";
-import { RconError } from "@/server/rcon/errors";
+import { isRconError } from "@/server/rcon/errors";
 import { MAX_COMMAND_BYTES } from "@/server/rcon/command";
 import { recordAudit } from "@/server/audit/service";
 import type { RconResult } from "@/lib/api-types";
@@ -15,16 +15,15 @@ export const dynamic = "force-dynamic";
 const RconBody = z.object({ command: z.string().min(1).max(MAX_COMMAND_BYTES) });
 
 /**
- * Console brute : accès RCON complet, réservé au rôle qui a `rcon:raw`.
- * Les rôles inférieurs passent par /api/actions, dont le serveur construit
- * lui-même les commandes.
+ * Raw console: full RCON access, reserved for the role holding `rcon:raw`.
+ * Lower roles go through /api/actions, whose commands the server builds itself.
  */
 export const POST = route(
   { name: "rcon", mutation: true, permission: "rcon:raw" },
-  async ({ request, session, ip, requestId }) => {
+  async ({ json, session, ip, requestId }) => {
     const current = session!;
 
-    // Un compte légitime ne doit pas pouvoir saturer la file RCON.
+    // A legitimate account must not be able to saturate the RCON queue.
     const verdict = limiters().rconPerSession.consume(`session:${current.id}`);
     if (!verdict.allowed) {
       recordAudit({
@@ -40,7 +39,7 @@ export const POST = route(
       throw ApiFailure.tooManyRequests("rate_limited_session", verdict.retryAfter);
     }
 
-    const parsed = RconBody.safeParse(await request.json().catch(() => null));
+    const parsed = RconBody.safeParse(await json());
     if (!parsed.success) {
       throw ApiFailure.badRequest("command_missing");
     }
@@ -74,9 +73,9 @@ export const POST = route(
         role: current.role,
         kind: "rcon",
         action: "command",
-        command: parsed.data.command.slice(0, 200),
+        command: parsed.data.command,
         status: "error",
-        detail: error instanceof RconError ? `${error.code}: ${error.detail}` : String(error),
+        detail: isRconError(error) ? `${error.code}: ${error.detail}` : String(error),
         ip,
         requestId,
       });

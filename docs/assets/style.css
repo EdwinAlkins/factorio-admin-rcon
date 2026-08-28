@@ -1,0 +1,504 @@
+/*
+ * The documentation site's single stylesheet.
+ *
+ * The palette is taken from the panel itself (src/app/globals.css): the docs
+ * and the application should look alike. The panel is dark by choice; the site
+ * follows the system preference, because documentation is read in far more
+ * contexts than a server is administered in.
+ *
+ * No external resource: no font, no script, no CDN. The site works offline and
+ * on a GitHub Pages site with no configuration.
+ */
+
+:root {
+  --ground: #14161a;
+  --surface: #1b1f26;
+  --raised: #232935;
+  --line: #333b47;
+  --ink: #e6e8ec;
+  --muted: #98a1b0;
+  --accent: #f5a623;
+  --accent-ink: #1a1206;
+  --danger: #e5484d;
+  --ok: #3dd68c;
+  --shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --ground: #fbfaf8;
+    --surface: #ffffff;
+    --raised: #f2f0ec;
+    --line: #ddd8d0;
+    --ink: #1c1f24;
+    --muted: #5f6672;
+    --accent: #a8620a;
+    --accent-ink: #fffaf2;
+    --danger: #b4262b;
+    --ok: #16794a;
+    --shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+    color-scheme: light;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-text-size-adjust: 100%;
+}
+
+code,
+pre,
+kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* ----------------------------------------------------------------- header */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1.25rem;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand span {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.topbar .repo {
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+
+/* ------------------------------------------------------------------ corps */
+
+.shell {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  gap: 2.5rem;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 5rem;
+}
+
+@media (max-width: 60rem) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* -------------------------------------------------------------- navigation */
+
+.sidenav {
+  position: sticky;
+  top: 4.5rem;
+  align-self: start;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 60rem) {
+  .sidenav {
+    position: static;
+    max-height: none;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    background: var(--surface);
+  }
+}
+
+.sidenav h2 {
+  margin: 1.25rem 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sidenav h2:first-child {
+  margin-top: 0;
+}
+
+.sidenav ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sidenav a {
+  display: block;
+  padding: 0.28rem 0.6rem;
+  margin-left: -0.6rem;
+  border-radius: 0.3rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.sidenav a:hover {
+  background: var(--raised);
+}
+
+.sidenav a[aria-current="page"] {
+  background: var(--raised);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- contenu */
+
+main {
+  min-width: 0;
+}
+
+main > header {
+  padding-bottom: 1.25rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--line);
+}
+
+h1 {
+  margin: 0 0 0.4rem;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+
+h2 {
+  margin: 2.75rem 0 0.9rem;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 5rem;
+}
+
+h3 {
+  margin: 2rem 0 0.6rem;
+  font-size: 1.05rem;
+  scroll-margin-top: 5rem;
+}
+
+h2 .anchor,
+h3 .anchor {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  opacity: 0;
+  text-decoration: none;
+  font-weight: 400;
+}
+
+h2:hover .anchor,
+h3:hover .anchor {
+  opacity: 1;
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 1rem;
+}
+
+ul,
+ol {
+  padding-left: 1.35rem;
+}
+
+li {
+  margin-bottom: 0.35rem;
+}
+
+strong {
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------------- code */
+
+code {
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+  background: var(--raised);
+  font-size: 0.875em;
+  word-break: break-word;
+}
+
+pre {
+  margin: 0 0 1.25rem;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+pre code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+  word-break: normal;
+}
+
+/* Language label, set through an attribute on the <pre>. */
+.snippet {
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.snippet > pre {
+  margin: 0;
+}
+
+.snippet::after {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+.table-wrap {
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+
+thead th {
+  background: var(--surface);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+td code {
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- encarts */
+
+.note,
+.warn,
+.danger {
+  padding: 0.85rem 1rem;
+  margin: 0 0 1.25rem;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: 0.4rem;
+  background: var(--surface);
+}
+
+.note {
+  border-left-color: var(--accent);
+}
+
+.warn {
+  border-left-color: var(--danger);
+}
+
+.danger {
+  border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+
+.note > :last-child,
+.warn > :last-child,
+.danger > :last-child {
+  margin-bottom: 0;
+}
+
+.note strong:first-child,
+.warn strong:first-child,
+.danger strong:first-child {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+/* ---------------------------------------------------------------- cartes */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.cards li {
+  margin: 0;
+}
+
+.cards a {
+  display: block;
+  height: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+.cards a:hover {
+  border-color: var(--accent);
+}
+
+.cards strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: var(--accent);
+}
+
+.cards p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+/* -------------------------------------------------------------------- pills */
+
+.pill {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.pill-get {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+}
+
+.pill-post {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+
+.pill-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+}
+
+/* --------------------------------------------------------------- pied/nav */
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-top: 3.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+
+footer.site {
+  padding: 1.5rem 1.25rem 2.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip:focus {
+  left: 1rem;
+  top: 0.6rem;
+  z-index: 30;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.3rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+}

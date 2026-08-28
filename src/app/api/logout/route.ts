@@ -11,7 +11,7 @@ export const POST = route(
   { name: "logout", mutation: true },
   async ({ request, session, ip, requestId }) => {
     if (session) {
-      // Révocation en base : le cookie devient inutilisable même s'il a été volé.
+      // Revoked in the database: the cookie becomes useless even if stolen.
       revokeSession(session.id);
       recordAudit({
         username: session.username,

@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 describe("authenticate", () => {
-  it("attribue le rôle correspondant au mot de passe utilisé", () => {
+  it("assigns the role matching the password used", () => {
     withEnv({
       ADMIN_PASSWORD: "admin-pw",
       MODERATOR_PASSWORD: "moderator-pw",
@@ -24,7 +24,7 @@ describe("authenticate", () => {
     expect(authenticate("viewer-pw")).toEqual({ username: "viewer", role: "viewer" });
   });
 
-  it("refuse un mauvais mot de passe", () => {
+  it("refuses a wrong password", () => {
     withEnv({ ADMIN_PASSWORD: "admin-pw" });
 
     expect(authenticate("autre")).toBeNull();
@@ -32,7 +32,7 @@ describe("authenticate", () => {
     expect(authenticate("admin-pw ")).toBeNull();
   });
 
-  it("refuse tout le monde quand aucun compte n'est configuré", () => {
+  it("refuses everybody when no account is configured", () => {
     withEnv({
       ADMIN_PASSWORD: undefined,
       MODERATOR_PASSWORD: undefined,

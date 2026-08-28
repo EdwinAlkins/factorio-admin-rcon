@@ -18,7 +18,7 @@ const LoginBody = z.object({ password: z.string().min(1).max(512) });
 
 export const POST = route(
   { name: "login", auth: false, mutation: true },
-  async ({ request, ip, requestId }) => {
+  async ({ request, json, ip, requestId }) => {
     const { key, perIp } = rateKey(request);
     const { loginPerIp, loginGlobal } = limiters();
 
@@ -34,7 +34,7 @@ export const POST = route(
       }
     }
 
-    const parsed = LoginBody.safeParse(await request.json().catch(() => null));
+    const parsed = LoginBody.safeParse(await json());
     if (!parsed.success) {
       throw ApiFailure.badRequest("password_missing");
     }

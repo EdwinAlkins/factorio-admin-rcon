@@ -7,9 +7,9 @@ import { RCON_ERROR_CODE } from "@/server/rcon/errors";
 import { ROLES } from "@/lib/permissions";
 
 /**
- * Les clés construites à l'exécution (`actions.items.<id>.label`,
- * `errors.<code>`) échappent au typage de next-intl : ces tests sont le filet.
- * Ajouter une action sans traduire ses libellés casse la CI, pas la production.
+ * Keys built at runtime (`actions.items.<id>.label`, `errors.<code>`) escape
+ * next-intl's typing: these tests are the net. Adding an action without
+ * translating its labels breaks CI, not production.
  */
 
 type Json = { [key: string]: string | Json };
@@ -29,15 +29,15 @@ function valueAt(messages: unknown, key: string): string {
 }
 
 /**
- * Clés lues via `t.raw()`, donc jamais compilées par ICU. Les indices de
- * commande contiennent `<joueur>`, qu'ICU prendrait pour une balise ouvrante.
+ * Keys read through `t.raw()`, therefore never compiled by ICU. Command hints
+ * contain `<player>`, which ICU would take for an opening tag.
  */
 const RAW_KEYS = /^actions\.items\.[^.]+\.hint$/;
 
 /**
- * Codes d'erreur émis par les routes et l'enveloppe HTTP. À tenir à jour avec
- * les `ApiFailure` : un code sans traduction retomberait silencieusement sur
- * `errors.unknown`.
+ * Error codes emitted by the routes and the HTTP wrapper. To be kept in sync
+ * with the `ApiFailure`s: a code with no translation would silently fall back
+ * to `errors.unknown`.
  */
 const API_ERROR_CODES = [
   "unknown",
@@ -58,6 +58,7 @@ const API_ERROR_CODES = [
   "rate_limited_session",
   "command_missing",
   "action_body_invalid",
+  "body_too_large",
   "metrics_disabled",
   "unknown_action",
   "invalid_arguments",
@@ -76,12 +77,12 @@ const API_ERROR_CODES = [
   "unknown_placeholder",
 ];
 
-describe("dictionnaires", () => {
-  it("expose exactement les mêmes clés dans chaque langue", () => {
+describe("dictionaries", () => {
+  it("exposes exactly the same keys in every language", () => {
     expect([...FR].sort()).toEqual([...EN].sort());
   });
 
-  it("ne laisse aucune valeur vide", () => {
+  it("leaves no empty value", () => {
     for (const [locale, messages] of [
       ["en", en],
       ["fr", fr],
@@ -93,9 +94,9 @@ describe("dictionnaires", () => {
     }
   });
 
-  it("compile chaque message avec ICU", () => {
-    // Un `<joueur>` ou une accolade non échappée fait échouer le rendu à
-    // l'exécution, pas à la compilation : c'est ce test qui l'attrape.
+  it("compiles every message with ICU", () => {
+    // A `<player>` or an unescaped brace fails at render time, not at compile
+    // time: this test is what catches it.
     for (const [locale, messages, keys] of [
       ["en", en, EN],
       ["fr", fr, FR],
@@ -111,8 +112,8 @@ describe("dictionnaires", () => {
   });
 });
 
-describe("catalogue d'actions", () => {
-  it("traduit chaque action dans les deux langues", () => {
+describe("action catalogue", () => {
+  it("translates every action in both languages", () => {
     for (const action of ACTIONS) {
       for (const suffix of ["label", "hint"]) {
         const key = `actions.items.${action.id}.${suffix}`;
@@ -122,7 +123,7 @@ describe("catalogue d'actions", () => {
     }
   });
 
-  it("fournit un texte de confirmation exactement aux actions qui en demandent", () => {
+  it("provides confirmation text to exactly the actions that ask for it", () => {
     for (const action of ACTIONS) {
       const key = `actions.items.${action.id}.confirmation`;
       expect(EN.includes(key), `${action.id} : confirmation incohérente`).toBe(
@@ -131,7 +132,7 @@ describe("catalogue d'actions", () => {
     }
   });
 
-  it("traduit chaque groupe et chaque champ utilisés", () => {
+  it("translates every group and field in use", () => {
     for (const action of ACTIONS) {
       expect(EN).toContain(`actions.groups.${action.group}`);
 
@@ -143,22 +144,22 @@ describe("catalogue d'actions", () => {
   });
 });
 
-describe("messages d'erreur", () => {
-  it("couvre chaque clé d'erreur RCON", () => {
+describe("error messages", () => {
+  it("covers every RCON error key", () => {
     for (const key of Object.keys(RCON_ERROR_CODE)) {
       expect(EN, `manquant : errors.${key}`).toContain(`errors.${key}`);
     }
   });
 
-  it("couvre chaque code renvoyé par l'API", () => {
+  it("covers every code the API returns", () => {
     for (const code of API_ERROR_CODES) {
       expect(EN, `manquant : errors.${code}`).toContain(`errors.${code}`);
     }
   });
 
-  it("n'utilise ni pluriel ni sélecteur ICU", () => {
-    // `englishError()` interpole avec une simple regex `{clé}` : une syntaxe
-    // ICU plus riche serait rendue littéralement dans le repli anglais.
+  it("uses neither ICU plurals nor selectors", () => {
+    // `englishError()` interpolates with a plain `{key}` regex: richer ICU
+    // syntax would be rendered literally in the English fallback.
     for (const [locale, messages] of [
       ["en", en],
       ["fr", fr],
@@ -170,8 +171,8 @@ describe("messages d'erreur", () => {
   });
 });
 
-describe("rôles", () => {
-  it("traduit chaque rôle", () => {
+describe("roles", () => {
+  it("translates every role", () => {
     for (const role of ROLES) {
       expect(EN).toContain(`roles.${role}`);
     }

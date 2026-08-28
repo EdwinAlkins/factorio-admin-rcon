@@ -1,18 +1,18 @@
 /**
- * Rendu des gabarits de commandes, **partagé client et serveur**.
+ * Command template rendering, **shared between client and server**.
  *
- * Un gabarit vient du fichier de commandes de l'opérateur : il est de confiance,
- * au même titre qu'une variable d'environnement. Les **valeurs** qu'on y injecte
- * viennent de l'interface : elles ne le sont pas. Toute la sécurité de la
- * fonctionnalité tient dans cette frontière.
+ * A template comes from the operator's command file: it is trusted, on the same
+ * footing as an environment variable. The **values** injected into it come from
+ * the interface: they are not. The whole security of the feature rests on that
+ * boundary.
  *
- * Le gabarit n'écrit jamais les guillemets lui-même — `game.players[{{player}}]`
- * et non `game.players["{{player}}"]`. C'est `luaString()` qui produit le
- * littéral complet, donc aucun gabarit ne peut se tromper d'échappement.
+ * The template never writes the quotes itself — `game.players[{{player}}]`, not
+ * `game.players["{{player}}"]`. It is `luaString()` that produces the complete
+ * literal, so no template can get the escaping wrong.
  *
- * Le module ne dépend de rien (ni Node, ni React) : l'aperçu affiché avant
- * confirmation utilise exactement le même code que l'exécution, et il n'existe
- * qu'une seule logique d'échappement à auditer.
+ * The module depends on nothing (neither Node nor React): the preview shown
+ * before confirmation uses exactly the same code as execution, and there is
+ * only one escaping path to audit.
  */
 
 export type LuaKind = "player" | "text" | "identifier" | "int" | "float" | "bool" | "enum";
@@ -20,11 +20,19 @@ export type LuaKind = "player" | "text" | "identifier" | "int" | "float" | "bool
 export type TemplateParam = {
   name: string;
   kind: LuaKind;
-  /** `enum` uniquement : insérer la valeur nue plutôt qu'un littéral chaîne. */
+  /** `enum` only: insert the bare value rather than a string literal. */
   raw?: boolean;
 };
 
+/** See `isRconError`: this module is shared client/server, hence duplicated. */
+const BRAND = Symbol.for("factorio-admin.LuaTemplateError");
+
+export function isLuaTemplateError(value: unknown): value is LuaTemplateError {
+  return typeof value === "object" && value !== null && BRAND in value;
+}
+
 export class LuaTemplateError extends Error {
+  readonly [BRAND] = true;
   readonly code: string;
 
   constructor(code: string, message: string) {
@@ -35,10 +43,10 @@ export class LuaTemplateError extends Error {
 }
 
 /**
- * Caractères refusés dans une valeur injectée : commandes C0/C1 et séparateurs
- * de ligne Unicode. Les échapper serait possible, mais un saut de ligne devrait
- * devenir `\010` ou `\n` selon ce qui suit, et `normalizeCommand()` les écrase
- * de toute façon. Refuser est plus simple à vérifier.
+ * Characters refused inside an injected value: C0/C1 controls and Unicode line
+ * separators. Escaping them would be possible, but a line break would have to
+ * become `\010` or `\n` depending on what follows, and `normalizeCommand()`
+ * flattens them anyway. Refusing is easier to verify.
  */
 export function hasControlChar(value: string): boolean {
   for (const char of value) {
@@ -50,10 +58,10 @@ export function hasControlChar(value: string): boolean {
   return false;
 }
 
-/** `{{nom}}` (littéral Lua) ou `{{arg:nom}}` (valeur nue, commandes non-Lua). */
+/** `{{name}}` (Lua literal) or `{{arg:name}}` (bare value, non-Lua commands). */
 const PLACEHOLDER = /\{\{\s*(arg:)?([A-Za-z0-9_]+)\s*\}\}/g;
 
-/** Littéral chaîne Lua, guillemets compris. */
+/** Lua string literal, quotes included. */
 export function luaString(value: string): string {
   if (hasControlChar(value)) {
     throw new LuaTemplateError("validation_control_char", "caractere de controle refuse");
@@ -63,9 +71,9 @@ export function luaString(value: string): string {
 }
 
 /**
- * Nombre Lua. Les négatifs sont parenthésés : sans cela, un gabarit du type
- * `x-{{n}}` produirait `x--5`, et « -- » ouvre un commentaire Lua qui avalerait
- * tout le reste de la commande (les retours à la ligne étant aplatis).
+ * Lua number. Negatives are parenthesised: without that, a template like
+ * `x-{{n}}` would produce `x--5`, and "--" opens a Lua comment that would
+ * swallow the rest of the command (line breaks being flattened).
  */
 export function luaNumber(value: number): string {
   if (!Number.isFinite(value)) {
@@ -79,7 +87,7 @@ export function luaBool(value: boolean): string {
   return value ? "true" : "false";
 }
 
-/** Noms référencés par le gabarit, dans l'ordre d'apparition, sans doublon. */
+/** Names the template references, in order of appearance, without duplicates. */
 export function templatePlaceholders(template: string): { name: string; raw: boolean }[] {
   const seen = new Map<string, boolean>();
 
@@ -109,7 +117,7 @@ function literal(param: TemplateParam, value: string): string {
   }
 }
 
-/** Valeur nue pour `{{arg:nom}}` : commandes classiques, sans syntaxe Lua. */
+/** Bare value for `{{arg:name}}`: plain commands, with no Lua syntax. */
 function plain(param: TemplateParam, value: string): string {
   if (hasControlChar(value)) {
     throw new LuaTemplateError("validation_control_char", "caractere de controle refuse");
@@ -121,9 +129,9 @@ function plain(param: TemplateParam, value: string): string {
 }
 
 /**
- * Substitue les marqueurs du gabarit. Les valeurs sont supposées **déjà
- * validées** par le schéma zod de l'action : ce rendu est la seconde barrière,
- * pas la première.
+ * Substitutes the template's markers. Values are assumed to have been
+ * **validated already** by the action's zod schema: this rendering is the
+ * second barrier, not the first.
  */
 export function renderTemplate(
   template: string,
@@ -132,8 +140,8 @@ export function renderTemplate(
 ): string {
   const byName = new Map(params.map((param) => [param.name, param]));
 
-  // Fonction de remplacement obligatoire : une valeur contenant « $& » ou « $1 »
-  // serait réinterprétée par `String.replace`, et elle vient de l'utilisateur.
+  // A replacement function is mandatory: a value containing "$&" or "$1" would
+  // be reinterpreted by `String.replace`, and it comes from the user.
   const rendered = template.replace(
     PLACEHOLDER,
     (_match, arg: string | undefined, name: string) => {
@@ -148,8 +156,8 @@ export function renderTemplate(
     },
   );
 
-  // Un « -- » ne peut venir que d'une substitution : les gabarits qui en
-  // contiennent sont refusés au chargement.
+  // A "--" can only come from a substitution: templates containing one are
+  // refused at load time.
   if (rendered.includes("--")) {
     throw new LuaTemplateError("validation_comment", "commentaire Lua interdit dans une valeur");
   }
@@ -157,7 +165,7 @@ export function renderTemplate(
   return rendered;
 }
 
-/** Taille en octets, disponible côté client comme côté serveur. */
+/** Byte length, available on the client as well as the server. */
 export function byteLength(value: string): number {
   return new TextEncoder().encode(value).length;
 }

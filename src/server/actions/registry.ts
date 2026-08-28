@@ -2,9 +2,9 @@ import { ACTIONS, type ActionDefinition } from "@/server/actions/definitions";
 import { customActions } from "@/server/actions/custom";
 
 /**
- * Catalogue effectif : actions intégrées **puis** commandes du fichier de
- * l'opérateur. Les identifiants de ces dernières sont préfixés `custom:`, donc
- * aucune ne peut masquer une action intégrée.
+ * The effective catalogue: built-in actions **then** commands from the
+ * operator's file. The latter's ids are prefixed `custom:`, so none of them can
+ * shadow a built-in action.
  */
 export function allActions(): ActionDefinition[] {
   return [...ACTIONS, ...customActions()];

@@ -13,14 +13,14 @@ import { withEnv } from "../helpers";
 let dir: string;
 let file: string;
 
-/** Écrit le catalogue et vide le cache : le test relit toujours du neuf. */
+/** Writes the catalogue and clears the cache: the test always re-reads fresh. */
 function write(catalog: unknown) {
   const source = typeof catalog === "string" ? catalog : JSON.stringify(catalog);
   writeFileSync(file, source, "utf8");
   resetCustomCatalog();
 }
 
-/** Valide les valeurs puis construit la commande, comme le fait `executeAction`. */
+/** Validates the values then builds the command, as `executeAction` does. */
 function build(id: string, values: Record<string, string>) {
   const action = findAction(id)!;
   const parsed = schemaOf(action).safeParse(values);
@@ -44,7 +44,7 @@ const KILL_ENEMIES = {
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "factorio-commands-"));
   file = join(dir, "commands.json");
-  // `warn` sert à signaler les entrées rejetées : inutile de le voir passer ici.
+  // `warn` reports rejected entries: no need to see it scroll past here.
   withEnv({ CUSTOM_COMMANDS_FILE: file, LOG_LEVEL: "error" });
   resetCustomCatalog();
 });
@@ -55,25 +55,25 @@ afterEach(() => {
   resetCustomCatalog();
 });
 
-describe("chargement du fichier", () => {
-  it("ne fait rien quand le fichier est absent", () => {
+describe("loading the file", () => {
+  it("does nothing when the file is absent", () => {
     expect(customActions()).toEqual([]);
     expect(loadCustomCatalog().error).toBeNull();
   });
 
-  it("charge une commande et préfixe son identifiant", () => {
+  it("loads a command and prefixes its id", () => {
     write({ commands: [KILL_ENEMIES] });
 
     const actions = customActions();
     expect(actions).toHaveLength(1);
     expect(actions[0].id).toBe("custom:kill-enemies");
-    // Défaut volontairement strict quand le groupe n'est pas déclaré.
+    // Deliberately strict default when the group is not declared.
     expect(actions[0].group).toBe("custom");
     expect(actions[0].confirm).toBe(true);
     expect(actions[0].risk).toBe("dangerous");
   });
 
-  it("relit le fichier quand il change, sans redémarrage", () => {
+  it("re-reads the file when it changes, without a restart", () => {
     write({ commands: [KILL_ENEMIES] });
     expect(customActions()).toHaveLength(1);
 
@@ -87,16 +87,16 @@ describe("chargement du fichier", () => {
     expect(customActions()).toHaveLength(2);
   });
 
-  it("survit à un JSON illisible en gardant les actions intégrées", () => {
+  it("survives unreadable JSON, keeping the built-in actions", () => {
     write("{ ceci n'est pas du JSON");
 
     expect(customActions()).toEqual([]);
     expect(loadCustomCatalog().error).not.toBeNull();
-    // Les actions intégrées restent servies.
+    // The built-in actions are still served.
     expect(findAction("players-online")).toBeDefined();
   });
 
-  it("ignore une entrée fautive sans emporter les autres", () => {
+  it("skips a faulty entry without taking the others down", () => {
     write({ commands: [{ id: "cassée" }, KILL_ENEMIES] });
 
     expect(customActions()).toHaveLength(1);
@@ -104,10 +104,10 @@ describe("chargement du fichier", () => {
   });
 });
 
-describe("catalogue d'exemple livré", () => {
-  it("charge sans rejet", () => {
-    // `examples/commands.json` est de la documentation exécutable : une faute de
-    // frappe s'y verrait autrement le jour du déploiement.
+describe("the shipped example catalogue", () => {
+  it("loads with no rejection", () => {
+    // `examples/commands.json` is executable documentation: a typo in it would
+    // otherwise only show up on deployment day.
     withEnv({ CUSTOM_COMMANDS_FILE: join(process.cwd(), "examples/commands.json") });
     resetCustomCatalog();
 
@@ -118,31 +118,31 @@ describe("catalogue d'exemple livré", () => {
   });
 });
 
-describe("validation des entrées", () => {
+describe("entry validation", () => {
   const rejects = (command: Record<string, unknown>) => {
     write({ commands: [{ ...KILL_ENEMIES, ...command }] });
     expect(customActions()).toEqual([]);
     expect(loadCustomCatalog().rejected).toBe(1);
   };
 
-  it("refuse un gabarit qui référence un paramètre non déclaré", () => {
+  it("refuses a template referencing an undeclared parameter", () => {
     rejects({ template: "/c game.players[{{ghost}}]" });
   });
 
-  it("refuse un gabarit contenant un commentaire Lua", () => {
-    // Les retours à la ligne étant aplatis, « -- » avalerait la suite.
+  it("refuses a template containing a Lua comment", () => {
+    // Line breaks being flattened, "--" would swallow what follows.
     rejects({ template: "/c game.print(1) -- note" });
   });
 
-  it("refuse un gabarit plus long que la trame RCON", () => {
+  it("refuses a template longer than an RCON frame", () => {
     rejects({ template: `/c rcon.print("${"a".repeat(4100)}")`, params: [] });
   });
 
-  it("refuse un enum sans liste de valeurs", () => {
+  it("refuses an enum with no list of values", () => {
     rejects({ params: [{ name: "player", type: "enum" }] });
   });
 
-  it("refuse un champ facultatif non textuel sans valeur par défaut", () => {
+  it("refuses a non-textual optional field with no default", () => {
     rejects({
       params: [
         { name: "player", type: "player" },
@@ -152,7 +152,7 @@ describe("validation des entrées", () => {
     });
   });
 
-  it("refuse une valeur par défaut qui ne passerait pas la validation", () => {
+  it("refuses a default that would not pass validation", () => {
     rejects({
       params: [
         { name: "player", type: "player" },
@@ -162,15 +162,15 @@ describe("validation des entrées", () => {
     });
   });
 
-  it("refuse deux commandes portant le même identifiant", () => {
+  it("refuses two commands sharing an id", () => {
     write({ commands: [KILL_ENEMIES, KILL_ENEMIES] });
     expect(customActions()).toHaveLength(1);
     expect(loadCustomCatalog().rejected).toBe(1);
   });
 });
 
-describe("construction des commandes", () => {
-  it("insère un nom de joueur sous forme de littéral Lua", () => {
+describe("building the commands", () => {
+  it("inserts a player name as a Lua literal", () => {
     write({ commands: [KILL_ENEMIES] });
 
     expect(build("custom:kill-enemies", { player: "Edwins" })).toBe(
@@ -178,7 +178,7 @@ describe("construction des commandes", () => {
     );
   });
 
-  it("refuse une saisie qui tenterait de sortir de la chaîne Lua", () => {
+  it("refuses input trying to break out of the Lua string", () => {
     write({ commands: [KILL_ENEMIES] });
 
     expect(() => build("custom:kill-enemies", { player: 'x"] rcon.print("pwned") [' })).toThrow(
@@ -186,7 +186,7 @@ describe("construction des commandes", () => {
     );
   });
 
-  it("échappe les guillemets d'un champ texte au lieu de les refuser", () => {
+  it("escapes quotes in a text field instead of refusing them", () => {
     write({
       commands: [
         {
@@ -203,7 +203,7 @@ describe("construction des commandes", () => {
     );
   });
 
-  it("applique les bornes et la valeur par défaut d'un nombre", () => {
+  it("applies a number's bounds and default", () => {
     write({
       commands: [
         {
@@ -228,7 +228,7 @@ describe("construction des commandes", () => {
     );
   });
 
-  it("n'accepte d'un enum que les valeurs de sa liste", () => {
+  it("accepts only the values in an enum's list", () => {
     write({
       commands: [
         {
@@ -244,14 +244,14 @@ describe("construction des commandes", () => {
     expect(() => build("custom:quality", { quality: "mythic" })).toThrow(/validation_enum/);
   });
 
-  it("refuse un champ obligatoire laissé vide", () => {
+  it("refuses a required field left empty", () => {
     write({ commands: [KILL_ENEMIES] });
     expect(() => build("custom:kill-enemies", {})).toThrow(/validation_required/);
   });
 });
 
-describe("catalogue servi à l'interface", () => {
-  it("masque au modérateur ce qui n'est pas explicitement ouvert", () => {
+describe("the catalogue served to the interface", () => {
+  it("hides from a moderator what is not explicitly opened", () => {
     write({
       commands: [
         KILL_ENEMIES,
@@ -272,7 +272,7 @@ describe("catalogue servi à l'interface", () => {
     expect(catalogFor(session("admin")).map((action) => action.id)).toContain("custom:give-item");
   });
 
-  it("porte son texte dans la locale demandée, avec repli anglais", () => {
+  it("carries its text in the requested locale, falling back to English", () => {
     write({ commands: [KILL_ENEMIES] });
 
     const fr = catalogFor(session("admin"), "fr").find((a) => a.id === "custom:kill-enemies")!;
@@ -282,7 +282,7 @@ describe("catalogue servi à l'interface", () => {
     expect(de.text?.label).toBe("Kill all enemies");
   });
 
-  it("transmet le gabarit pour l'aperçu et décrit les champs", () => {
+  it("sends the template for the preview and describes the fields", () => {
     write({ commands: [KILL_ENEMIES] });
 
     const action = catalogFor(session("admin")).find((a) => a.id === "custom:kill-enemies")!;
@@ -290,7 +290,7 @@ describe("catalogue servi à l'interface", () => {
     expect(action.fields).toEqual([{ name: "player", required: true, kind: "player" }]);
   });
 
-  it("laisse les actions intégrées sans texte, résolu côté interface", () => {
+  it("leaves built-in actions without text, resolved on the interface", () => {
     const action = catalogFor(session("admin")).find((a) => a.id === "kick")!;
     expect(action.text).toBeUndefined();
     expect(action.template).toBeUndefined();

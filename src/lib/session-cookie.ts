@@ -1,6 +1,6 @@
 /**
- * Nom du cookie de session, isolé dans son propre module : le middleware tourne
- * potentiellement sur le runtime Edge et ne doit pas importer `lib/auth`
- * (qui dépend de `node:crypto`).
+ * Name of the session cookie, isolated in its own module: the middleware may
+ * run on the Edge runtime and must not import `lib/auth` (which depends on
+ * `node:crypto`).
  */
 export const SESSION_COOKIE = "fa_session";

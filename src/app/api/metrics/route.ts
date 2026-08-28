@@ -15,18 +15,18 @@ function parseRange(value: string | null): RangeKey {
 }
 
 /**
- * `status:read` — donc accessible aux trois rôles : ces chiffres ne sont pas
- * plus sensibles que le nombre de joueurs déjà exposé par `/api/status`.
+ * `status:read` — so available to all three roles: these figures are no more
+ * sensitive than the player count `/api/status` already exposes.
  */
 export const GET = route({ name: "metrics", permission: "status:read" }, async ({ request }) => {
-  // Fonctionnalité coupée : la route n'existe pas dans cette configuration.
-  // Cas visé — un onglet resté ouvert avant le redémarrage : le client affiche
-  // un message explicite plutôt qu'un graphe vide inexplicable.
+  // Feature off: the route does not exist in this configuration. The case in
+  // mind is a tab left open across a restart: the client shows an explicit
+  // message rather than an unexplained empty chart.
   if (!env().METRICS_ENABLED) throw ApiFailure.notFound("metrics_disabled");
 
   const range = parseRange(new URL(request.url).searchParams.get("range"));
-  // Un seul instant de référence pour les deux lectures et pour la fenêtre
-  // annoncée : sinon les bornes ne correspondraient pas tout à fait aux points.
+  // One reference instant for both reads and for the announced window:
+  // otherwise the bounds would not quite line up with the points.
   const now = Date.now();
   const buckets = readSeries(range, now);
   const summary = readSummary(range, now);
@@ -38,9 +38,9 @@ export const GET = route({ name: "metrics", permission: "status:read" }, async (
     to: now,
     buckets,
     summary,
-    // Rapportée par le collecteur, pas déduite des points : une source tombée
-    // et une fenêtre encore vide produisent les mêmes données mais appellent
-    // des messages opposés.
+    // Reported by the collector, not inferred from the points: a source that
+    // went down and a window that is still empty produce the same data but call
+    // for opposite messages.
     health: metricsHealth(),
   };
 

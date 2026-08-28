@@ -1,10 +1,9 @@
 import { defineRouting } from "next-intl/routing";
 
 /**
- * `as-needed` : la locale par défaut n'est pas préfixée (`/login`), les autres
- * le sont (`/fr/login`). Le choix de l'utilisateur est mémorisé dans un cookie
- * posé par le proxy, ce qui évite de lui réimposer `Accept-Language` à chaque
- * visite.
+ * `as-needed`: the default locale is not prefixed (`/login`), the others are
+ * (`/fr/login`). The user's choice is remembered in a cookie set by the proxy,
+ * which avoids forcing `Accept-Language` on them at every visit.
  */
 export const routing = defineRouting({
   locales: ["en", "fr"],
@@ -14,7 +13,7 @@ export const routing = defineRouting({
 
 export type Locale = (typeof routing.locales)[number];
 
-/** Chemin préfixé pour cette locale, en respectant `as-needed`. */
+/** Prefixed path for this locale, honouring `as-needed`. */
 export function localizedPath(locale: Locale, path: string): string {
   if (locale === routing.defaultLocale) return path;
   return path === "/" ? `/${locale}` : `/${locale}${path}`;

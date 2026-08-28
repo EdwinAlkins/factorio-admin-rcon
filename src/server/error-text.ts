@@ -2,12 +2,12 @@ import en from "../../messages/en.json";
 import type { ErrorParams } from "@/lib/api-types";
 
 /**
- * Repli anglais des messages d'erreur, tiré du même dictionnaire que
- * l'interface : une seule source de vérité, pas de table à maintenir en double.
+ * English fallback for error messages, taken from the same dictionary as the
+ * interface: one source of truth, no second table to keep in sync.
  *
- * L'interpolation est volontairement naïve (`{clé}`) — c'est un sous-ensemble
- * d'ICU. Les messages de `errors.*` ne doivent donc contenir ni pluriel ni
- * sélecteur, contrairement au reste des dictionnaires.
+ * Interpolation is deliberately naive (`{key}`) — a subset of ICU. Messages
+ * under `errors.*` must therefore contain neither plurals nor selectors, unlike
+ * the rest of the dictionaries.
  */
 const ERRORS: Record<string, string> = en.errors;
 
@@ -20,7 +20,7 @@ export function englishError(code: string, params?: ErrorParams): string {
   });
 }
 
-/** Vrai si le code possède un message dédié (sinon l'UI affichera `errors.unknown`). */
+/** True when the code has a dedicated message (otherwise the UI shows `errors.unknown`). */
 export function isKnownErrorCode(code: string): boolean {
   return code in ERRORS;
 }

@@ -1,14 +1,23 @@
 import { z } from "zod";
 
 /**
- * Configuration centralisée et validée une seule fois.
+ * Configuration, centralised and validated exactly once.
  *
- * Toute variable mal formée (port non numérique, durée négative…) est détectée
- * ici plutôt qu'au milieu d'une requête. `src/instrumentation.ts` force cette
- * validation au démarrage du serveur.
+ * Any malformed variable (a non-numeric port, a negative duration…) is caught
+ * here rather than in the middle of a request. `src/instrumentation.ts` forces
+ * this validation when the server starts.
  */
 
+/** See `isRconError`: `instanceof` does not survive a duplicated module. */
+const CONFIG_ERROR = Symbol.for("factorio-admin.ConfigError");
+
+export function isConfigError(value: unknown): value is ConfigError {
+  return typeof value === "object" && value !== null && CONFIG_ERROR in value;
+}
+
 export class ConfigError extends Error {
+  readonly [CONFIG_ERROR] = true;
+
   constructor(message: string) {
     super(message);
     this.name = "ConfigError";
@@ -20,18 +29,22 @@ const booleanish = z
   .transform((value) => value === "true" || value === "1");
 
 const EnvSchema = z.object({
-  // Authentification : un mot de passe par rôle. Aucun mot de passe défini =
-  // aucun compte, le panneau démarre mais refuse toute connexion.
+  // Authentication: one password per role. No password set at all means no
+  // account, so the panel starts but refuses every sign-in.
   ADMIN_PASSWORD: z.string().min(1).optional(),
   MODERATOR_PASSWORD: z.string().min(1).optional(),
   VIEWER_PASSWORD: z.string().min(1).optional(),
 
-  SESSION_SECRET: z.string().min(16).optional(),
+  // Required, and independent from the passwords: a key derived from them tied
+  // together two unrelated rotations (changing one password signed everybody
+  // out) and made session signatures depend on a human-chosen secret.
+  // `setup-admin.sh` generates one.
+  SESSION_SECRET: z.string().min(32),
   SESSION_TTL_HOURS: z.coerce.number().int().positive().max(720).default(12),
-  // "auto" : cookie `secure` dès que la requête arrive en HTTPS.
+  // "auto": `secure` cookie as soon as the request arrives over HTTPS.
   COOKIE_SECURE: z.enum(["auto", "true", "false"]).default("auto"),
-  // N'activer que derrière un reverse proxy de confiance : sinon n'importe qui
-  // peut forger X-Forwarded-For et contourner la limite par IP.
+  // Only enable behind a trusted reverse proxy: otherwise anyone can forge
+  // X-Forwarded-For and walk around the per-IP limit.
   TRUST_PROXY: booleanish.default(false),
 
   LOGIN_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
@@ -43,48 +56,51 @@ const EnvSchema = z.object({
   RCON_PASSWORD: z.string().min(1).optional(),
   RCON_PASSWORD_FILE: z.string().min(1).default("/factorio-config/rconpw"),
   RCON_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
-  // Backpressure : au-delà, les commandes sont refusées (503) au lieu de
-  // s'empiler indéfiniment devant une seule socket.
+  // Backpressure: beyond this, commands are refused (503) instead of piling
+  // up indefinitely in front of a single socket.
   RCON_MAX_QUEUE: z.coerce.number().int().positive().default(20),
   RCON_MAX_PER_MINUTE: z.coerce.number().int().positive().default(60),
   STATUS_CACHE_MS: z.coerce.number().int().nonnegative().default(5000),
 
-  // Catalogue de commandes de l'opérateur, monté en lecture seule. Fichier
-  // absent = fonctionnalité inactive, pas une erreur de configuration.
+  // The operator's command catalogue, mounted read-only. An absent file means
+  // the feature is inactive, not that the configuration is wrong.
   CUSTOM_COMMANDS_FILE: z.string().min(1).default("/factorio-config/commands.json"),
 
   DATA_DIR: z.string().min(1).default("./.data"),
   AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+  // Keeps raw-console commands verbatim in the audit log. Off by default: see
+  // `recordAudit` — the log must not become a second place where a
+  // mistakenly pasted secret lives on.
+  AUDIT_FULL_COMMANDS: booleanish.default(false),
 
-  // Métriques, en trois niveaux : un interrupteur maître et deux sources.
+  // Metrics, in three levels: one master switch and two sources.
   //
-  // METRICS_ENABLED=false coupe la fonctionnalité entière — aucun collecteur,
-  // aucun onglet, aucun endpoint — et les deux drapeaux de source ci-dessous ne
-  // sont alors même pas consultés. Le reste des variables continue d'être
-  // validé : une valeur mal formée doit se voir au démarrage, pas des mois plus
-  // tard le jour où quelqu'un réactive les métriques.
+  // METRICS_ENABLED=false turns the whole feature off — no collector, no tab,
+  // no endpoint — and the two source flags below are then not even consulted.
+  // The remaining variables keep being validated: a malformed value must show
+  // up at startup, not months later on the day someone re-enables metrics.
   METRICS_ENABLED: booleanish.default(true),
-  // Source Docker (CPU + mémoire), interrogée via un proxy en lecture seule
-  // (voir docker-compose.yml). À false, seules les métriques issues de RCON
-  // sont collectées ; le reste du panneau fonctionne.
+  // Docker source (CPU + memory), queried through a read-only proxy (see
+  // docker-compose.yml). At false, only the RCON-sourced metrics are
+  // collected; the rest of the panel keeps working.
   METRICS_DOCKER: booleanish.default(true),
-  // Contrainte sur le schéma : `z.url()` seul accepterait « docker-proxy:2375 »
-  // en le lisant comme un schéma d'URL exotique, et l'erreur n'apparaîtrait
-  // qu'au premier fetch, des heures plus tard.
+  // Constrained on purpose: `z.url()` alone would accept "docker-proxy:2375"
+  // by reading it as an exotic URL scheme, and the error would only surface on
+  // the first fetch, hours later.
   DOCKER_API_URL: z.url({ protocol: /^https?$/ }).default("http://docker-proxy:2375"),
-  // Valeur du label `com.docker.compose.service`, avec repli sur le nom du conteneur.
+  // Value of the `com.docker.compose.service` label, falling back to the container name.
   METRICS_CONTAINER: z.string().min(1).default("factorio"),
-  // Distinct de RCON_TIMEOUT_MS : un relevé Docker traverse un proxy HTTP et
-  // immobilise le démon ~1 s pour calculer son delta CPU, là où RCON est une
-  // socket persistante à faible latence. Les serrer ensemble ferait tomber les
-  // métriques dès qu'on durcit le délai RCON.
+  // Distinct from RCON_TIMEOUT_MS: a Docker reading crosses an HTTP proxy and
+  // ties up the daemon for ~1 s to compute its CPU delta, where RCON is a
+  // low-latency persistent socket. Tying the two together would break metrics
+  // as soon as the RCON timeout is tightened.
   DOCKER_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
-  // Plancher à 5 s : chaque relevé Docker immobilise le démon ~1 s pour calculer
-  // le delta CPU, et un échantillon RCON traverse la file sérialisée.
+  // Floored at 5 s: every Docker reading ties up the daemon for ~1 s to
+  // compute the CPU delta, and an RCON sample crosses the serialised queue.
   METRICS_INTERVAL_MS: z.coerce.number().int().min(5000).default(15_000),
   METRICS_RETENTION_DAYS: z.coerce.number().int().positive().max(365).default(7),
-  // Mesure l'UPS via une commande Lua : à couper si les succès de la sauvegarde
-  // comptent (ils sont de toute façon désactivés en multijoueur).
+  // Measures UPS through a Lua command: turn it off if the save's achievements
+  // matter (they are disabled in multiplayer anyway).
   METRICS_UPS: booleanish.default(true),
 
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
@@ -94,10 +110,10 @@ export type Env = z.infer<typeof EnvSchema>;
 
 const KEYS = Object.keys(EnvSchema.shape) as (keyof Env)[];
 
-/** Source de configuration : `process.env` en production, un objet dans les tests. */
+/** Configuration source: `process.env` in production, an object in tests. */
 export type EnvSource = Record<string, string | undefined>;
 
-/** Une variable vide (`FOO=` dans docker-compose) vaut « non définie ». */
+/** An empty variable (`FOO=` in docker-compose) counts as "unset". */
 function readRawEnv(source: EnvSource): Record<string, string> {
   const raw: Record<string, string> = {};
   for (const key of KEYS) {
@@ -124,7 +140,7 @@ export function parseEnv(source: EnvSource = process.env): Env {
 
 const globalRef = globalThis as typeof globalThis & { __factorioEnv?: Env };
 
-/** Configuration validée, mise en cache pour la durée du processus. */
+/** Validated configuration, cached for the lifetime of the process. */
 export function env(): Env {
   return (globalRef.__factorioEnv ??= parseEnv());
 }

@@ -1,4 +1,4 @@
-/** Nombre de lignes conservées dans la console : au-delà, le DOM devient lourd. */
+/** Lines kept in the console: beyond this the DOM gets heavy. */
 export const MAX_LOG_ENTRIES = 500;
 
 type LogBase = {
@@ -9,14 +9,14 @@ type LogBase = {
 };
 
 /**
- * Union discriminée : une entrée est soit un succès avec sortie, soit une
- * erreur avec message — jamais les deux, jamais aucun des deux.
+ * Discriminated union: an entry is either a success with output or an error
+ * with a message — never both, never neither.
  */
 export type LogEntry =
   | (LogBase & { kind: "success"; output: string })
   | (LogBase & { kind: "error"; error: string });
 
-/** Entrée avant attribution de l'identifiant et de l'horodatage. */
+/** An entry before it is given an id and a timestamp. */
 export type NewLogEntry =
   | { kind: "success"; command: string; output: string; durationMs: number | null }
   | { kind: "error"; command: string; error: string; durationMs: number | null };

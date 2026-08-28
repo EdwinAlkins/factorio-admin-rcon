@@ -17,17 +17,31 @@ import {
 } from "@/server/metrics/service";
 
 /**
- * Le « cron » du panneau.
+ * The panel's "cron".
  *
- * Le projet n'a pas d'ordonnanceur : on reprend le motif singleton utilisé
- * partout ailleurs (`getDb`, `getRcon`, cache de statut), avec un garde sur
- * `globalThis` pour survivre au rechargement à chaud de `next dev`.
+ * The project has no scheduler, so this reuses the singleton pattern found
+ * everywhere else (`getDb`, `getRcon`, the status cache), with a guard on
+ * `globalThis` to survive `next dev`'s hot reload.
  */
 
-/** Santé d'une source de mesure, telle qu'exposée par l'API. */
+/**
+ * Health of a measurement source, as exposed by the API.
+ *
+ * A boolean was not enough: at startup, `healthy: false` conflated "nothing
+ * measured yet" with "the source is down", and the interface reported an
+ * outage before the collector had even run once.
+ *
+ * - `disabled`: turned off by configuration, nothing to report;
+ * - `unknown` : no successful reading since startup;
+ * - `healthy` : last reading succeeded;
+ * - `degraded`: consecutive failures, but an earlier success exists — the
+ *   collector retries with a growing backoff and the history stays valid;
+ * - `failed`  : repeated failures, or no success at all since startup.
+ */
+export type HealthState = "disabled" | "unknown" | "healthy" | "degraded" | "failed";
+
 export type SourceHealth = {
-  enabled: boolean;
-  healthy: boolean;
+  state: HealthState;
   lastSuccessAt: number | null;
   consecutiveFailures: number;
 };
@@ -38,13 +52,13 @@ export type CollectorHealth = {
   lastRunAt: number | null;
   lastDurationMs: number | null;
   intervalMs: number;
-  /** Écritures SQLite perdues : sans ce compteur, elles ne se voient nulle part. */
+  /** Lost SQLite writes: without this counter they would show up nowhere. */
   storageFailures: number;
   docker: SourceHealth;
   rcon: SourceHealth;
 };
 
-type Source = {
+export type Source = {
   lastSuccessAt: number | null;
   failures: number;
   retryAt: number;
@@ -57,7 +71,7 @@ type State = {
   lastRunAt: number | null;
   lastDurationMs: number | null;
   ticks: number;
-  /** Dernier relevé de tick, pour dériver l'UPS. */
+  /** Last tick reading, used to derive UPS. */
   lastTick: { tick: number; at: number } | null;
   docker: Source;
   rcon: Source;
@@ -65,29 +79,29 @@ type State = {
 
 const globalRef = globalThis as typeof globalThis & { __factorioMetrics?: State };
 
-/** Purge ~toutes les heures plutôt que dans un second minuteur. */
+/** Purge roughly hourly, rather than from a second timer. */
 const PURGE_EVERY_MS = 60 * 60 * 1000;
 
 /**
- * Garde-fou sur l'UPS mesurée.
+ * Guard rail on the measured UPS.
  *
- * On ne ramène **pas** la valeur à 60 : un serveur qui rattrape son retard, ou
- * dont la vitesse a été changée (`game.speed`), dépasse légitimement la cadence
- * nominale, et l'écraser effacerait précisément l'anomalie qu'on cherche. Seule
- * une valeur physiquement absurde — nécessairement une erreur d'horloge — est
- * rejetée, et elle l'est franchement plutôt que corrigée en douce.
+ * The value is **not** clamped to 60: a server catching up, or one whose speed
+ * was changed (`game.speed`), legitimately exceeds the nominal rate, and
+ * flattening it would erase exactly the anomaly we are looking for. Only a
+ * physically absurd value — necessarily a clock error — is rejected, and it is
+ * rejected outright rather than quietly corrected.
  */
 const IMPLAUSIBLE_UPS = 600;
 
 /**
- * Le collecteur tourne en continu, y compris sans navigateur ouvert : sonder
- * une source morte à chaque intervalle remplirait le journal de milliers de
- * lignes par jour. On espace donc les tentatives, jusqu'à une toutes les
- * 20 périodes (5 min avec l'intervalle par défaut).
+ * The collector runs continuously, browser open or not: probing a dead source
+ * on every interval would fill the log with thousands of lines a day. Attempts
+ * are therefore spaced out, up to one every 20 periods (5 min at the default
+ * interval).
  */
 const MAX_BACKOFF = 20;
 
-/** Nombre de périodes à sauter après `failures` échecs consécutifs. */
+/** How many periods to skip after `failures` consecutive errors. */
 export function rconBackoff(failures: number): number {
   return Math.min(MAX_BACKOFF, 2 ** (failures - 1));
 }
@@ -107,19 +121,28 @@ function fail(source: Source, now: number, intervalMs: number) {
   source.retryAt = now + rconBackoff(source.failures) * intervalMs;
 }
 
+/** Beyond this, a run of failures stops being a passing incident. */
+const FAILED_AFTER = 3;
+
+export function stateOf(source: Source, enabled: boolean): HealthState {
+  if (!enabled) return "disabled";
+  if (source.failures === 0) return source.lastSuccessAt === null ? "unknown" : "healthy";
+  if (source.lastSuccessAt !== null && source.failures < FAILED_AFTER) return "degraded";
+  return "failed";
+}
+
 function healthOf(source: Source, enabled: boolean): SourceHealth {
   return {
-    enabled,
-    healthy: enabled && source.failures === 0 && source.lastSuccessAt !== null,
+    state: stateOf(source, enabled),
     lastSuccessAt: source.lastSuccessAt,
     consecutiveFailures: source.failures,
   };
 }
 
 /**
- * État du collecteur, pour que le panneau distingue « pas encore de données »
- * de « la source est tombée ». Sans cela, l'interface ne peut que déduire la
- * santé de la présence de points, ce qui confond les deux cas.
+ * Collector state, so the panel can tell "no data yet" from "the source is
+ * down". Without it the interface could only infer health from the presence of
+ * points, which conflates the two.
  */
 export function metricsHealth(): CollectorHealth {
   const state = globalRef.__factorioMetrics;
@@ -138,11 +161,11 @@ export function metricsHealth(): CollectorHealth {
 }
 
 /**
- * UPS = ticks de jeu écoulés par seconde réelle.
+ * UPS = game ticks elapsed per real second.
  *
- * Renvoie `null` plutôt qu'un chiffre trompeur quand la fenêtre n'est pas
- * exploitable : trou de collecte (le panneau a redémarré, l'onglet a dormi) ou
- * tick qui recule, ce qui signale un chargement de sauvegarde.
+ * Returns `null` rather than a misleading figure when the window is unusable:
+ * a collection gap (the panel restarted, the tab slept) or a tick going
+ * backwards, which signals a save being loaded.
  */
 export function deriveUps(
   previous: { tick: number; at: number } | null,
@@ -159,29 +182,29 @@ export function deriveUps(
 
   const ups = (ticks / elapsedMs) * 1000;
 
-  // Valeur physiquement impossible : c'est l'horloge ou la sonde qui a menti,
-  // pas le serveur. On la rejette au lieu de la ramener à 60, ce qui aurait
-  // maquillé l'erreur en mesure plausible.
+  // Physically impossible value: the clock or the probe lied, not the server.
+  // We reject it instead of clamping to 60, which would have disguised the
+  // error as a plausible reading.
   return ups > IMPLAUSIBLE_UPS ? null : ups;
 }
 
-/** Métriques du conteneur, ou `null` si le proxy Docker ne répond pas. */
+/** Container metrics, or `null` when the Docker proxy does not answer. */
 async function collectDocker(state: State, now: number) {
   if (!env().METRICS_DOCKER) return null;
 
-  // Même espacement que pour RCON : inutile de réinterroger un proxy mort
-  // toutes les 15 s pendant des heures.
+  // Same backoff as RCON: no point re-querying a dead proxy every 15 s for
+  // hours on end.
   if (now < state.docker.retryAt) return null;
 
   try {
     const id = await findContainerId();
-    if (!id) throw new Error(`aucun conteneur pour « ${env().METRICS_CONTAINER} »`);
+    if (!id) throw new Error(`no container matching "${env().METRICS_CONTAINER}"`);
 
     const stats = await readStats(id);
     if (!stats) {
-      // 404 : le conteneur a été recréé, l'identifiant mémorisé est périmé.
+      // 404: the container was recreated, the memorised id is stale.
       forgetContainerId();
-      throw new Error("conteneur introuvable");
+      throw new Error("container not found");
     }
 
     if (state.docker.failures > 0) logger.info("docker metrics restored");
@@ -195,8 +218,8 @@ async function collectDocker(state: State, now: number) {
     };
   } catch (error) {
     forgetContainerId();
-    // Une seule ligne par panne : sinon 5 760 lignes de log par jour quand le
-    // proxy est absent, ce qui noierait tout le reste.
+    // One line per outage: otherwise 5,760 log lines a day while the proxy is
+    // missing, which would drown out everything else.
     if (state.docker.failures === 0) {
       logger.warn("docker metrics unavailable", errorFields(error));
     }
@@ -206,20 +229,21 @@ async function collectDocker(state: State, now: number) {
 }
 
 /**
- * Joueurs connectés et UPS, les deux mesures qui passent par RCON.
+ * Online players and UPS, the two measurements that go through RCON.
  *
- * Renseigne `sample` en place et laisse les trous tels quels : un serveur
- * éteint ne doit pas empêcher d'enregistrer les métriques du conteneur.
+ * Fills `sample` in place and leaves gaps as they are: a stopped server must
+ * not prevent the container metrics from being recorded.
  */
 async function collectRcon(state: State, sample: MetricSample, now: number) {
   try {
-    // Passe par le cache de `status.ts` : à 15 s d'intervalle la mesure est
-    // fraîche, et on ne double pas le trafic RCON déjà généré par l'interface.
+    // Goes through `status.ts`'s cache: at a 15 s interval the reading is
+    // fresh, and it does not double the RCON traffic the interface already
+    // generates.
     sample.players = (await getServerStatus()).count;
 
     if (env().METRICS_UPS) {
-      // Volontairement hors `executeAction` : cette sonde ne doit pas apparaître
-      // dans le journal d'audit, qui trace les gestes humains.
+      // Deliberately outside `executeAction`: this probe must not show up in
+      // the audit log, which records human actions.
       const result = await getRcon().execute("/silent-command rcon.print(game.tick)");
       const tick = Number.parseInt(result.output.trim(), 10);
 
@@ -233,17 +257,17 @@ async function collectRcon(state: State, sample: MetricSample, now: number) {
 
     succeed(state.rcon, now);
   } catch {
-    // Le service RCON journalise déjà l'échec ; on se contente d'espacer.
+    // The RCON service already logs the failure; we only back off here.
     fail(state.rcon, now, env().METRICS_INTERVAL_MS);
-    // Le prochain relevé de tick ne doit pas être daté d'avant la coupure :
-    // l'UPS dérivée sur l'intervalle manqué serait une moyenne trompeuse.
+    // The next tick reading must not be dated from before the outage: the UPS
+    // derived over the missed interval would be a misleading average.
     state.lastTick = null;
   }
 }
 
 async function tick(state: State) {
-  // Le relevé Docker immobilise le démon ~1 s : sans ce garde, un intervalle
-  // court ferait se chevaucher deux collectes.
+  // A Docker reading ties up the daemon for ~1 s: without this guard, a short
+  // interval would make two collections overlap.
   if (state.running) return;
   state.running = true;
 
@@ -261,8 +285,8 @@ async function tick(state: State) {
     const docker = await collectDocker(state, now);
     if (docker) Object.assign(sample, docker);
 
-    // Sauter les sondes RCON tant que le serveur est jugé injoignable :
-    // une tentative espacée suffit à détecter son retour.
+    // Skip RCON probes while the server is considered unreachable: a
+    // spaced-out attempt is enough to notice it coming back.
     if (now >= state.rcon.retryAt) await collectRcon(state, sample, now);
 
     recordSample(sample, now);
@@ -285,8 +309,8 @@ async function tick(state: State) {
 export function startMetricsCollector() {
   if (globalRef.__factorioMetrics) return;
 
-  // Garde faisant autorité : aucun appelant ne doit pouvoir armer le minuteur
-  // quand la fonctionnalité est coupée, même en contournant instrumentation.ts.
+  // Authoritative guard: no caller may arm the timer while the feature is off,
+  // not even by bypassing instrumentation.ts.
   if (!env().METRICS_ENABLED) {
     logger.info("metrics disabled");
     return;
@@ -305,7 +329,7 @@ export function startMetricsCollector() {
     rcon: newSource(),
   };
 
-  // `unref` : le minuteur ne doit pas retenir le processus à l'arrêt.
+  // `unref`: the timer must not keep the process alive at shutdown.
   state.timer.unref();
   globalRef.__factorioMetrics = state;
 

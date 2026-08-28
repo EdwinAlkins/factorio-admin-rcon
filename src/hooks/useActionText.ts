@@ -5,20 +5,20 @@ import { useDynamicTranslations } from "@/hooks/useDynamicTranslations";
 import type { ActionDto } from "@/lib/api-types";
 
 /**
- * Textes du catalogue d'actions. Le serveur n'envoie que des identifiants :
- * tout le reste est résolu ici, sous `actions.*` dans les dictionnaires.
+ * Text for the action catalogue. The server sends identifiers only: everything
+ * else is resolved here, under `actions.*` in the dictionaries.
  *
- * Exception : les commandes du fichier de l'opérateur portent leur propre texte
- * dans `action.text`, déjà résolu pour la locale courante — elles ne peuvent
- * pas alimenter `messages/*.json`. Ce texte prime quand il existe ; sinon le
- * comportement des actions intégrées est inchangé.
+ * Exception: commands from the operator's file carry their own text in
+ * `action.text`, already resolved for the current locale — they cannot feed
+ * `messages/*.json`. That text wins when present; otherwise built-in actions
+ * behave exactly as before.
  */
 export function useActionText() {
   const t = useDynamicTranslations("actions");
 
   return useMemo(
     () => ({
-      /** Le libellé du groupe suit la première action qui en porte un. */
+      /** The group label follows the first action that carries one. */
       group: (group: string, label?: string) => {
         if (label) return label;
         const key = `groups.${group}`;
@@ -28,9 +28,9 @@ export function useActionText() {
       label: (action: ActionDto) => action.text?.label ?? t(`items.${action.id}.label`),
 
       /**
-       * Lu en brut : un indice est une syntaxe de commande, pas une phrase.
-       * ICU y verrait des balises de texte enrichi dans `<joueur>` et refuserait
-       * de rendre le message (UNCLOSED_TAG).
+       * Read raw: a hint is command syntax, not a sentence. ICU would read
+       * `<player>` as a rich-text tag and refuse to render the message
+       * (UNCLOSED_TAG).
        */
       hint: (action: ActionDto) => {
         if (action.text) return action.text.hint ?? "";
@@ -44,7 +44,7 @@ export function useActionText() {
         return t.has(key) ? t(key) : name;
       },
 
-      /** Un placeholder propre à l'action prime sur celui du champ partagé. */
+      /** A placeholder specific to the action beats the shared field one. */
       placeholder: (action: ActionDto, name: string) => {
         const own = action.fields.find((field) => field.name === name)?.placeholder;
         if (own) return own;
@@ -60,9 +60,9 @@ export function useActionText() {
         action.fields.find((field) => field.name === name)?.help,
 
       /**
-       * Le message ICU attend une valeur pour chaque champ déclaré, y compris
-       * pendant la saisie : les champs encore vides sont remplacés par leur
-       * libellé entre chevrons, comme le faisait l'ancien gabarit maison.
+       * The ICU message expects a value for every declared field, including
+       * while typing: fields still empty are replaced by their label between
+       * angle brackets, as the previous hand-rolled template did.
        */
       confirmation: (action: ActionDto, values: Record<string, string>) => {
         if (action.text) return action.text.confirmation ?? action.text.label;

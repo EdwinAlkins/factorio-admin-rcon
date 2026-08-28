@@ -2,15 +2,15 @@ import { env } from "@/server/config/env";
 import { FixedWindowLimiter } from "@/server/auth/rate-limit";
 
 /**
- * Limiteurs partagés du processus.
+ * Rate limiters shared across the process.
  *
- * Deux niveaux pour la connexion :
- *  - par IP, seulement quand l'IP est fiable (TRUST_PROXY derrière un proxy) ;
- *  - global, toujours actif, qui couvre le cas où aucune IP n'est connaissable.
+ * Two levels for sign-in:
+ *  - per IP, only when the IP is trustworthy (TRUST_PROXY behind a proxy);
+ *  - global, always active, covering the case where no IP can be known.
  *
- * Sans IP fiable, le seul seuil applicable est le seuil global : c'est
- * volontaire, un seuil « par IP » calculé sur un en-tête forgeable donnerait
- * une fausse impression de protection.
+ * Without a trustworthy IP the only applicable threshold is the global one.
+ * That is deliberate: a "per IP" threshold computed from a forgeable header
+ * would give a false impression of protection.
  */
 
 type Limiters = {
@@ -36,7 +36,7 @@ export function limiters(): Limiters {
   return globalRef.__factorioLimiters;
 }
 
-/** Réinitialise les limiteurs (tests). */
+/** Resets the limiters (tests). */
 export function resetLimiters() {
   globalRef.__factorioLimiters = undefined;
 }

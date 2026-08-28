@@ -12,23 +12,23 @@ import {
 } from "@/server/actions/definitions";
 
 /**
- * Catalogue de commandes fourni par l'opérateur, chargé depuis un fichier JSON
- * monté en lecture seule (`CUSTOM_COMMANDS_FILE`).
+ * Command catalogue supplied by the operator, loaded from a JSON file mounted
+ * read-only (`CUSTOM_COMMANDS_FILE`).
  *
- * Le fichier est **de confiance** : il est écrit par qui déploie le conteneur,
- * au même titre qu'une variable d'environnement. Qu'il contienne du Lua n'est
- * pas une élévation de privilège — l'opérateur a déjà `rcon:raw`.
+ * The file is **trusted**: it is written by whoever deploys the container, on
+ * the same footing as an environment variable. That it contains Lua is not a
+ * privilege escalation — the operator already holds `rcon:raw`.
  *
- * Ce qui n'est PAS de confiance, ce sont les valeurs saisies dans le panneau.
- * D'où les contrôles croisés ci-dessous : un gabarit ne peut référencer que des
- * paramètres déclarés, et `lua-template` construit seul les littéraux Lua.
+ * What is NOT trusted is the values typed into the panel. Hence the cross
+ * checks below: a template may only reference declared parameters, and
+ * `lua-template` alone builds the Lua literals.
  *
- * Tolérance aux pannes assumée : une entrée invalide est ignorée avec un
- * journal explicite, un fichier illisible laisse le panneau tourner avec les
- * seules actions intégrées. Une faute de frappe ne doit pas couper l'admin.
+ * Fault tolerance is deliberate: an invalid entry is skipped with an explicit
+ * log line, and an unreadable file leaves the panel running with the built-in
+ * actions only. A typo must not take the admin panel down.
  */
 
-/** Un `{{nom}}` ne peut viser qu'un paramètre déclaré ici. */
+/** A `{{name}}` may only point at a parameter declared here. */
 const ParamSchema = z
   .object({
     name: z.string().regex(/^[A-Za-z0-9_]{1,40}$/),
@@ -38,7 +38,7 @@ const ParamSchema = z
     min: z.number().finite().optional(),
     max: z.number().finite().optional(),
     options: z.array(z.string().min(1).max(200)).min(1).max(50).optional(),
-    // `enum` uniquement : la valeur est insérée nue (elle sort d'une liste close).
+    // `enum` only: the value is inserted bare (it comes from a closed list).
     raw: z.boolean().default(false),
     default: z.string().max(2000).optional(),
     label: z.unknown().optional(),
@@ -54,8 +54,8 @@ const CommandSchema = z
       .string()
       .regex(/^[A-Za-z0-9_-]{1,40}$/)
       .default("custom"),
-    // Défaut volontairement strict : ouvrir une commande à un rôle inférieur
-    // doit être un geste explicite de l'opérateur.
+    // Deliberately strict default: opening a command to a lower role must be an
+    // explicit gesture from the operator.
     permission: z
       .enum(["action:info", "action:moderate", "action:server", "action:custom"])
       .default("action:custom"),
@@ -74,7 +74,7 @@ const FileSchema = z
   .object({
     version: z.literal(1).optional(),
     groups: z.record(z.string(), z.unknown()).default({}),
-    // Validées une par une : une entrée fautive ne doit pas emporter les autres.
+    // Validated one by one: a faulty entry must not take the others down.
     commands: z.array(z.unknown()).max(200).default([]),
   })
   .strict();
@@ -82,7 +82,7 @@ const FileSchema = z
 type RawParam = z.infer<typeof ParamSchema>;
 type RawCommand = z.infer<typeof CommandSchema>;
 
-/** `"Tuer les biters"` ou `{ "en": "…", "fr": "…" }`. */
+/** `"Kill the biters"` or `{ "en": "…", "fr": "…" }`. */
 function localizedText(value: unknown, what: string): LocalizedText {
   if (typeof value === "string" && value.trim() !== "") return { en: value };
 
@@ -94,28 +94,28 @@ function localizedText(value: unknown, what: string): LocalizedText {
     if (entries.length > 0) return Object.fromEntries(entries);
   }
 
-  throw new Error(`${what} : texte manquant ou mal formé`);
+  throw new Error(`${what}: missing or malformed text`);
 }
 
 function toField(param: RawParam): ActionField {
   if (param.type === "enum" && !param.options) {
-    throw new Error(`paramètre « ${param.name} » : « options » est obligatoire pour un enum`);
+    throw new Error(`parameter "${param.name}": "options" is required for an enum`);
   }
 
   if (param.raw && param.type !== "enum") {
-    throw new Error(`paramètre « ${param.name} » : « raw » n'est permis que sur un enum`);
+    throw new Error(`parameter "${param.name}": "raw" is only allowed on an enum`);
   }
 
   if (param.min !== undefined && param.max !== undefined && param.min > param.max) {
-    throw new Error(`paramètre « ${param.name} » : min > max`);
+    throw new Error(`parameter "${param.name}": min > max`);
   }
 
-  // Un champ facultatif non textuel doit dire quoi mettre quand il est vide :
-  // sinon `schemaOf` validerait la chaîne vide comme un nombre.
+  // A non-textual optional field must say what to use when it is empty:
+  // otherwise `schemaOf` would validate the empty string as a number.
   const textual = param.type === "player" || param.type === "text" || param.type === "identifier";
   if (!param.required && !textual && param.type !== "bool" && param.default === undefined) {
     throw new Error(
-      `paramètre « ${param.name} » : un champ facultatif ${param.type} exige « default »`,
+      `parameter "${param.name}": an optional ${param.type} field requires "default"`,
     );
   }
 
@@ -145,13 +145,13 @@ function toField(param: RawParam): ActionField {
       : {}),
   };
 
-  // La valeur par défaut passe par la même validation que la saisie : une
-  // valeur par défaut invalide ferait échouer la commande à l'exécution.
+  // The default goes through the same validation as user input: an invalid
+  // default would make the command fail at execution time.
   if (param.default !== undefined) {
     const probe = schemaOf({ fields: [field] }).safeParse({ [field.name]: param.default });
     if (!probe.success) {
       throw new Error(
-        `paramètre « ${param.name} » : « default » invalide (${probe.error.issues[0]?.message})`,
+        `parameter "${param.name}": invalid "default" (${probe.error.issues[0]?.message})`,
       );
     }
   }
@@ -164,32 +164,32 @@ function toDefinition(raw: RawCommand, groups: Record<string, LocalizedText>): A
 
   const names = new Set<string>();
   for (const field of fields) {
-    if (names.has(field.name)) throw new Error(`paramètre « ${field.name} » déclaré deux fois`);
+    if (names.has(field.name)) throw new Error(`parameter "${field.name}" declared twice`);
     names.add(field.name);
   }
 
-  // « -- » ouvre un commentaire Lua. `normalizeCommand()` aplatissant les
-  // retours à la ligne, il avalerait tout le reste de la commande.
+  // "--" opens a Lua comment. Since `normalizeCommand()` flattens line breaks,
+  // it would swallow the rest of the command.
   if (raw.template.includes("--")) {
-    throw new Error("le gabarit contient « -- » (commentaire Lua interdit)");
+    throw new Error('the template contains "--" (Lua comments are not allowed)');
   }
 
   if (byteLength(raw.template) > MAX_COMMAND_BYTES) {
-    throw new Error(`gabarit trop long (${MAX_COMMAND_BYTES} octets maximum)`);
+    throw new Error(`template too long (${MAX_COMMAND_BYTES} bytes maximum)`);
   }
 
   const used = templatePlaceholders(raw.template);
   for (const placeholder of used) {
     if (!names.has(placeholder.name)) {
       throw new Error(
-        `le gabarit référence « ${placeholder.name} », qui n'est pas déclaré`,
+        `the template references "${placeholder.name}", which is not declared`,
       );
     }
   }
 
   for (const name of names) {
     if (!used.some((placeholder) => placeholder.name === name)) {
-      logger.warn("commands: paramètre déclaré mais inutilisé", {
+      logger.warn("commands: parameter declared but unused", {
         command: raw.id,
         param: name,
       });
@@ -197,8 +197,8 @@ function toDefinition(raw: RawCommand, groups: Record<string, LocalizedText>): A
   }
 
   return {
-    // Préfixe : aucune collision possible avec une action intégrée, et l'audit
-    // distingue d'un coup d'œil ce qui vient du fichier de l'opérateur.
+    // The prefix rules out any collision with a built-in action, and lets the
+    // audit log tell at a glance what comes from the operator's file.
     id: `custom:${raw.id}`,
     group: raw.group,
     permission: raw.permission,
@@ -228,11 +228,11 @@ function toDefinition(raw: RawCommand, groups: Record<string, LocalizedText>): A
 
 export type CustomCatalog = {
   path: string;
-  /** Signature du fichier (`mtime:taille`), `""` s'il est absent. */
+  /** File signature (`mtime:size`), `""` when the file is absent. */
   key: string;
   actions: ActionDefinition[];
   rejected: number;
-  /** Message d'erreur de lecture ; `null` si le fichier est absent ou valide. */
+  /** Read error message; `null` when the file is absent or valid. */
   error: string | null;
 };
 
@@ -253,7 +253,7 @@ export function parseCatalog(source: string): Omit<CustomCatalog, "path" | "key"
     try {
       groups[name] = localizedText(value, `groupe « ${name} »`);
     } catch (error) {
-      logger.warn("commands: groupe ignoré", { group: name, reason: String(error) });
+      logger.warn("commands: group skipped", { group: name, reason: String(error) });
     }
   }
 
@@ -266,7 +266,7 @@ export function parseCatalog(source: string): Omit<CustomCatalog, "path" | "key"
 
     if (!parsed.success) {
       rejected += 1;
-      logger.warn("commands: entrée ignorée", {
+      logger.warn("commands: entry skipped", {
         index,
         reason: parsed.error.issues
           .map((issue) => `${issue.path.join(".") || "(racine)"} : ${issue.message}`)
@@ -279,14 +279,14 @@ export function parseCatalog(source: string): Omit<CustomCatalog, "path" | "key"
       const definition = toDefinition(parsed.data, groups);
 
       if (seen.has(definition.id)) {
-        throw new Error(`identifiant « ${parsed.data.id} » déclaré deux fois`);
+        throw new Error(`id "${parsed.data.id}" declared twice`);
       }
 
       seen.add(definition.id);
       actions.push(definition);
     } catch (error) {
       rejected += 1;
-      logger.warn("commands: entrée ignorée", {
+      logger.warn("commands: entry skipped", {
         index,
         command: parsed.data.id,
         reason: error instanceof Error ? error.message : String(error),
@@ -300,9 +300,9 @@ export function parseCatalog(source: string): Omit<CustomCatalog, "path" | "key"
 const globalRef = globalThis as typeof globalThis & { __factorioCommands?: CustomCatalog };
 
 /**
- * Signature du fichier. Relire `mtime` + taille à chaque appel coûte un
- * `stat()` et évite un endpoint de rechargement à protéger : l'opérateur
- * corrige son catalogue sans redémarrer le conteneur.
+ * File signature. Re-reading `mtime` + size on every call costs one `stat()`
+ * and spares us a reload endpoint to protect: the operator fixes their
+ * catalogue without restarting the container.
  */
 function signature(path: string): string {
   try {
@@ -320,17 +320,17 @@ export function loadCustomCatalog(): CustomCatalog {
 
   if (cached && cached.path === path && cached.key === key) return cached;
 
-  // Fichier absent : la fonctionnalité est simplement inactive.
+  // File absent: the feature is simply inactive.
   if (key === "") {
     return (globalRef.__factorioCommands = { path, key, ...EMPTY });
   }
 
   let catalog: CustomCatalog;
   try {
-    // turbopackIgnore : chemin fourni à l'exécution.
+    // turbopackIgnore: the path is supplied at runtime.
     const source = readFileSync(/* turbopackIgnore: true */ path, "utf8");
     catalog = { path, key, ...parseCatalog(source) };
-    logger.info("commands: catalogue chargé", {
+    logger.info("commands: catalogue loaded", {
       file: path,
       loaded: catalog.actions.length,
       rejected: catalog.rejected,
@@ -338,7 +338,7 @@ export function loadCustomCatalog(): CustomCatalog {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     catalog = { path, key, actions: [], rejected: 0, error: message };
-    logger.error("commands: fichier illisible", { file: path, reason: message });
+    logger.error("commands: unreadable file", { file: path, reason: message });
   }
 
   return (globalRef.__factorioCommands = catalog);
@@ -348,7 +348,7 @@ export function customActions(): ActionDefinition[] {
   return loadCustomCatalog().actions;
 }
 
-/** Vide le cache : utilisé par les tests, et par un changement de configuration. */
+/** Clears the cache: used by the tests, and on a configuration change. */
 export function resetCustomCatalog() {
   delete globalRef.__factorioCommands;
 }

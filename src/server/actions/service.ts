@@ -2,21 +2,21 @@ import { can } from "@/lib/permissions";
 import type { Session } from "@/server/auth/session";
 import { DEFAULT_MAX_LENGTH, schemaOf, toDto } from "@/server/actions/definitions";
 import { allActions, findAction } from "@/server/actions/registry";
-import { LuaTemplateError } from "@/lib/lua-template";
+import { isLuaTemplateError } from "@/lib/lua-template";
 import { isKnownErrorCode } from "@/server/error-text";
 import { ApiFailure } from "@/server/http/errors";
 import { recordAudit } from "@/server/audit/service";
 import { getRcon } from "@/server/rcon";
 import { invalidateStatusCache } from "@/server/rcon/status";
-import { RconError } from "@/server/rcon/errors";
+import { isRconError } from "@/server/rcon/errors";
 import type { ActionDto } from "@/lib/api-types";
 import type { RconExecution } from "@/server/rcon/service";
 
 /**
- * Actions visibles par ce rôle (le catalogue est filtré côté serveur).
+ * Actions this role can see (the catalogue is filtered server-side).
  *
- * `locale` ne sert qu'aux commandes du fichier de l'opérateur, qui portent leur
- * propre texte : celui des actions intégrées reste résolu côté interface.
+ * `locale` only matters for commands from the operator's file, which carry
+ * their own text: built-in action text is still resolved on the interface side.
  */
 export function catalogFor(session: Session, locale = "en"): ActionDto[] {
   return allActions()
@@ -57,9 +57,9 @@ export async function executeAction(
 
   const parsed = schemaOf(definition).safeParse(values ?? {});
   if (!parsed.success) {
-    // On ne remonte que le premier problème : l'interface n'affiche qu'une
-    // ligne d'erreur. `message` porte une clé (cf. `fieldSchema`), sauf pour
-    // les rejets structurels de zod, qui retombent sur un code générique.
+    // Only the first problem is reported: the interface shows a single error
+    // line. `message` carries a key (see `fieldSchema`), except for zod's
+    // structural rejections, which fall back to a generic code.
     const issue = parsed.error.issues[0];
     const name = String(issue.path[0] ?? "");
     const field = definition.fields.find((candidate) => candidate.name === name);
@@ -67,7 +67,7 @@ export async function executeAction(
 
     throw ApiFailure.badRequest(code, {
       field: name,
-      // Chaque borne n'a de sens que pour l'erreur qui la met en cause.
+      // Each bound only makes sense for the error that puts it at fault.
       ...(code === "validation_too_long"
         ? { max: field?.maxLength ?? DEFAULT_MAX_LENGTH }
         : {}),
@@ -81,9 +81,9 @@ export async function executeAction(
   try {
     command = definition.build(parsed.data as Record<string, string>);
   } catch (error) {
-    // Seconde barrière : `lua-template` refuse ce que la validation aurait
-    // laissé passer. C'est une saisie invalide, pas une panne du panneau.
-    const code = error instanceof LuaTemplateError ? error.code : "invalid_arguments";
+    // Second barrier: `lua-template` refuses what validation might have let
+    // through. That is invalid input, not a panel failure.
+    const code = isLuaTemplateError(error) ? error.code : "invalid_arguments";
     throw ApiFailure.badRequest(isKnownErrorCode(code) ? code : "invalid_arguments", {
       field: definition.fields[0]?.name ?? definition.id,
     });
@@ -114,7 +114,7 @@ export async function executeAction(
       action: definition.id,
       command,
       status: "error",
-      detail: error instanceof RconError ? `${error.code}: ${error.detail}` : String(error),
+      detail: isRconError(error) ? `${error.code}: ${error.detail}` : String(error),
       ip: ctx.ip,
       requestId: ctx.requestId,
     });

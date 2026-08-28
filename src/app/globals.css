@@ -26,7 +26,7 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Champs de saisie : un style unique pour tout le panneau. */
+/* Input fields: a single style for the whole panel. */
 .field {
   @apply w-full rounded border border-line bg-ground px-3 py-2 text-sm text-ink
          placeholder:text-muted/60 focus:border-accent focus:outline-none;

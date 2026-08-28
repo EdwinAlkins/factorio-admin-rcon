@@ -1,13 +1,14 @@
+import { createHash } from "node:crypto";
 import { env } from "@/server/config/env";
 import { getDb } from "@/server/db";
 import { errorFields, logger } from "@/server/log";
 import type { AuditEntryDto } from "@/lib/api-types";
 
 /**
- * Journal d'audit : qui a fait quoi, avec quel résultat.
+ * Audit log: who did what, with which outcome.
  *
- * Écrit systématiquement, y compris pour les refus (permission, rate-limit) :
- * c'est la seule trace durable de l'activité du panneau.
+ * Always written, refusals included (permission, rate limit): it is the only
+ * durable trace of the panel's activity.
  */
 
 export type AuditKind = "auth" | "rcon" | "action";
@@ -26,14 +27,48 @@ export type AuditInput = {
   requestId?: string | null;
 };
 
-/** N'échoue jamais : un problème d'audit ne doit pas casser l'action en cours. */
+/** Characters of a raw command kept in clear. */
+export const RAW_COMMAND_PREVIEW = 48;
+
+function digest(command: string): string {
+  return `sha256:${createHash("sha256").update(command, "utf8").digest("hex")}`;
+}
+
+/**
+ * A raw-console command can contain anything — a token, a key, a password
+ * pasted by mistake. Keeping it in full would make the audit log a **second**
+ * place where that secret lives on, volume backups included.
+ *
+ * So we keep enough to investigate without copying it: a prefix, which shows
+ * the command without its arguments, and a fingerprint, which lets you match
+ * two entries or confirm a specific command by re-hashing it.
+ *
+ * Catalogue actions escape this treatment: they are built by the server from
+ * validated, bounded fields, and seeing the command actually sent is exactly
+ * their audit value.
+ */
+function redact(input: AuditInput): { command: string | null; hash: string | null } {
+  const command = input.command ?? null;
+  if (command === null || input.kind !== "rcon") return { command, hash: null };
+
+  const hash = digest(command);
+  if (env().AUDIT_FULL_COMMANDS) return { command, hash };
+
+  const head = command.slice(0, RAW_COMMAND_PREVIEW);
+  return { command: head.length < command.length ? `${head}…` : head, hash };
+}
+
+/** Never throws: an audit problem must not break the action in progress. */
 export function recordAudit(input: AuditInput, now = Date.now()): void {
   try {
+    const { command, hash } = redact(input);
+
     getDb()
       .prepare(
         `INSERT INTO audit_log
-           (ts, username, role, kind, action, command, status, detail, duration_ms, ip, request_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (ts, username, role, kind, action, command, command_hash, status, detail,
+            duration_ms, ip, request_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         now,
@@ -41,7 +76,8 @@ export function recordAudit(input: AuditInput, now = Date.now()): void {
         input.role,
         input.kind,
         input.action,
-        input.command ?? null,
+        command,
+        hash,
         input.status,
         input.detail ?? null,
         input.durationMs ?? null,
@@ -56,7 +92,8 @@ export function recordAudit(input: AuditInput, now = Date.now()): void {
 export function listAudit(limit = 100): AuditEntryDto[] {
   const rows = getDb()
     .prepare(
-      `SELECT id, ts, username, role, kind, action, command, status, detail,
+      `SELECT id, ts, username, role, kind, action, command,
+              command_hash AS commandHash, status, detail,
               duration_ms AS durationMs, ip
        FROM audit_log
        ORDER BY id DESC

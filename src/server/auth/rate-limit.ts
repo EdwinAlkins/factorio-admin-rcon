@@ -1,12 +1,11 @@
 /**
- * Limiteur à fenêtre fixe, en mémoire.
+ * Fixed-window rate limiter, in memory.
  *
- * Les entrées expirées sont purgées à chaque passage : une IP forgée par
- * requête ne peut pas faire grossir indéfiniment la table. Au-delà de
- * `maxKeys`, le limiteur refuse (fail-closed) plutôt que d'accepter sans
- * compter.
+ * Expired entries are purged on every pass: an IP forged per request cannot
+ * grow the table indefinitely. Beyond `maxKeys` the limiter refuses
+ * (fail-closed) rather than accepting without counting.
  *
- * Portée : un seul processus. Voir « modèle de sécurité » du README.
+ * Scope: a single process. See "security model" in the README.
  */
 
 type Bucket = { count: number; resetAt: number };
@@ -35,7 +34,7 @@ export class FixedWindowLimiter {
     return { allowed: false, retryAfter: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)) };
   }
 
-  /** Incrémente le compteur et renvoie le verdict pour CETTE requête. */
+  /** Increments the counter and returns the verdict for THIS request. */
   consume(key: string, now = Date.now()): RateVerdict {
     this.prune(now);
 

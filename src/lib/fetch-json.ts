@@ -1,11 +1,11 @@
 import { isApiError, type ErrorParams } from "@/lib/api-types";
 
 /**
- * Appel JSON typé : `response.json()` renvoie `any`, on force le passage par un
- * résultat discriminé pour que les composants ne manipulent jamais de `any`.
+ * Typed JSON call: `response.json()` returns `any`, so everything goes through
+ * a discriminated result and components never handle `any`.
  *
- * Les échecs sont décrits par un `code` (clé de traduction) plutôt que par une
- * phrase : c'est l'interface qui choisit la langue, via `useErrorMessage()`.
+ * Failures are described by a `code` (a translation key) rather than a
+ * sentence: the interface picks the language, through `useErrorMessage()`.
  */
 
 export type FetchFailure = {
@@ -13,7 +13,7 @@ export type FetchFailure = {
   status: number;
   code: string;
   params?: ErrorParams;
-  /** Repli anglais renvoyé par le serveur, si le code est inconnu du dictionnaire. */
+  /** English fallback from the server, when the dictionary does not know the code. */
   fallback?: string;
 };
 

@@ -8,11 +8,11 @@ import type {
 } from "@/lib/api-types";
 
 /**
- * Séries temporelles de consommation : un échantillon toutes les
- * `METRICS_INTERVAL_MS`, purgé au-delà de `METRICS_RETENTION_DAYS`.
+ * Consumption time series: one sample every `METRICS_INTERVAL_MS`, purged past
+ * `METRICS_RETENTION_DAYS`.
  *
- * Toutes les colonnes sont nullables à dessein : un échantillon partiel (Docker
- * joignable mais RCON muet, ou l'inverse) vaut mieux qu'un trou dans la série.
+ * Every column is nullable on purpose: a partial sample (Docker reachable but
+ * RCON silent, or the other way round) beats a hole in the series.
  */
 
 export type MetricSample = {
@@ -33,15 +33,15 @@ export const RANGES = {
 
 export type RangeKey = keyof typeof RANGES;
 
-/** Nombre de points renvoyés au client : au-delà, le graphe ne gagne rien. */
+/** Points returned to the client: beyond this the chart gains nothing. */
 const BUCKETS = 120;
 
 /**
- * Écritures perdues depuis le démarrage.
+ * Writes lost since startup.
  *
- * `recordSample` avale ses erreurs pour ne pas tuer le collecteur, mais sans ce
- * compteur une base cassée ferait disparaître les métriques en silence pendant
- * des heures, sans autre trace que des lignes de log.
+ * `recordSample` swallows its errors so as not to kill the collector, but
+ * without this counter a broken database would make metrics vanish silently
+ * for hours, leaving nothing behind but log lines.
  */
 const globalRef = globalThis as typeof globalThis & { __factorioMetricsWriteFailures?: number };
 
@@ -49,7 +49,7 @@ export function storageFailures(): number {
   return globalRef.__factorioMetricsWriteFailures ?? 0;
 }
 
-/** N'échoue jamais : perdre un échantillon ne doit pas arrêter le collecteur. */
+/** Never throws: losing one sample must not stop the collector. */
 export function recordSample(sample: MetricSample, now = Date.now()): void {
   try {
     getDb()
@@ -93,7 +93,7 @@ type BucketRow = {
   upsMax: number | null;
 };
 
-/** `COUNT(colonne)` ignore les NULL : c'est le nombre de mesures réelles. */
+/** `COUNT(column)` ignores NULLs, so this is the number of real readings. */
 const AGGREGATES = (["cpu_percent", "mem_bytes", "players", "ups"] as const)
   .map((column) => {
     const prefix = { cpu_percent: "cpu", mem_bytes: "mem", players: "players", ups: "ups" }[column];
@@ -105,17 +105,17 @@ const AGGREGATES = (["cpu_percent", "mem_bytes", "players", "ups"] as const)
   .join(",\n              ");
 
 /**
- * Agrégation faite en SQL plutôt qu'en mémoire : sur 7 jours la table contient
- * des dizaines de milliers de lignes qu'il serait absurde de transporter
- * jusqu'au navigateur.
+ * Aggregated in SQL rather than in memory: over 7 days the table holds tens of
+ * thousands of rows it would be absurd to ship to the browser.
  *
- * Chaque bucket porte `min`, `max`, `avg` **et le nombre de mesures**. Les
- * trois premiers décrivent la distribution ; le dernier dit à quel point on
- * peut s'y fier — un bucket d'une heure bâti sur un seul relevé produit une
- * courbe d'aspect identique à un bucket complet, et rien ne le signalerait.
+ * Each bucket carries `min`, `max`, `avg` **and the number of readings**. The
+ * first three describe the distribution; the last says how much to trust it —
+ * an hour-long bucket built from a single reading draws exactly like a full
+ * one, and nothing else would give it away.
  *
- * Les bornes sont neutres (`min`/`max`) et non orientées : c'est la couche de
- * présentation qui sait que le CPU s'inquiète du maximum et l'UPS du minimum.
+ * The bounds are neutral (`min`/`max`) rather than opinionated: it is the
+ * presentation layer that knows CPU worries about the maximum and UPS about
+ * the minimum.
  */
 export function readSeries(range: RangeKey, now = Date.now()): MetricsBucketDto[] {
   const from = now - RANGES[range];
@@ -135,13 +135,13 @@ export function readSeries(range: RangeKey, now = Date.now()): MetricsBucketDto[
     )
     .all(bucketMs, from) as unknown as BucketRow[];
 
-  // Nombre de relevés qu'un bucket entièrement couvert devrait contenir.
+  // How many readings a fully covered bucket should hold.
   const expected = Math.max(1, Math.round(bucketMs / env().METRICS_INTERVAL_MS));
 
   return rows.map((row) => ({
-    // Début réel de la tranche, pas le premier échantillon qu'elle contient :
-    // sur des données clairsemées, `MIN(ts)` déplacerait le point vers la
-    // droite et laisserait croire que la mesure est plus récente qu'elle ne l'est.
+    // The slice's actual start, not the first sample it holds: on sparse data
+    // `MIN(ts)` would shift the point to the right and suggest the reading is
+    // more recent than it really is.
     ts: row.bucket * bucketMs,
     bucketMs,
     expectedSamples: expected,
@@ -182,12 +182,12 @@ type SummaryRow = {
 };
 
 /**
- * Dernière valeur connue de chaque colonne, cherchée **indépendamment**.
+ * Last known value of each column, looked up **independently**.
  *
- * Prendre la dernière ligne en bloc ne marche pas : un échantillon partiel
- * (proxy Docker coupé, RCON muet) suffirait à afficher « — » partout alors que
- * la série contient des heures de mesures. Chaque métrique remonte donc à son
- * propre dernier relevé exploitable.
+ * Taking the last row wholesale does not work: one partial sample (Docker
+ * proxy down, RCON silent) would be enough to show "—" everywhere while the
+ * series holds hours of readings. Each metric therefore walks back to its own
+ * last usable reading.
  */
 function latestOf(column: string, from: number): number | null {
   const row = getDb()
@@ -203,7 +203,7 @@ function latestOf(column: string, from: number): number | null {
   return row?.value ?? null;
 }
 
-/** Chiffres d'en-tête : ils restent lisibles même sans regarder les courbes. */
+/** Headline figures: they stay readable without looking at the charts. */
 export function readSummary(range: RangeKey, now = Date.now()): MetricsSummaryDto {
   const from = now - RANGES[range];
 
@@ -219,9 +219,9 @@ export function readSummary(range: RangeKey, now = Date.now()): MetricsSummaryDt
   const expected = Math.max(1, Math.round(RANGES[range] / env().METRICS_INTERVAL_MS));
 
   return {
-    // Nombre de tours du collecteur, à ne pas confondre avec le nombre de
-    // mesures : un tour où Docker et RCON sont muets écrit quand même sa ligne.
-    // Chaque métrique porte donc son propre compteur.
+    // Collector rounds, not to be confused with the number of readings: a
+    // round where both Docker and RCON are silent still writes its row. Each
+    // metric therefore carries its own counter.
     cycles: row?.cycles ?? 0,
     expectedSamples: expected,
     cpu: {
@@ -245,9 +245,9 @@ export function readSummary(range: RangeKey, now = Date.now()): MetricsSummaryDt
       ...metric(row?.upsSamples ?? 0, row?.upsAvg ?? null, row?.upsMin ?? null, row?.upsMax ?? null),
       current: latestOf("ups", from),
     },
-    // Dernière limite connue, pas le maximum de la fenêtre : un conteneur
-    // recréé avec une limite plus basse afficherait sinon l'ancienne, qui est
-    // historiquement exacte mais actuellement fausse.
+    // Last known limit, not the window's maximum: a container recreated with
+    // a lower limit would otherwise show the old one, which is historically
+    // accurate but currently wrong.
     memLimit: latestOf("mem_limit", from),
   };
 }

@@ -1,7 +1,7 @@
 /**
- * Exécuté une fois au démarrage du serveur Next.
- * Valide la configuration immédiatement plutôt qu'à la première requête,
- * purge les données expirées et ferme proprement la connexion RCON.
+ * Runs once when the Next server starts.
+ * Validates the configuration immediately rather than on the first request,
+ * purges expired data and closes the RCON connection cleanly.
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
@@ -13,8 +13,8 @@ export async function register() {
   try {
     config = env();
   } catch (error) {
-    // Le panneau démarre quand même : /api/ready le signalera « unavailable »
-    // et chaque route renverra une erreur explicite.
+    // The panel starts anyway: /api/ready will report it "unavailable" and
+    // every route will return an explicit error.
     logger.error("invalid configuration at startup", errorFields(error));
     return;
   }
@@ -30,16 +30,16 @@ export async function register() {
     purgeExpiredSessions();
     const purged = purgeAudit();
 
-    // Métriques coupées : rien à purger, et surtout rien à démarrer. Les lignes
-    // déjà collectées restent en base — les réactiver doit rendre l'historique,
-    // pas repartir de zéro.
+    // Metrics off: nothing to purge, and above all nothing to start. Rows
+    // already collected stay in the database — re-enabling must give the
+    // history back, not start from scratch.
     if (config.METRICS_ENABLED) {
       const { purgeMetrics } = await import("@/server/metrics/service");
       purgeMetrics();
     }
 
-    // Charger le catalogue de l'opérateur ici plutôt qu'à la première requête :
-    // une entrée fautive doit se voir dans les journaux de démarrage.
+    // Load the operator's catalogue here rather than on the first request: a
+    // faulty entry must show up in the startup logs.
     const { loadCustomCatalog } = await import("@/server/actions/custom");
     const commands = loadCustomCatalog();
 

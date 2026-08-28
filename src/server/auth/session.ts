@@ -1,13 +1,13 @@
-import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { env } from "@/server/config/env";
 import { getDb } from "@/server/db";
-import { accounts, type User } from "@/server/auth/users";
+import type { User } from "@/server/auth/users";
 import { isRole, type Role } from "@/lib/permissions";
 
 /**
- * Sessions persistées en SQLite : le cookie ne porte qu'un identifiant signé,
- * l'état fait autorité. Une déconnexion révoque donc réellement la session,
- * y compris si le cookie a été volé — ce qu'un JWT/HMAC stateless ne permet pas.
+ * Sessions persisted in SQLite: the cookie carries only a signed id, and state
+ * is authoritative. Signing out therefore really revokes the session, even if
+ * the cookie was stolen — something a stateless JWT/HMAC cannot do.
  */
 
 export type Session = {
@@ -17,24 +17,14 @@ export type Session = {
   expiresAt: number;
 };
 
-const globalRef = globalThis as typeof globalThis & { __factorioFallbackKey?: Buffer };
-
+/**
+ * Cookie signing key. `SESSION_SECRET` is **required**: there is no fallback
+ * derived from the passwords. Such a fallback conflated two independent
+ * rotations — changing one password signed everybody out — and backed session
+ * signatures with a human-chosen secret.
+ */
 function signingKey(): Buffer {
-  const secret = env().SESSION_SECRET;
-  if (secret) return Buffer.from(secret, "utf8");
-
-  // Sans SESSION_SECRET, la clé dérive des mots de passe configurés : changer
-  // un mot de passe invalide les sessions existantes.
-  const material = accounts()
-    .map((account) => `${account.username}:${account.password}`)
-    .join("|");
-
-  if (!material) {
-    // Aucun compte : personne ne peut se connecter, une clé aléatoire suffit.
-    return (globalRef.__factorioFallbackKey ??= randomBytes(32));
-  }
-
-  return createHash("sha256").update(`session-key:${material}`, "utf8").digest();
+  return Buffer.from(env().SESSION_SECRET, "utf8");
 }
 
 function sign(sessionId: string): string {
@@ -59,7 +49,7 @@ export function createSession(user: User, now = Date.now()): { token: string; ex
   return { token: `${id}.${sign(id)}`, expiresAt };
 }
 
-/** Vérifie la signature du cookie puis l'état en base (expiration, révocation). */
+/** Checks the cookie signature, then the stored state (expiry, revocation). */
 export function verifySessionToken(token: string | undefined, now = Date.now()): Session | null {
   if (!token) return null;
 
@@ -91,13 +81,13 @@ export function revokeSession(id: string, now = Date.now()) {
   getDb().prepare(`UPDATE sessions SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`).run(now, id);
 }
 
-/** Utilisé quand la configuration change : coupe tout le monde. */
+/** Used when the configuration changes: signs everybody out. */
 export function revokeAllSessions(now = Date.now()) {
   getDb().prepare(`UPDATE sessions SET revoked_at = ? WHERE revoked_at IS NULL`).run(now);
 }
 
 export function purgeExpiredSessions(now = Date.now()) {
-  // On garde une journée de sessions expirées pour l'analyse post-mortem.
+  // One day of expired sessions is kept for post-mortem analysis.
   getDb().prepare(`DELETE FROM sessions WHERE expires_at < ?`).run(now - 24 * 60 * 60 * 1000);
 }
 

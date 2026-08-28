@@ -8,9 +8,9 @@ import type { RconResult } from "@/lib/api-types";
 import { MAX_LOG_ENTRIES, type LogEntry, type NewLogEntry } from "@/lib/types";
 
 /**
- * Exécution des commandes (console brute et actions) et journal affiché.
- * Les deux chemins alimentent le même journal, borné pour ne pas faire enfler
- * indéfiniment le DOM au fil d'une longue session.
+ * Command execution (raw console and actions) and the log shown on screen.
+ * Both paths feed the same log, bounded so the DOM does not grow indefinitely
+ * over a long session.
  */
 export function useCommandRunner(options: { onUnauthorized: () => void; onSuccess?: () => void }) {
   const { onUnauthorized, onSuccess } = options;
@@ -26,8 +26,8 @@ export function useCommandRunner(options: { onUnauthorized: () => void; onSucces
       const complete: LogEntry = {
         ...entry,
         id: nextId.current++,
-        // Fuseau du navigateur, langue de l'interface : l'horodatage n'est
-        // produit que côté client, donc aucun écart d'hydratation possible.
+        // Browser time zone, interface language: the timestamp is only
+        // produced client-side, so no hydration mismatch is possible.
         at: new Date().toLocaleTimeString(locale),
       };
       setEntries((current) => [...current, complete].slice(-MAX_LOG_ENTRIES));
@@ -78,13 +78,13 @@ export function useCommandRunner(options: { onUnauthorized: () => void; onSucces
     [append, errorMessage, onSuccess, onUnauthorized],
   );
 
-  /** Console brute : nécessite la permission `rcon:raw`. */
+  /** Raw console: requires the `rcon:raw` permission. */
   const runCommand = useCallback(
     (command: string) => send(command, "/api/rcon", { command }),
     [send],
   );
 
-  /** Action métier : le serveur construit la commande à partir de l'identifiant. */
+  /** Business action: the server builds the command from the identifier. */
   const runAction = useCallback(
     (actionId: string, label: string, values: Record<string, string>) =>
       send(label, "/api/actions", { action: actionId, values }),

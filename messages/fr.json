@@ -140,6 +140,11 @@
       }
     }
   },
+  "notFound": {
+    "title": "Page introuvable",
+    "description": "Cette adresse ne correspond à aucune page du panneau.",
+    "back": "Retour au panneau"
+  },
   "tabs": {
     "console": "Console",
     "metrics": "Statistiques"
@@ -161,6 +166,8 @@
     "memoryOf": "{used} / {limit}",
     "chartLabel": "{metric} sur la plage sélectionnée, actuellement {current}",
     "dockerUnavailable": "Métriques du conteneur indisponibles (proxy Docker injoignable).",
+    "dockerPending": "Métriques du conteneur pas encore relevées.",
+    "dockerDegraded": "Métriques du conteneur en retard (relevés récents en échec).",
     "sparse": "données clairsemées sur cette tranche",
     "dockerDisabled": "Métriques du conteneur désactivées (METRICS_DOCKER=false).",
     "upsUnavailable": "Mesure de l'UPS désactivée ou serveur injoignable."
@@ -189,6 +196,7 @@
 
     "command_missing": "Champ `command` manquant ou invalide.",
     "action_body_invalid": "Requête d’action invalide.",
+    "body_too_large": "Corps de requête trop volumineux ({max} octets maximum).",
     "unknown_action": "Action inconnue : {action}",
     "invalid_arguments": "Arguments invalides pour cette action.",
 
@@ -215,6 +223,7 @@
     "command_empty": "Commande vide.",
     "command_too_long": "Commande trop longue (maximum {max} octets).",
     "backpressure": "Trop de commandes en attente, réessayez dans quelques secondes.",
+    "service_stopping": "Le panneau est en cours d'arrêt.",
     "probe_failed": "Vérification RCON impossible."
   }
 }

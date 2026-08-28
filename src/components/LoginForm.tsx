@@ -34,7 +34,7 @@ export default function LoginForm() {
       return;
     }
 
-    // Sur cette page, un 401 ne peut signifier qu'une chose.
+    // On this page a 401 can only mean one thing.
     setError(
       outcome.kind === "unauthorized" ? t("errors.bad_credentials") : errorMessage(outcome),
     );
