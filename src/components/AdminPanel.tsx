@@ -140,8 +140,13 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
     />
   );
 
+  // The shell is pinned to the viewport from `lg` up: every panel below
+  // already scrolls on its own (`min-h-0 flex-1 overflow-y-auto`), but a
+  // `flex-1` under a `min-h-*` parent caps nothing, so the console used to
+  // stretch the page instead of scrolling inside it. Below `lg` the panels are
+  // stacked and the page scroll is the only sensible one, so no ceiling there.
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 p-4">
+    <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-4 p-4 lg:h-dvh lg:min-h-0 lg:overflow-hidden">
       <ServerStatusBar
         session={session}
         status={status}
@@ -151,7 +156,7 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
       />
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[22rem_1fr]">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 lg:min-h-0">
           <QuickActions actions={actions} busy={busy} onRun={submitAction} />
           {canReadAudit && <AuditPanel onUnauthorized={onUnauthorized} />}
         </div>

@@ -84,7 +84,7 @@ export default function AuditPanel({ onUnauthorized }: { onUnauthorized: () => v
   }, [apply, load, open]);
 
   return (
-    <section className="rounded-lg border border-line bg-surface">
+    <section className="shrink-0 rounded-lg border border-line bg-surface">
       <header className="flex items-center justify-between border-b border-line px-4 py-2">
         <h2 className="text-sm font-medium">{t("title")}</h2>
         <div className="flex gap-2">

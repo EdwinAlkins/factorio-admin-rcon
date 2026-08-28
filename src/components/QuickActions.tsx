@@ -129,13 +129,17 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
 
   if (actions.length === 0) return null;
 
+  // `lg:min-h-0`: on a wide screen the column has a bounded height, so the
+  // action list scrolls on its own instead of pushing the audit log out. On a
+  // narrow screen the column is free-standing and the panel keeps its natural
+  // height — there, the page scroll is the right one.
   return (
-    <section className="rounded-lg border border-line bg-surface">
-      <header className="border-b border-line px-4 py-2">
+    <section className="flex flex-col rounded-lg border border-line bg-surface lg:min-h-0">
+      <header className="shrink-0 border-b border-line px-4 py-2">
         <h2 className="text-sm font-medium">{t("title")}</h2>
       </header>
 
-      <div className="space-y-4 p-4">
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {groups.map(([group, groupActions]) => (
           <div key={group}>
             <h3 className="mb-2 text-xs uppercase tracking-wide text-muted">
