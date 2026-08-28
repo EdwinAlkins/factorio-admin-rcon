@@ -39,6 +39,17 @@ const devOrigins = (process.env.NEXT_DEV_ORIGINS ?? "")
 const nextConfig: NextConfig = {
   // Produces .next/standalone: the Docker image ships only what is needed.
   output: "standalone",
+  experimental: {
+    /**
+     * `next build` type-checks by running the project-local `tsc` binary. Here
+     * `typescript` is an alias on `@typescript/typescript6` — the compiler API
+     * that typescript-eslint still needs — and it ships `tsc6`, not `tsc`.
+     * Falling back to the JavaScript API keeps the build checking types.
+     *
+     * `npm run typecheck` runs the real TypeScript 7 compiler (`typescript7`).
+     */
+    useTypeScriptCli: false,
+  },
   ...(devOrigins.length > 0 ? { allowedDevOrigins: devOrigins } : {}),
   poweredByHeader: false,
   async headers() {
