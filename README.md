@@ -10,6 +10,99 @@ configuration, custom commands, security model and API reference. The site lives
 It speaks the RCON protocol over TCP — the repository's C client (`docker/rcon/main.c`) hardcodes
 `127.0.0.1` and is only usable from within the server container.
 
+## Quick start (without cloning)
+
+Nothing to clone: one directory, a `docker-compose.yml` pasted as-is, a `.env` you generate. The
+panel is published on Docker Hub, so `docker compose up` is the whole install.
+
+```yaml
+# docker-compose.yml
+services:
+  factorio:
+    container_name: factorio-server
+    image: factoriotools/factorio:stable
+    restart: unless-stopped
+    ports:
+      # Game port only. RCON stays unpublished: the panel reaches it over the
+      # compose network, and the port hands full server control to whoever
+      # holds the password.
+      - "34197:34197/udp"
+    volumes:
+      - ./data:/factorio
+    environment:
+      - UPDATE_MODS_ON_START=true
+
+  factorio-admin:
+    container_name: factorio-admin-panel
+    # Pin the version; `latest` moves under you on the next release. The
+    # published tags are listed on Docker Hub, `-distroless` being the hardened
+    # variant (no shell, no package manager).
+    image: williamnauroy/factorio-admin-rcon:1.3.0-distroless
+    restart: unless-stopped
+    depends_on:
+      - factorio
+    ports:
+      # Loopback only: the panel grants full RCON access. Both stacks, so a
+      # browser resolving "localhost" to ::1 also reaches it.
+      - "127.0.0.1:3010:3000"
+      - "[::1]:3010:3000"
+    volumes:
+      # The directory, not the file: a regenerated rconpw is picked up as is.
+      - ./data/config:/factorio-config:ro
+      # Sessions, audit log and metric series (SQLite).
+      - factorio-admin-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    pids_limit: 128
+    environment:
+      - RCON_HOST=factorio
+      - RCON_PORT=27015
+      - RCON_PASSWORD_FILE=/factorio-config/rconpw
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
+      - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
+      # This stack has no docker-socket-proxy, so the CPU and memory graphs are
+      # off. Players and UPS keep working. Add the service from the repository's
+      # compose file to get them back.
+      - METRICS_DOCKER=false
+
+volumes:
+  factorio-admin-data:
+```
+
+Secrets are generated rather than typed — `setup-admin.sh` does this in the repository, and these
+two lines are what it comes down to:
+
+```bash
+cat > .env <<EOF
+ADMIN_PASSWORD=$(openssl rand -base64 18)
+SESSION_SECRET=$(openssl rand -hex 32)
+EOF
+
+docker compose up -d
+cat .env            # the password to log in with
+                    # → http://127.0.0.1:3010
+```
+
+`MODERATOR_PASSWORD` and `VIEWER_PASSWORD` are optional: add them to `.env` and to the service's
+`environment:` to open the two read-only roles. A role without a password simply has no account.
+
+On the very first start the game server is still creating its map, and `data/config/rconpw` does not
+exist yet — the panel reports RCON as unavailable for a few seconds. It reads the file again on
+every connection attempt, so it recovers on its own, without a restart.
+
+Updating is a pull, since nothing is built locally:
+
+```bash
+# after bumping the tag in docker-compose.yml
+docker compose pull && docker compose up -d
+```
+
 ## Development
 
 ```bash
