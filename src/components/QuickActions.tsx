@@ -3,13 +3,23 @@
 import { useId, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useActionText } from "@/hooks/useActionText";
-import type { ActionDto, ActionGroup } from "@/lib/api-types";
+import type { ActionDto, ActionFieldDto } from "@/lib/api-types";
 
 type Props = {
   actions: ActionDto[];
   busy: boolean;
   onRun: (action: ActionDto, values: Record<string, string>) => void;
 };
+
+/** Valeurs de départ du formulaire : les défauts déclarés par l'action. */
+function initialValues(action: ActionDto): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const field of action.fields) {
+    if (field.default !== undefined) values[field.name] = field.default;
+    else if (field.kind === "bool") values[field.name] = "false";
+  }
+  return values;
+}
 
 export default function QuickActions({ actions, busy, onRun }: Props) {
   const t = useTranslations("quickActions");
@@ -19,7 +29,7 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
   const fieldId = useId();
 
   const groups = useMemo(() => {
-    const byGroup = new Map<ActionGroup, ActionDto[]>();
+    const byGroup = new Map<string, ActionDto[]>();
     for (const action of actions) {
       const list = byGroup.get(action.group) ?? [];
       list.push(action);
@@ -33,7 +43,7 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
       onRun(action, {});
       return;
     }
-    setValues({});
+    setValues(initialValues(action));
     setOpenId((current) => (current === action.id ? null : action.id));
   }
 
@@ -48,6 +58,75 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
     setOpenId(null);
   }
 
+  function update(name: string, value: string) {
+    setValues((current) => ({ ...current, [name]: value }));
+  }
+
+  /** Le widget suit le type déclaré : une liste close mérite un menu, pas un champ libre. */
+  function control(action: ActionDto, field: ActionFieldDto, id: string) {
+    const value = values[field.name] ?? "";
+
+    if (field.kind === "enum") {
+      return (
+        <select
+          id={id}
+          className="field mt-1"
+          required={field.required}
+          value={value}
+          onChange={(event) => update(field.name, event.target.value)}
+        >
+          {!field.required && <option value="" />}
+          {(field.options ?? []).map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field.kind === "bool") {
+      return (
+        <input
+          id={id}
+          type="checkbox"
+          className="mt-2 h-4 w-4 accent-accent"
+          checked={value === "true"}
+          onChange={(event) => update(field.name, event.target.checked ? "true" : "false")}
+        />
+      );
+    }
+
+    if (field.kind === "int" || field.kind === "float") {
+      return (
+        <input
+          id={id}
+          type="number"
+          inputMode={field.kind === "int" ? "numeric" : "decimal"}
+          step={field.kind === "int" ? 1 : "any"}
+          min={field.min}
+          max={field.max}
+          className="field mt-1"
+          placeholder={text.placeholder(action, field.name)}
+          required={field.required}
+          value={value}
+          onChange={(event) => update(field.name, event.target.value)}
+        />
+      );
+    }
+
+    return (
+      <input
+        id={id}
+        className="field mt-1"
+        placeholder={text.placeholder(action, field.name)}
+        required={field.required}
+        value={value}
+        onChange={(event) => update(field.name, event.target.value)}
+      />
+    );
+  }
+
   if (actions.length === 0) return null;
 
   return (
@@ -59,7 +138,9 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
       <div className="space-y-4 p-4">
         {groups.map(([group, groupActions]) => (
           <div key={group}>
-            <h3 className="mb-2 text-xs uppercase tracking-wide text-muted">{text.group(group)}</h3>
+            <h3 className="mb-2 text-xs uppercase tracking-wide text-muted">
+              {text.group(group, groupActions.find((action) => action.text?.group)?.text?.group)}
+            </h3>
             <div className="flex flex-wrap gap-2">
               {groupActions.map((action) => (
                 <button
@@ -90,31 +171,24 @@ export default function QuickActions({ actions, busy, onRun }: Props) {
                     submit(action);
                   }}
                 >
-                  <p className="font-mono text-xs text-muted">{text.hint(action)}</p>
-                  {action.fields.map((field) => (
-                    <div key={field.name}>
-                      <label
-                        className="block text-xs text-muted"
-                        htmlFor={`${fieldId}-${action.id}-${field.name}`}
-                      >
-                        {text.fieldLabel(field.name)}
-                        {field.required ? " *" : ""}
-                      </label>
-                      <input
-                        id={`${fieldId}-${action.id}-${field.name}`}
-                        className="field mt-1"
-                        placeholder={text.placeholder(action, field.name)}
-                        required={field.required}
-                        value={values[field.name] ?? ""}
-                        onChange={(event) =>
-                          setValues((current) => ({
-                            ...current,
-                            [field.name]: event.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                  ))}
+                  {text.hint(action) && (
+                    <p className="font-mono text-xs text-muted">{text.hint(action)}</p>
+                  )}
+                  {action.fields.map((field) => {
+                    const id = `${fieldId}-${action.id}-${field.name}`;
+                    const help = text.help(action, field.name);
+
+                    return (
+                      <div key={field.name}>
+                        <label className="block text-xs text-muted" htmlFor={id}>
+                          {text.fieldLabel(action, field.name)}
+                          {field.required ? " *" : ""}
+                        </label>
+                        {control(action, field, id)}
+                        {help && <p className="mt-1 text-xs text-muted">{help}</p>}
+                      </div>
+                    );
+                  })}
                   {action.confirm && (
                     <p className="text-xs text-muted">{text.confirmation(action, values)}</p>
                   )}

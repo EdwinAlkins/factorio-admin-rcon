@@ -11,6 +11,9 @@ export const PERMISSIONS = [
   "action:info",
   "action:moderate",
   "action:server",
+  // Commandes du fichier de l'opérateur qui ne s'ouvrent pas explicitement à un
+  // rôle inférieur : elles exécutent souvent du Lua, donc admin par défaut.
+  "action:custom",
   "rcon:raw",
   "audit:read",
 ] as const;
@@ -24,6 +27,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "action:info",
     "action:moderate",
     "action:server",
+    "action:custom",
     "rcon:raw",
     "audit:read",
   ],

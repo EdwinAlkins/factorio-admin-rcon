@@ -1,6 +1,7 @@
 import { env } from "@/server/config/env";
 import { getDb } from "@/server/db";
 import { getRcon } from "@/server/rcon";
+import { loadCustomCatalog } from "@/server/actions/custom";
 import { hasAnyAccount } from "@/server/auth/users";
 import { errorFields, logger } from "@/server/log";
 
@@ -27,6 +28,17 @@ export async function GET() {
   }
 
   checks.push({ name: "accounts", ok: hasAnyAccount() });
+
+  // Fichier absent = fonctionnalité inactive, donc « ok ». Seul un fichier
+  // présent mais illisible ou mal formé est un défaut de configuration.
+  const commands = loadCustomCatalog();
+  if (commands.error) {
+    logger.error("readiness: catalogue de commandes illisible", {
+      file: commands.path,
+      reason: commands.error,
+    });
+  }
+  checks.push({ name: "commands", ok: commands.error === null });
 
   try {
     getDb().prepare("SELECT 1").get();

@@ -26,14 +26,15 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
 
   // Le catalogue est filtré côté serveur : l'interface ne connaît que les
   // actions que ce rôle a effectivement le droit d'exécuter. Il ne transporte
-  // que des identifiants — les libellés sont résolus côté client.
+  // que des identifiants — les libellés sont résolus côté client, sauf pour les
+  // commandes du fichier de l'opérateur, qui portent leur texte (d'où `locale`).
   //
   // `metricsEnabled` est lu ici plutôt que via une requête du client : l'onglet
   // ne doit pas apparaître une fraction de seconde avant de disparaître.
   return (
     <AdminPanel
       session={info}
-      actions={catalogFor(session!)}
+      actions={catalogFor(session!, locale)}
       metricsEnabled={env().METRICS_ENABLED}
     />
   );

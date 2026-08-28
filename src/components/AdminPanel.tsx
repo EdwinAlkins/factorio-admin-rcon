@@ -14,12 +14,35 @@ import { useCommandRunner } from "@/hooks/useCommandRunner";
 import { useServerStatus } from "@/hooks/useServerStatus";
 import { fetchJson } from "@/lib/fetch-json";
 import { isLuaCommand } from "@/lib/lua";
+import { renderTemplate } from "@/lib/lua-template";
 import { can } from "@/lib/permissions";
 import type { ActionDto, SessionInfo } from "@/lib/api-types";
 
-type Pending = { title: string; message: string; confirmLabel: string; run: () => void };
+type Pending = {
+  title: string;
+  message: string;
+  details?: string;
+  confirmLabel: string;
+  run: () => void;
+};
 
 type Tab = "console" | "metrics";
+
+/**
+ * Commande telle qu'elle partira, affichée avant confirmation. Purement
+ * informative : le serveur refait le rendu à partir du gabarit qu'il détient,
+ * et seul le sien fait foi. Un rendu impossible (saisie encore incomplète)
+ * n'empêche donc pas l'envoi — le serveur répondra par une erreur de saisie.
+ */
+function preview(action: ActionDto, values: Record<string, string>): string | undefined {
+  if (!action.template) return undefined;
+
+  try {
+    return renderTemplate(action.template, action.fields, values);
+  } catch {
+    return undefined;
+  }
+}
 
 const TABS: Tab[] = ["console", "metrics"];
 
@@ -61,7 +84,8 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
       if (isLuaCommand(command)) {
         setPending({
           title: t("lua.title"),
-          message: `${t("lua.warning")}\n\n${command}`,
+          message: t("lua.warning"),
+          details: command,
           confirmLabel: t("lua.runAnyway"),
           run: () => void runCommand(command),
         });
@@ -80,6 +104,7 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
         setPending({
           title: text.label(action),
           message: text.confirmation(action, values),
+          details: preview(action, values),
           confirmLabel: t("confirm.confirm"),
           run: () => void runAction(action.id, label, values),
         });
@@ -169,6 +194,7 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
         <ConfirmDialog
           title={pending.title}
           message={pending.message}
+          details={pending.details}
           confirmLabel={pending.confirmLabel}
           onConfirm={() => {
             pending.run();

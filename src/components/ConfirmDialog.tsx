@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl";
 type Props = {
   title: string;
   message: string;
+  /** Commande exacte qui sera envoyée : dernière chance de voir une erreur. */
+  details?: string;
   confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -18,6 +20,7 @@ type Props = {
 export default function ConfirmDialog({
   title,
   message,
+  details,
   confirmLabel,
   onConfirm,
   onCancel,
@@ -52,6 +55,11 @@ export default function ConfirmDialog({
           {title}
         </h2>
         <p className="mt-2 text-sm text-muted">{message}</p>
+        {details && (
+          <pre className="mt-3 max-h-48 overflow-auto rounded border border-line bg-raised p-2 font-mono text-xs break-words whitespace-pre-wrap">
+            {details}
+          </pre>
+        )}
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" className="btn" onClick={onCancel}>
             {t("cancel")}

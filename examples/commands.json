@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "groups": {
+    "cleanup": { "en": "Cleanup", "fr": "Nettoyage" },
+    "world": { "en": "World", "fr": "Monde" },
+    "players": { "en": "Players", "fr": "Joueurs" },
+    "inspect": { "en": "Inspect", "fr": "Inspection" }
+  },
+  "commands": [
+    {
+      "id": "kill-biters",
+      "group": "cleanup",
+      "permission": "action:moderate",
+      "label": { "en": "Kill all biters", "fr": "Tuer tous les biters" },
+      "hint": { "en": "Mobile units only, nests and worms are kept", "fr": "Unités mobiles seulement, nids et vers conservés" },
+      "confirmation": { "en": "Kill every biter on the map?", "fr": "Tuer tous les biters de la carte ?" },
+      "template": "/c game.forces[\"enemy\"].kill_all_units() rcon.print(\"units removed\")"
+    },
+    {
+      "id": "kill-enemies",
+      "group": "cleanup",
+      "permission": "action:moderate",
+      "label": { "en": "Kill all enemies", "fr": "Tuer tous les ennemis" },
+      "hint": { "en": "Biters, nests and worms on the player's surface", "fr": "Biters, nids et vers sur la surface du joueur" },
+      "confirmation": { "en": "Destroy every enemy entity?", "fr": "Détruire toutes les entités ennemies ?" },
+      "params": [
+        {
+          "name": "player",
+          "type": "player",
+          "label": { "en": "Player", "fr": "Joueur" },
+          "help": { "en": "Only used to pick the surface", "fr": "Sert uniquement à choisir la surface" }
+        }
+      ],
+      "template": "/c local s = game.players[{{player}}].surface local n = 0 for _, e in pairs(s.find_entities_filtered({force = \"enemy\"})) do e.destroy() n = n + 1 end rcon.print(n .. \" entities destroyed\")"
+    },
+    {
+      "id": "kill-enemies-near",
+      "group": "cleanup",
+      "permission": "action:moderate",
+      "label": { "en": "Kill enemies nearby", "fr": "Tuer les ennemis alentour" },
+      "hint": { "en": "Within a radius around the player", "fr": "Dans un rayon autour du joueur" },
+      "params": [
+        { "name": "player", "type": "player", "label": { "en": "Player", "fr": "Joueur" } },
+        {
+          "name": "radius",
+          "type": "int",
+          "required": false,
+          "default": "250",
+          "min": 1,
+          "max": 2000,
+          "label": { "en": "Radius (tiles)", "fr": "Rayon (cases)" }
+        }
+      ],
+      "template": "/c local p = game.players[{{player}}] local n = 0 for _, e in pairs(p.surface.find_entities_filtered({force = \"enemy\", position = p.position, radius = {{radius}}})) do e.destroy() n = n + 1 end rcon.print(n .. \" entities destroyed\")"
+    },
+    {
+      "id": "reveal-map",
+      "group": "world",
+      "label": { "en": "Reveal map", "fr": "Révéler la carte" },
+      "hint": { "en": "Charts a square around the player", "fr": "Cartographie un carré autour du joueur" },
+      "params": [
+        { "name": "player", "type": "player", "label": { "en": "Player", "fr": "Joueur" } },
+        {
+          "name": "radius",
+          "type": "int",
+          "required": false,
+          "default": "150",
+          "min": 1,
+          "max": 2000,
+          "label": { "en": "Radius (tiles)", "fr": "Rayon (cases)" }
+        }
+      ],
+      "template": "/c local p = game.players[{{player}}] local r = {{radius}} p.force.chart(p.surface, {left_top = {x = p.position.x - r, y = p.position.y - r}, right_bottom = {x = p.position.x + r, y = p.position.y + r}}) rcon.print(\"charted\")"
+    },
+    {
+      "id": "set-evolution",
+      "group": "world",
+      "label": { "en": "Set evolution", "fr": "Régler l'évolution" },
+      "hint": { "en": "Enemy evolution factor, 0 to 1", "fr": "Facteur d'évolution des ennemis, de 0 à 1" },
+      "confirmation": { "en": "Change the enemy evolution factor?", "fr": "Changer le facteur d'évolution des ennemis ?" },
+      "params": [
+        {
+          "name": "factor",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "label": { "en": "Factor", "fr": "Facteur" },
+          "placeholder": { "en": "0.35", "fr": "0,35" }
+        },
+        {
+          "name": "surface",
+          "type": "text",
+          "required": false,
+          "default": "nauvis",
+          "maxLength": 60,
+          "label": { "en": "Surface", "fr": "Surface" }
+        }
+      ],
+      "template": "/c game.forces[\"enemy\"].set_evolution_factor({{factor}}, game.surfaces[{{surface}}]) rcon.print(\"evolution set\")"
+    },
+    {
+      "id": "always-day",
+      "group": "world",
+      "risk": "none",
+      "confirm": false,
+      "label": { "en": "Eternal day", "fr": "Jour permanent" },
+      "hint": { "en": "Freezes the day/night cycle in daylight", "fr": "Fige le cycle jour/nuit en plein jour" },
+      "params": [
+        {
+          "name": "surface",
+          "type": "text",
+          "required": false,
+          "default": "nauvis",
+          "maxLength": 60,
+          "label": { "en": "Surface", "fr": "Surface" }
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "required": false,
+          "default": "true",
+          "label": { "en": "Enabled", "fr": "Activé" }
+        }
+      ],
+      "template": "/c game.surfaces[{{surface}}].always_day = {{enabled}} rcon.print(\"always_day set\")"
+    },
+    {
+      "id": "clear-pollution",
+      "group": "world",
+      "risk": "none",
+      "confirm": false,
+      "label": { "en": "Clear pollution", "fr": "Purger la pollution" },
+      "params": [
+        {
+          "name": "surface",
+          "type": "text",
+          "required": false,
+          "default": "nauvis",
+          "maxLength": 60,
+          "label": { "en": "Surface", "fr": "Surface" }
+        }
+      ],
+      "template": "/c game.surfaces[{{surface}}].clear_pollution() rcon.print(\"pollution cleared\")"
+    },
+    {
+      "id": "give-item",
+      "group": "players",
+      "label": { "en": "Give an item", "fr": "Donner un objet" },
+      "hint": { "en": "Prototype name, e.g. iron-plate", "fr": "Nom de prototype, ex. iron-plate" },
+      "confirmation": { "en": "Insert the item into the player's inventory?", "fr": "Insérer l'objet dans l'inventaire du joueur ?" },
+      "params": [
+        { "name": "player", "type": "player", "label": { "en": "Player", "fr": "Joueur" } },
+        {
+          "name": "item",
+          "type": "identifier",
+          "label": { "en": "Item", "fr": "Objet" },
+          "placeholder": { "en": "iron-plate", "fr": "iron-plate" }
+        },
+        {
+          "name": "count",
+          "type": "int",
+          "required": false,
+          "default": "100",
+          "min": 1,
+          "max": 10000,
+          "label": { "en": "Quantity", "fr": "Quantité" }
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "required": false,
+          "default": "normal",
+          "options": ["normal", "uncommon", "rare", "epic", "legendary"],
+          "label": { "en": "Quality", "fr": "Qualité" }
+        }
+      ],
+      "template": "/c local p = game.players[{{player}}] local n = p.insert({name = {{item}}, count = {{count}}, quality = {{quality}}}) rcon.print(n .. \" inserted\")"
+    },
+    {
+      "id": "teleport",
+      "group": "players",
+      "label": { "en": "Teleport", "fr": "Téléporter" },
+      "hint": { "en": "Moves the player to a position", "fr": "Déplace le joueur à une position" },
+      "confirmation": { "en": "Teleport the player?", "fr": "Téléporter le joueur ?" },
+      "params": [
+        { "name": "player", "type": "player", "label": { "en": "Player", "fr": "Joueur" } },
+        { "name": "x", "type": "float", "required": false, "default": "0", "label": { "en": "X", "fr": "X" } },
+        { "name": "y", "type": "float", "required": false, "default": "0", "label": { "en": "Y", "fr": "Y" } },
+        {
+          "name": "surface",
+          "type": "text",
+          "required": false,
+          "default": "nauvis",
+          "maxLength": 60,
+          "label": { "en": "Surface", "fr": "Surface" }
+        }
+      ],
+      "template": "/c game.players[{{player}}].teleport({x = {{x}}, y = {{y}}}, game.surfaces[{{surface}}]) rcon.print(\"teleported\")"
+    },
+    {
+      "id": "count-entities",
+      "group": "inspect",
+      "permission": "action:moderate",
+      "risk": "none",
+      "confirm": false,
+      "label": { "en": "Count entities", "fr": "Compter des entités" },
+      "hint": { "en": "Substring match on the entity name", "fr": "Recherche d'un fragment dans le nom de l'entité" },
+      "params": [
+        { "name": "player", "type": "player", "label": { "en": "Player", "fr": "Joueur" } },
+        {
+          "name": "name",
+          "type": "text",
+          "maxLength": 60,
+          "label": { "en": "Name contains", "fr": "Le nom contient" },
+          "placeholder": { "en": "belt", "fr": "belt" }
+        }
+      ],
+      "template": "/c local s = game.players[{{player}}].surface local n = 0 for _, e in pairs(s.find_entities_filtered({force = \"player\"})) do if string.find(e.name, {{name}}, 1, true) then n = n + 1 end end rcon.print(n)"
+    },
+    {
+      "id": "find-corpses",
+      "group": "inspect",
+      "permission": "action:moderate",
+      "risk": "none",
+      "confirm": false,
+      "label": { "en": "Find corpses", "fr": "Trouver les cadavres" },
+      "hint": { "en": "Lists character corpses and their map position", "fr": "Liste les cadavres de personnages et leur position" },
+      "params": [
+        { "name": "player", "type": "player", "label": { "en": "Player", "fr": "Joueur" } }
+      ],
+      "template": "/c local s = game.players[{{player}}].surface for _, c in pairs(s.find_entities_filtered({type = \"character-corpse\"})) do local o = game.get_player(c.character_corpse_player_index) rcon.print((o and o.name or \"?\") .. \" \" .. c.gps_tag) end"
+    }
+  ]
+}

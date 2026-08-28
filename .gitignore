@@ -46,3 +46,9 @@ next-env.d.ts
 .data/
 data/
 private/
+
+# media
+/tools/media/captures-fr
+/tools/media/captures-en
+/tools/media/video
+/tools/media/out

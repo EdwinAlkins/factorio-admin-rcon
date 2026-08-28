@@ -115,6 +115,9 @@ services:
       - RCON_HOST=factorio
       - RCON_PORT=27015
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
+      # Custom command catalogue, read from the mount above. The file is
+      # optional: without it the panel serves the built-in actions only.
+      - CUSTOM_COMMANDS_FILE=${CUSTOM_COMMANDS_FILE:-/factorio-config/commands.json}
       # Passwords: one per role. Set them in a .env file next to this compose file.
       # With none set, the panel starts but refuses every login.
       # ADMIN_PASSWORD grants full access, including the raw RCON console.

@@ -38,11 +38,18 @@ export async function register() {
       purgeMetrics();
     }
 
+    // Charger le catalogue de l'opérateur ici plutôt qu'à la première requête :
+    // une entrée fautive doit se voir dans les journaux de démarrage.
+    const { loadCustomCatalog } = await import("@/server/actions/custom");
+    const commands = loadCustomCatalog();
+
     logger.info("panel started", {
       rcon: `${config.RCON_HOST}:${config.RCON_PORT}`,
       dataDir: config.DATA_DIR,
       auditPurged: purged,
       metrics: config.METRICS_ENABLED,
+      commands: commands.actions.length,
+      commandsRejected: commands.rejected,
       trustProxy: config.TRUST_PROXY,
     });
 

@@ -91,7 +91,8 @@
       "info": "Infos",
       "server": "Serveur",
       "moderation": "Modération",
-      "comms": "Communication"
+      "comms": "Communication",
+      "custom": "Personnalisées"
     },
     "fields": {
       "player": { "label": "Joueur", "placeholder": "nom du joueur" },
@@ -192,9 +193,18 @@
     "invalid_arguments": "Arguments invalides pour cette action.",
 
     "validation_required": "{field} est obligatoire.",
-    "validation_player": "{field} : nom de joueur invalide (sans espace, 60 max).",
+    "validation_player": "{field} : nom de joueur invalide (ni espace ni guillemet, 60 max).",
     "validation_too_long": "{field} : {max} caractères maximum.",
     "validation_newline": "{field} : retours à la ligne interdits.",
+    "validation_number": "{field} : nombre invalide.",
+    "validation_min": "{field} : minimum {min}.",
+    "validation_max": "{field} : maximum {max}.",
+    "validation_enum": "{field} : valeur attendue parmi {options}.",
+    "validation_identifier": "{field} : nom invalide (lettres, chiffres, « - », « _ », « . »).",
+    "validation_bool": "{field} : valeur oui/non attendue.",
+    "validation_control_char": "{field} : les caractères de contrôle sont interdits.",
+    "validation_comment": "{field} : « -- » est interdit.",
+    "unknown_placeholder": "{field} : le gabarit référence un champ non déclaré.",
 
     "config_password": "Mot de passe RCON indisponible côté serveur.",
     "connection_refused": "Le serveur Factorio est inaccessible.",

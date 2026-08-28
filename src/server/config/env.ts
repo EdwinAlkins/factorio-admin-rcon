@@ -49,6 +49,10 @@ const EnvSchema = z.object({
   RCON_MAX_PER_MINUTE: z.coerce.number().int().positive().default(60),
   STATUS_CACHE_MS: z.coerce.number().int().nonnegative().default(5000),
 
+  // Catalogue de commandes de l'opérateur, monté en lecture seule. Fichier
+  // absent = fonctionnalité inactive, pas une erreur de configuration.
+  CUSTOM_COMMANDS_FILE: z.string().min(1).default("/factorio-config/commands.json"),
+
   DATA_DIR: z.string().min(1).default("./.data"),
   AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
 

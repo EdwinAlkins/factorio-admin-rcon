@@ -1,12 +1,8 @@
 import { can } from "@/lib/permissions";
 import type { Session } from "@/server/auth/session";
-import {
-  ACTIONS,
-  DEFAULT_MAX_LENGTH,
-  findAction,
-  schemaOf,
-  toDto,
-} from "@/server/actions/definitions";
+import { DEFAULT_MAX_LENGTH, schemaOf, toDto } from "@/server/actions/definitions";
+import { allActions, findAction } from "@/server/actions/registry";
+import { LuaTemplateError } from "@/lib/lua-template";
 import { isKnownErrorCode } from "@/server/error-text";
 import { ApiFailure } from "@/server/http/errors";
 import { recordAudit } from "@/server/audit/service";
@@ -16,9 +12,16 @@ import { RconError } from "@/server/rcon/errors";
 import type { ActionDto } from "@/lib/api-types";
 import type { RconExecution } from "@/server/rcon/service";
 
-/** Actions visibles par ce rôle (le catalogue est filtré côté serveur). */
-export function catalogFor(session: Session): ActionDto[] {
-  return ACTIONS.filter((action) => can(session.role, action.permission)).map(toDto);
+/**
+ * Actions visibles par ce rôle (le catalogue est filtré côté serveur).
+ *
+ * `locale` ne sert qu'aux commandes du fichier de l'opérateur, qui portent leur
+ * propre texte : celui des actions intégrées reste résolu côté interface.
+ */
+export function catalogFor(session: Session, locale = "en"): ActionDto[] {
+  return allActions()
+    .filter((action) => can(session.role, action.permission))
+    .map((action) => toDto(action, locale));
 }
 
 type ExecuteContext = {
@@ -64,14 +67,27 @@ export async function executeAction(
 
     throw ApiFailure.badRequest(code, {
       field: name,
-      // La longueur maximale n'a de sens que pour le dépassement de taille.
+      // Chaque borne n'a de sens que pour l'erreur qui la met en cause.
       ...(code === "validation_too_long"
         ? { max: field?.maxLength ?? DEFAULT_MAX_LENGTH }
         : {}),
+      ...(code === "validation_min" && field?.min !== undefined ? { min: field.min } : {}),
+      ...(code === "validation_max" && field?.max !== undefined ? { max: field.max } : {}),
+      ...(code === "validation_enum" ? { options: (field?.options ?? []).join(", ") } : {}),
     });
   }
 
-  const command = definition.build(parsed.data as Record<string, string>);
+  let command: string;
+  try {
+    command = definition.build(parsed.data as Record<string, string>);
+  } catch (error) {
+    // Seconde barrière : `lua-template` refuse ce que la validation aurait
+    // laissé passer. C'est une saisie invalide, pas une panne du panneau.
+    const code = error instanceof LuaTemplateError ? error.code : "invalid_arguments";
+    throw ApiFailure.badRequest(isKnownErrorCode(code) ? code : "invalid_arguments", {
+      field: definition.fields[0]?.name ?? definition.id,
+    });
+  }
 
   try {
     const execution = await getRcon().execute(command);

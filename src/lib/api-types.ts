@@ -42,23 +42,54 @@ export type StatusResult = {
 
 export type ActionGroup = "info" | "server" | "moderation" | "comms";
 
+export type ActionFieldKindDto =
+  | "player"
+  | "text"
+  | "identifier"
+  | "int"
+  | "float"
+  | "bool"
+  | "enum";
+
 export type ActionFieldDto = {
   name: string;
   required: boolean;
+  kind: ActionFieldKindDto;
+  /** Renseignés seulement par les commandes du fichier de l'opérateur. */
+  label?: string;
+  placeholder?: string;
+  help?: string;
+  options?: string[];
+  min?: number;
+  max?: number;
+  default?: string;
 };
 
 /**
  * Le catalogue ne transporte que des identifiants : libellés, indices et
  * messages de confirmation sont résolus côté interface via les clés
- * `actions.items.<id>.*`. Aucun texte d'UI ne subsiste dans la couche métier.
+ * `actions.items.<id>.*`.
+ *
+ * Unique exception, `text` : les commandes définies par l'opérateur dans son
+ * fichier JSON ne peuvent pas alimenter les dictionnaires. Le serveur résout
+ * alors le texte pour la locale demandée et le joint au DTO.
  */
 export type ActionDto = {
   id: string;
-  group: ActionGroup;
+  /** Union fermée pour les actions intégrées, libre pour celles du fichier. */
+  group: string;
   risk: "none" | "dangerous";
   /** Le texte vit dans les dictionnaires ; ce drapeau dit seulement s'il existe. */
   confirm: boolean;
   fields: ActionFieldDto[];
+  text?: {
+    label: string;
+    hint?: string;
+    confirmation?: string;
+    group?: string;
+  };
+  /** Gabarit source, présent si l'entrée demande un aperçu avant confirmation. */
+  template?: string;
 };
 
 export type ActionCatalogResult = {

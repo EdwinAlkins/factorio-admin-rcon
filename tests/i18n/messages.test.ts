@@ -65,6 +65,15 @@ const API_ERROR_CODES = [
   "validation_player",
   "validation_too_long",
   "validation_newline",
+  "validation_number",
+  "validation_min",
+  "validation_max",
+  "validation_enum",
+  "validation_identifier",
+  "validation_bool",
+  "validation_control_char",
+  "validation_comment",
+  "unknown_placeholder",
 ];
 
 describe("dictionnaires", () => {

@@ -101,10 +101,86 @@ One password per role; the role is determined by the password used to sign in.
 | --- | --- | --- |
 | `viewer` | `VIEWER_PASSWORD` | Status, players, version, seed, evolution, admins, ban list |
 | `moderator` | `MODERATOR_PASSWORD` | + kick, ban/unban, mute/unmute, server message, private message |
-| `admin` | `ADMIN_PASSWORD` | + save, promote/demote, **raw RCON console**, audit log |
+| `admin` | `ADMIN_PASSWORD` | + save, promote/demote, custom commands, **raw RCON console**, audit log |
 
 Permissions are enforced **server-side**: the action catalogue is filtered by role, and
 `/api/actions` re-checks the permission before executing anything.
+
+## Custom commands
+
+The built-in catalogue covers moderation; everything else — the Lua one-liners every server ends up
+keeping in a text file — goes in a JSON catalogue **you** provide. Point `CUSTOM_COMMANDS_FILE` at
+it (default `/factorio-config/commands.json`, already mounted read-only by `docker-compose.yml`, so
+dropping the file in `./data/config/` is enough). A ready-made catalogue lives in
+[`examples/commands.json`](examples/commands.json).
+
+The point is not just convenience: a command declared here is **bounded**. A moderator gets a
+"Kill all enemies" button with a player field, without ever getting `rcon:raw` — that is, without
+being able to run arbitrary Lua.
+
+```json
+{
+  "version": 1,
+  "groups": { "cleanup": { "en": "Cleanup", "fr": "Nettoyage" } },
+  "commands": [
+    {
+      "id": "kill-enemies",
+      "group": "cleanup",
+      "permission": "action:moderate",
+      "label": { "en": "Kill all enemies", "fr": "Tuer tous les ennemis" },
+      "hint": { "en": "Every enemy entity on the player's surface" },
+      "params": [{ "name": "player", "type": "player", "label": { "en": "Player" } }],
+      "template": "/c for _, e in pairs(game.players[{{player}}].surface.find_entities_filtered({force = \"enemy\"})) do e.destroy() end"
+    }
+  ]
+}
+```
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `id` | — | Unique; exposed and audited as `custom:<id>` |
+| `group` | `custom` | Heading in the quick actions; label taken from `groups` |
+| `permission` | `action:custom` | `action:info`, `action:moderate`, `action:server` or `action:custom` |
+| `risk` | `dangerous` | `dangerous` colours the button as destructive |
+| `confirm` | `true` | Ask for confirmation before running |
+| `preview` | `true` | Show the exact command in that confirmation |
+| `label` / `hint` / `confirmation` | — | `"text"` or `{ "en": …, "fr": … }`; `label` is required |
+| `params` | `[]` | Fields the user fills in |
+| `template` | — | The command, with `{{name}}` markers |
+
+| `type` | Accepts | Inserted as |
+| --- | --- | --- |
+| `player` | no spaces, quotes or backslash, 60 max | Lua string |
+| `text` | no line breaks, `maxLength` (200 by default) | Lua string |
+| `identifier` | prototype name (`iron-plate`) | Lua string |
+| `int` / `float` | a number within `min`/`max` | bare number |
+| `bool` | a checkbox | `true` / `false` |
+| `enum` | one value out of `options` | Lua string (bare with `"raw": true`) |
+
+Params also take `required` (default `true`), `default`, `label`, `placeholder` and `help`. A
+non-textual optional param **must** declare a `default` — otherwise an empty field has no meaning.
+
+Two things to know before writing templates:
+
+- **the template never writes the quotes** — `game.players[{{player}}]`, not
+  `game.players["{{player}}"]`. The panel builds the whole Lua literal, quotes included, and
+  escapes what the user typed. This is what makes the delegation safe: a value cannot break out of
+  the string it lands in. Use `{{arg:name}}` to insert a value bare, for regular commands
+  (`/kick {{arg:player}} {{arg:reason}}`);
+- **`--` is refused in a template.** Line breaks are flattened into spaces before sending, so a Lua
+  comment would swallow the rest of the command.
+
+And two Factorio facts that trip up copy-pasting from the [wiki](https://wiki.factorio.com/console):
+
+- **`game.player` is `nil` over RCON** — there is no current player. Use `game.players["Name"]`,
+  `game.surfaces["nauvis"]`, `game.forces["player"]`, and `rcon.print(…)` instead of
+  `game.player.print(…)` if you want to see the output in the panel;
+- **`/c` permanently disables achievements** for the save.
+
+The file is re-read whenever it changes, so you can fix your catalogue without restarting the
+container. It is deliberately forgiving: a malformed entry is skipped with a log line naming it,
+and an unparseable file leaves the panel running with the built-in actions only (`/api/ready`
+reports `commands: false`).
 
 ## Languages
 
@@ -139,7 +215,7 @@ src/
 ├── i18n/           routing, dictionary loading, locale-aware navigation
 ├── lib/            shared client/server code (types, permissions, typed fetch)
 └── server/         server-only code
-    ├── actions/    business definitions + execution
+    ├── actions/    business definitions, operator catalogue, execution
     ├── audit/      SQLite log
     ├── auth/       accounts, sessions, rate limiters
     ├── config/     validated environment variables (zod)
@@ -153,7 +229,8 @@ messages/           dictionaries (en.json is the reference)
 Two distinct execution paths:
 
 - `POST /api/actions` — `{ action, values }`. The server validates the arguments, enforces the
-  permission and **builds the command itself**. Used by every role.
+  permission and **builds the command itself**, from the built-in catalogue or from your own
+  (see [Custom commands](#custom-commands)). Used by every role.
 - `POST /api/rcon` — raw command. Restricted to the `rcon:raw` permission (`admin` role).
 
 ## Metrics
@@ -207,12 +284,12 @@ The sampler runs in the Node process (`src/server/metrics/collector.ts`, started
 | `POST /api/login` / `POST /api/logout` | — | Opens / revokes a session |
 | `GET /api/status` | session | Server status (cached) |
 | `GET /api/actions` | session | Catalogue filtered by role |
-| `POST /api/actions` | session | Runs a built-in action |
+| `POST /api/actions` | session | Runs a catalogue action (built-in or custom) |
 | `POST /api/rcon` | `rcon:raw` | Raw console |
 | `GET /api/audit` | `audit:read` | Last 50 audit entries |
 | `GET /api/metrics` | `status:read` | Time series, `?range=1h\|6h\|24h\|7d` (404 when disabled) |
 | `GET /api/health` | public | Liveness (Docker probe) |
-| `GET /api/ready` | public | Readiness: config + database + RCON |
+| `GET /api/ready` | public | Readiness: config + command catalogue + database + RCON |
 
 ## Security model
 
@@ -255,6 +332,12 @@ What is in place:
   proxy is not published on any port and is reachable only from the compose network. Removing it
   (and setting `METRICS_ENABLED=false`) only costs the CPU/memory graphs; players and UPS keep
   working.
+
+- **user input never reaches Lua unescaped**. The custom command catalogue is written by the
+  operator, so it is trusted the same way an environment variable is; what a viewer or moderator
+  types into a form is not. Values are whitelisted per type, then turned into complete Lua literals
+  by a single shared function — a template never writes its own quotes, so it cannot get the
+  escaping wrong. Every rendered command lands in the audit log with the values actually injected.
 
 Out of scope: the Lua command confirmation is an interface aid, not a protection — an `admin`
 account has full RCON access by definition.

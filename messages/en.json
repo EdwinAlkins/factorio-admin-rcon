@@ -91,7 +91,8 @@
       "info": "Info",
       "server": "Server",
       "moderation": "Moderation",
-      "comms": "Communication"
+      "comms": "Communication",
+      "custom": "Custom"
     },
     "fields": {
       "player": { "label": "Player", "placeholder": "player name" },
@@ -192,9 +193,18 @@
     "invalid_arguments": "Invalid arguments for this action.",
 
     "validation_required": "{field} is required.",
-    "validation_player": "{field}: invalid player name (no spaces, 60 max).",
+    "validation_player": "{field}: invalid player name (no spaces or quotes, 60 max).",
     "validation_too_long": "{field}: {max} characters maximum.",
     "validation_newline": "{field}: line breaks are not allowed.",
+    "validation_number": "{field}: invalid number.",
+    "validation_min": "{field}: minimum {min}.",
+    "validation_max": "{field}: maximum {max}.",
+    "validation_enum": "{field}: expected one of {options}.",
+    "validation_identifier": "{field}: invalid name (letters, digits, “-”, “_”, “.”).",
+    "validation_bool": "{field}: expected a yes/no value.",
+    "validation_control_char": "{field}: control characters are not allowed.",
+    "validation_comment": "{field}: “--” is not allowed.",
+    "unknown_placeholder": "{field}: command template references an undeclared field.",
 
     "config_password": "RCON password unavailable on the server.",
     "connection_refused": "The Factorio server is unreachable.",
