@@ -173,6 +173,34 @@ Locally they linger in your `.next/` and everything passes; on a clean runner, `
 fails with `TS2304: Cannot find name 'LayoutProps'`. `next typegen` regenerates them without a full
 build. Do not remove that part of the script.
 
+**`typescript` is TypeScript 6, `typescript7` is TypeScript 7.** TypeScript 7 — the Go rewrite — no
+longer exposes the JavaScript compiler API, and typescript-eslint refuses to even load beside it
+(`typescript-eslint does not support TS 7.0`), which takes `npm run lint` down. Both are therefore
+installed side by side, as
+[the TypeScript 7 announcement recommends](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0):
+`typescript` is an alias on `@typescript/typescript6`, the API read by eslint-config-next, by
+`next build` and by editors; `typescript7` is the real compiler, and the one `npm run typecheck`
+runs. Two consequences: `next build` type-checks through the JavaScript API
+(`experimental.useTypeScriptCli: false` in `next.config.ts`) because the alias ships a `tsc6` binary
+and no `tsc`, and a bare `npx tsc` at the root is ambiguous — go through `npm run typecheck`. Once
+typescript-eslint supports TS ≥ 7.1
+([typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)),
+the whole arrangement collapses back to a plain `"typescript": "^7"`, with `typescript7` and the
+`experimental` block deleted.
+
+**ESLint 10 needs the React version to be pinned in `eslint.config.mjs`.** eslint-config-next brings
+in eslint-plugin-react 7.37, whose `detect` version detection calls `context.getFilename()` — one of
+the deprecated methods ESLint 10 removed. Lint crashes before reading a single file
+(`Error while loading rule 'react/display-name'`). Setting `settings.react.version` from the
+installed `react/package.json` skips that detection entirely. Drop it when eslint-plugin-react
+supports ESLint 10.
+
+The same three plugins (`import`, `jsx-a11y`, `react`) still cap their `eslint` peer at `^9`, so
+every `npm install` printed three `ERESOLVE overriding peer dependency` blocks. The `overrides` in
+`package.json` point that peer at the project's own ESLint (`"eslint": "$eslint"`) — npm's way of
+recording that the combination has been checked, here by a green `npm run lint`. Remove each entry
+as its plugin publishes ESLint 10 support.
+
 **A protected `main` branch blocks semantic-release.** The default `GITHUB_TOKEN` cannot push to a
 protected branch. If you enable protection, you must either add an exception (a *ruleset* with a
 bypass for GitHub Actions) or replace `GITHUB_TOKEN` with a PAT in the `release` job.

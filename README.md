@@ -31,7 +31,7 @@ The RCON password is read from `../data/config/rconpw`, generated on first serve
 
 ```bash
 npm run lint        # eslint
-npm run typecheck   # next typegen && tsc --noEmit
+npm run typecheck   # next typegen && tsc --noEmit (TypeScript 7, see CI.md)
 npm test            # vitest
 npm run build
 ```
