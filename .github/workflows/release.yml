@@ -197,3 +197,23 @@ jobs:
           cache-from: type=gha
           provenance: mode=max
           sbom: true
+
+      # The Docker Hub overview is the first page a lot of people see — it is
+      # already the channel that brings the most pulls, and it goes stale the
+      # moment it is maintained by hand. docs/DOCKERHUB.md is its source: a
+      # standalone file, because the GitHub README's relative links (LICENSE,
+      # docs/, anchors) all break once rendered there.
+      #
+      # Deliberately non-blocking: pushing a description needs a token with
+      # write access to the repository's metadata, which a pull-only token does
+      # not have. A published image with a stale overview is a nuisance; a
+      # release that fails after pushing the image is a real problem.
+      - name: Sync the Docker Hub overview
+        continue-on-error: true
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.IMAGE_NAME }}
+          short-description: "Hardened web admin panel for Factorio servers over RCON — roles, bounded actions, audit log"
+          readme-filepath: docs/DOCKERHUB.md

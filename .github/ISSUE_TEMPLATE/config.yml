@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question about using the panel
+    url: https://github.com/EdwinAlkins/factorio-admin-rcon/discussions/categories/q-a
+    about: Configuration, deployment, custom commands — anything that is not a defect.
+  - name: Idea or feature request
+    url: https://github.com/EdwinAlkins/factorio-admin-rcon/discussions/categories/ideas
+    about: Propose it here first; the panel has a deliberately narrow scope.
+  - name: Security vulnerability
+    url: https://github.com/EdwinAlkins/factorio-admin-rcon/security/advisories/new
+    about: Report privately. Never in a public issue.
+  - name: Documentation
+    url: https://edwinalkins.github.io/factorio-admin-rcon/
+    about: Installation, configuration, deployment recipes, security model and API reference.

@@ -32,6 +32,12 @@ jobs:
 
       - run: npm run lint
 
+      # Asks Docker Hub whether the image tags named in the documentation can
+      # actually be pulled. The quickstart is the first thing a newcomer runs,
+      # and a tag that does not exist costs more than a broken build. Skips
+      # itself if the registry is unreachable.
+      - run: bash scripts/check-docs-version.sh
+
       - run: npm run typecheck
 
       - run: npm test

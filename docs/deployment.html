@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deployment &mdash; Factorio Admin RCON</title>
+<meta name="description" content="Copy-paste recipes to put the panel behind Caddy, Nginx, Traefik or Tailscale &mdash; and what TRUST_PROXY actually changes.">
+<link rel="stylesheet" href="./assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<div class="topbar">
+  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
+</div>
+
+<div class="shell">
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./deployment.html" aria-current="page">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<main id="content">
+<header>
+  <h1>Deployment</h1>
+  <p class="lede">Four ways to reach the panel, from a laptop to a public domain &mdash; and the one
+  setting that decides whether your rate limiting is real.</p>
+</header>
+
+<p>The panel binds to <code>127.0.0.1</code> and nothing else. That is not a
+default waiting to be changed: it grants full RCON access to whoever signs in,
+so making it reachable should be a decision you take on purpose. Every recipe
+below keeps the container on loopback and puts something in front of it.</p>
+
+<div class="warn">
+  <strong>TRUST_PROXY is not cosmetic</strong>
+  Login attempt limiting is per IP. Without <code>TRUST_PROXY=true</code> the
+  panel ignores <code>X-Forwarded-For</code> &mdash; deliberately, because a
+  forgeable header must not drive rate limiting &mdash; so the per-IP limiter is
+  skipped entirely and only the global cap is left standing
+  (<code>src/server/http/context.ts</code>). With it set behind a proxy that
+  does <em>not</em> overwrite the header,
+  an attacker picks their own identity and the limiter is bypassable. Set it
+  <strong>only</strong> behind a proxy you control that rewrites the header
+  itself. All four recipes below do.
+</div>
+
+<h2 id="local">Local, on your own machine<a class="anchor" href="#local" aria-label="Link to this section">#</a></h2>
+
+<p>Nothing in front, nothing to configure. This is the quickstart, and it is
+also the right answer for a server you administer over SSH &mdash; forward the
+port instead of publishing it.</p>
+
+<div class="snippet" data-lang="bash"><pre><code>docker compose up -d
+# &rarr; http://127.0.0.1:3010
+
+# From another machine, without exposing anything:
+ssh -N -L 3010:127.0.0.1:3010 you@your-server</code></pre></div>
+
+<h2 id="caddy">Caddy<a class="anchor" href="#caddy" aria-label="Link to this section">#</a></h2>
+
+<p>The shortest path to HTTPS: Caddy obtains and renews the certificate on its
+own, and sets <code>X-Forwarded-For</code> itself.</p>
+
+<div class="snippet" data-lang="caddyfile"><pre><code>factorio.example.com {
+    reverse_proxy 127.0.0.1:3010
+}</code></pre></div>
+
+<p>Then add the variable to the <code>factorio-admin</code> service:</p>
+
+<div class="snippet" data-lang="yaml"><pre><code>environment:
+  - TRUST_PROXY=true</code></pre></div>
+
+<h2 id="nginx">Nginx<a class="anchor" href="#nginx" aria-label="Link to this section">#</a></h2>
+
+<p>The <code>proxy_set_header</code> lines are the point: Nginx passes an
+inbound <code>X-Forwarded-For</code> through unless you overwrite it, and
+<code>$proxy_add_x_forwarded_for</code> appends rather than replaces.
+Setting it to <code>$remote_addr</code> discards whatever the client claimed.</p>
+
+<div class="snippet" data-lang="nginx"><pre><code>server {
+    listen 443 ssl http2;
+    server_name factorio.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/factorio.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/factorio.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3010;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre></div>
+
+<h2 id="traefik">Traefik<a class="anchor" href="#traefik" aria-label="Link to this section">#</a></h2>
+
+<p>With Traefik on the same compose network, drop the port publishing entirely
+and label the service. Traefik writes <code>X-Forwarded-For</code> itself for
+any client that is not in <code>trustedIPs</code>.</p>
+
+<div class="snippet" data-lang="yaml"><pre><code>factorio-admin:
+  # No `ports:` at all — Traefik reaches the container over the network.
+  environment:
+    - TRUST_PROXY=true
+  labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.factorio-admin.rule=Host(`factorio.example.com`)"
+    - "traefik.http.routers.factorio-admin.entrypoints=websecure"
+    - "traefik.http.routers.factorio-admin.tls.certresolver=letsencrypt"
+    - "traefik.http.services.factorio-admin.loadbalancer.server.port=3000"</code></pre></div>
+
+<h2 id="tailscale">Tailscale<a class="anchor" href="#tailscale" aria-label="Link to this section">#</a></h2>
+
+<p>The option with the smallest attack surface: no public port, no certificate
+to renew, no reverse proxy to keep patched. The panel is reachable from your
+tailnet and from nowhere else, which suits an admin console better than a
+public hostname does.</p>
+
+<div class="snippet" data-lang="bash"><pre><code># On the host running the stack
+tailscale serve --bg --https=443 http://127.0.0.1:3010
+
+# → https://your-host.your-tailnet.ts.net
+tailscale serve status</code></pre></div>
+
+<div class="note">
+  <strong>TRUST_PROXY here too</strong>
+  <code>tailscale serve</code> terminates TLS and forwards over loopback, so it
+  is a reverse proxy like the others: set <code>TRUST_PROXY=true</code>, or
+  every tailnet client shares one rate-limit bucket.
+  Do <strong>not</strong> use <code>tailscale funnel</code> unless you mean to
+  publish the panel to the whole internet.
+</div>
+
+<h2 id="checking">Checking it worked<a class="anchor" href="#checking" aria-label="Link to this section">#</a></h2>
+
+<div class="snippet" data-lang="bash"><pre><code># Readiness: config, command catalogue, database and RCON, one object each.
+curl -s https://factorio.example.com/api/ready | python3 -m json.tool
+
+# The cookie must come back Secure over HTTPS.
+curl -si https://factorio.example.com/api/login \
+  -H 'Content-Type: application/json' -H 'Origin: https://factorio.example.com' \
+  -d '{"password":"wrong"}' | grep -i set-cookie</code></pre></div>
+
+<p>A failed login should answer <code>401</code>, and repeated attempts should
+start answering <code>429</code>. If they never do, the panel is not seeing
+distinct client addresses &mdash; re-read <code>TRUST_PROXY</code> above.</p>
+
+<nav class="pager"><a href="./installation.html">&larr; Installation</a><a href="./configuration.html">Configuration &rarr;</a></nav>
+</main>
+</div>
+
+<footer class="site">
+  Factorio Admin RCON documentation &mdash;
+  <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">EdwinAlkins/factorio-admin-rcon</a>
+</footer>
+</body>
+</html>

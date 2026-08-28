@@ -1,14 +1,65 @@
-# RCON Admin Panel
+# Factorio Admin RCON
 
-Next.js (App Router) application that drives a Factorio server: free-form RCON console, built-in
-actions (players, save, moderation, chat), roles, audit log.
+**Not a server manager: a hardened RCON admin console.** Give moderators the server actions they
+need without handing them full RCON.
 
-📖 **[Full documentation](https://edwinalkins.github.io/factorio-admin-rcon/)** — installation,
-configuration, custom commands, security model and API reference. The site lives in
-[`docs/`](docs/): static HTML, no build step.
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Docker pulls](https://img.shields.io/docker/pulls/williamnauroy/factorio-admin-rcon)](https://hub.docker.com/r/williamnauroy/factorio-admin-rcon)
+[![Docker version](https://img.shields.io/docker/v/williamnauroy/factorio-admin-rcon?sort=semver&label=image)](https://hub.docker.com/r/williamnauroy/factorio-admin-rcon/tags)
+[![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-informational)](https://hub.docker.com/r/williamnauroy/factorio-admin-rcon/tags)
+[![Hardened](https://img.shields.io/badge/image-distroless%20%C2%B7%20SBOM%20%C2%B7%20provenance-success)](#hardened-image-optional)
+[![Release](https://github.com/EdwinAlkins/factorio-admin-rcon/actions/workflows/release.yml/badge.svg)](https://github.com/EdwinAlkins/factorio-admin-rcon/actions/workflows/release.yml)
 
-It speaks the RCON protocol over TCP — the repository's C client (`docker/rcon/main.c`) hardcodes
-`127.0.0.1` and is only usable from within the server container.
+![The panel: quick actions, RCON console and audit log](docs/assets/media/demo.gif)
+
+**[Documentation](https://edwinalkins.github.io/factorio-admin-rcon/)** ·
+[Quick start](#quick-start-without-cloning) ·
+[Docker Hub](https://hub.docker.com/r/williamnauroy/factorio-admin-rcon) ·
+[Security model](#security-model) · [FAQ](#faq)
+
+- **Three roles**, enforced server-side — the catalogue is filtered *and* execution re-checks;
+- **bounded actions**: the server builds the command from validated fields, so a moderator gets a
+  "Kick" button without getting arbitrary Lua;
+- **audit log** of every action, refusals included;
+- **raw RCON console**, restricted to the administrator;
+- **Docker**, `amd64` and `arm64`, with a distroless variant, SBOM and provenance;
+- **English and French**, inferred from the browser.
+
+## What it is, and what it is not
+
+Raw RCON is an all-or-nothing door: one password, no rate limiting, no trace, and full control of
+the server for whoever gets through it. This panel puts roles, bounded commands and an audit log in
+front of that door. It does **not** manage the server process.
+
+| Need | This panel | Where to look instead |
+| --- | --- | --- |
+| Kick, ban, mute, message players from a browser | ✅ | — |
+| Delegate moderation without handing out RCON | ✅ | — |
+| Know who ran what, and what was refused | ✅ | — |
+| Run your own Lua one-liners as bounded buttons | ✅ | [Custom commands](#custom-commands) |
+| Install, enable or update **mods** | ❌ | [factoriotools/factorio](https://github.com/factoriotools/factorio-docker) and its env vars |
+| Upload, download or roll back **saves** | ❌ | The `./data` volume |
+| Start, stop or update the **server binary** | ❌ | Your compose file, or [OpenFactorioServerManager](https://github.com/OpenFactorioServerManager/factorio-server-manager) |
+| Drive the server **from scripts** rather than a browser | ❌ | [nekomeowww/factorio-rcon-api](https://github.com/nekomeowww/factorio-rcon-api) |
+
+The honest comparison: *Factorio Server Manager* drives the binary and covers mods and saves, but
+it has had no release since March 2021 and has never seen Factorio 2.0. It solves a different
+problem, and where the two overlap this panel is the narrower, harder-edged tool.
+
+## Compatibility
+
+| | Supported |
+| --- | --- |
+| Factorio | 2.x, Space Age included |
+| Server image | [`factoriotools/factorio`](https://hub.docker.com/r/factoriotools/factorio), or any image exposing standard RCON |
+| Architectures | `linux/amd64`, `linux/arm64` |
+| Runtime | Docker with the Compose v2 plugin; or Node 24+ from source |
+| Browsers | Current Firefox, Chrome and Safari |
+
+Not supported: Factorio **before 2.0**, non-standard RCON implementations, and running **more than
+one instance** of the panel against the same server — rate limiters and the status cache live in
+process memory, so a second instance would make both bypassable (see [Security
+model](#security-model)).
 
 ## Quick start (without cloning)
 
@@ -34,10 +85,11 @@ services:
 
   factorio-admin:
     container_name: factorio-admin-panel
-    # Pin the version; `latest` moves under you on the next release. The
-    # published tags are listed on Docker Hub, `-distroless` being the hardened
-    # variant (no shell, no package manager).
-    image: williamnauroy/factorio-admin-rcon:1.3.0-distroless
+    # A minor tag: patches arrive, a major never lands on you by surprise.
+    # `latest` moves under you on the next release; in production, pin the exact
+    # version instead. `-distroless` is the hardened variant (no shell, no
+    # package manager) — the full tag list is on Docker Hub.
+    image: williamnauroy/factorio-admin-rcon:1.3-distroless
     restart: unless-stopped
     depends_on:
       - factorio
@@ -119,8 +171,8 @@ exposed on the host. To develop against it, uncomment the loopback mapping in `d
 - "127.0.0.1:27015:27015/tcp"
 ```
 
-The RCON password is read from `../data/config/rconpw`, generated on first server start by
-`docker/files/docker-entrypoint.sh`.
+The RCON password is read from `./data/config/rconpw`, which the `factoriotools/factorio` image
+generates on its first start.
 
 ```bash
 npm run lint        # eslint
@@ -168,7 +220,7 @@ PR.
 The `factorio-admin` service in the root `docker-compose.yml`:
 
 ```bash
-cd .. && ./setup-admin.sh            # generates ../.env (passwords + session key)
+./setup-admin.sh                              # generates ./.env (passwords + session key)
 docker compose up -d --build factorio-admin   # http://127.0.0.1:3010
 ```
 
@@ -180,8 +232,11 @@ An image is published on every release to `williamnauroy/factorio-admin-rcon` (`
 `linux/arm64`). Pin an exact version in production:
 
 ```bash
-docker pull williamnauroy/factorio-admin-rcon:1.0.0
-docker pull williamnauroy/factorio-admin-rcon:1.0.0-distroless   # hardened, see below
+# Replace <version> with the exact release you are deploying — the published
+# tags are listed on Docker Hub. Every release also publishes the floating
+# minor, major and `latest` tags.
+docker pull williamnauroy/factorio-admin-rcon:<version>
+docker pull williamnauroy/factorio-admin-rcon:<version>-distroless   # hardened, see below
 ```
 
 Versioning and publishing are automated — see [CI.md](CI.md).
@@ -193,7 +248,7 @@ ships Node and nothing else — `/bin`, `/usr/bin` and `/sbin` are empty. The de
 unchanged; this one is opt-in, either by pulling its published tag or by building it:
 
 ```bash
-docker pull williamnauroy/factorio-admin-rcon:1.0.0-distroless
+docker pull williamnauroy/factorio-admin-rcon:<version>-distroless
 # or, from source
 docker build -f Dockerfile.distroless -t factorio-admin-rcon:distroless .
 ```
@@ -228,6 +283,8 @@ docker run --rm -it \
 
 One password per role; the role is determined by the password used to sign in.
 
+![Permission matrix: only the administrator gets the raw RCON console](docs/assets/media/roles.png)
+
 | Role | Variable | Can do |
 | --- | --- | --- |
 | `viewer` | `VIEWER_PASSWORD` | Status, players, version, seed, evolution, admins, ban list |
@@ -236,6 +293,18 @@ One password per role; the role is determined by the password used to sign in.
 
 Permissions are enforced **server-side**: the action catalogue is filtered by role, and
 `/api/actions` re-checks the permission before executing anything.
+
+### Authentication model
+
+There is **one password per role**, not individual user accounts: five moderators share
+`MODERATOR_PASSWORD`, and the audit log records the role rather than the person. This is a
+deliberate fit for a small self-hosted server, not an unfinished feature — it keeps the deployment
+to a handful of environment variables, with no user database to administer.
+
+What it costs you: you cannot revoke one moderator without rotating the shared password, and the
+audit trail attributes actions to a role. If you need per-person accountability today, put an
+authenticating reverse proxy in front of the panel. Individual accounts are on the
+[roadmap](#roadmap).
 
 ## Custom commands
 
@@ -490,3 +559,74 @@ What is in place:
 
 Out of scope: the Lua command confirmation is an interface aid, not a protection — an `admin`
 account has full RCON access by definition.
+
+## FAQ
+
+**Does it replace Factorio Server Manager?**
+No. That project drives the server binary — mods, saves, start/stop. This one talks RCON to a
+server that is already running. See [What it is, and what it is not](#what-it-is-and-what-it-is-not).
+
+**Does it start or stop my server?**
+No. The panel never touches the server process; it holds no Docker socket. Starting the server is
+your compose file's job.
+
+**Does it manage mods?**
+No. Use the Factorio image's own mod handling (`UPDATE_MODS_ON_START`, the `./data/mods` volume).
+
+**Do I have to expose RCON to the internet?**
+No — and you should not. The panel reaches RCON over the compose network, and the quickstart
+publishes no RCON port at all. RCON offers a single password, no rate limiting and full server
+control to whoever gets through it.
+
+**Is it safe to expose the panel itself?**
+Only behind an HTTPS reverse proxy, with `TRUST_PROXY=true`. It binds to `127.0.0.1` by default
+precisely so that exposing it is a decision rather than an accident. See
+[Deployment recipes](https://edwinalkins.github.io/factorio-admin-rcon/deployment.html).
+
+**Does it work with Nginx, Caddy or Traefik?**
+All three, plus Tailscale — one copy-paste recipe each in
+[the deployment guide](https://edwinalkins.github.io/factorio-admin-rcon/deployment.html).
+
+**Does it run on ARM64?**
+Yes. Every release publishes `linux/amd64` and `linux/arm64`, so a Raspberry Pi or an ARM VPS pulls
+the same tag.
+
+**How do I set up five moderators?**
+They share `MODERATOR_PASSWORD`. There are no individual accounts yet — see
+[Authentication model](#authentication-model).
+
+**Can I add my own commands?**
+Yes, in a JSON catalogue you provide. The point is that a custom command is *bounded*: a moderator
+gets your "Kill all enemies" button without getting arbitrary Lua. See
+[Custom commands](#custom-commands).
+
+**Can I run it without the metrics?**
+Yes. `METRICS_ENABLED=false` turns the feature off end to end, and you can then delete the
+`docker-proxy` service — it is the only component that touches the Docker socket.
+
+**How much does it need?**
+The compose file caps the panel at 256 MB and 128 PIDs, and it stays well under that. Storage is a
+single SQLite file; seven days of metrics is roughly 2 MB.
+
+**How do I update?**
+Bump the tag and `docker compose pull && docker compose up -d`. Nothing is built locally, and the
+`factorio-admin-data` volume survives — including a switch between the standard and distroless
+images.
+
+**Something is broken. What do you need?**
+The panel version, your Factorio version, the deployment type, and the output of `/api/ready`. See
+[SUPPORT.md](SUPPORT.md).
+
+## Roadmap
+
+No dates and no promises — the order reflects what would help most, and issues are how it changes.
+
+- individual user accounts, on top of the current role passwords;
+- per-user permissions rather than three fixed roles;
+- OIDC / OAuth sign-in, for deployments that already have an identity provider;
+- password rotation from the interface instead of a restart;
+- richer audit filtering and export.
+
+Out of scope for the foreseeable future: mod management, save management, and anything that starts
+or stops the server process. Those need control of the binary, which this panel deliberately does
+not have.

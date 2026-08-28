@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview &mdash; Factorio Admin RCON</title>
+<meta name="description" content="A web interface that drives a headless Factorio server over RCON, with roles, an audit log and bounded commands.">
+<link rel="stylesheet" href="./assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<div class="topbar">
+  <a class="brand" href="./index.html">Factorio <span>admin panel</span></a>
+  <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
+</div>
+
+<div class="shell">
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html" aria-current="page">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<main id="content">
+<header>
+  <h1>Factorio admin panel</h1>
+  <p class="lede">A web interface that drives a headless Factorio server over RCON, with roles, an audit log and bounded commands.</p>
+</header>
+
+<p>This panel exposes a <em>headless</em> Factorio server through the RCON
+protocol, from a browser. It exists because raw RCON is an all-or-nothing door:
+a single password, no rate limiting, no trace, and complete control of the
+server for whoever gets through it.</p>
+
+<p>The panel puts three things in front of that door:</p>
+<ul>
+  <li><strong>roles</strong>, so that moderating does not have to mean full power;</li>
+  <li><strong>an audit log</strong>, so you know who did what, refusals included;</li>
+  <li><strong>bounded commands</strong>, built by the server from validated fields
+      rather than a free-form command line.</li>
+</ul>
+<h2 id="features">What it does<a class="anchor" href="#features" aria-label="Link to this section">#</a></h2>
+<ul class="cards">
+  <li><a href="./commands.html"><strong>Custom commands</strong>
+      <p>Your own catalogue in JSON, with user-filled fields and a permission per entry.</p></a></li>
+  <li><a href="./security.html"><strong>Three roles</strong>
+      <p>Viewer, moderator, administrator. The catalogue is filtered server-side, and execution re-checks.</p></a></li>
+  <li><a href="./security.html#audit"><strong>Audit log</strong>
+      <p>Every action and every refusal, in SQLite, with the command actually sent.</p></a></li>
+  <li><a href="./configuration.html#metrics"><strong>Metrics</strong>
+      <p>CPU, memory, players and UPS as time series &mdash; without mounting the Docker socket into the panel.</p></a></li>
+  <li><a href="./api.html"><strong>RCON console</strong>
+      <p>A full command line with history &mdash; restricted to the administrator role.</p></a></li>
+  <li><a href="./development.html#i18n"><strong>English and French</strong>
+      <p>Language inferred from the browser, switchable, remembered. No interface text lives server-side.</p></a></li>
+</ul>
+<h2 id="quick-start">Quick start<a class="anchor" href="#quick-start" aria-label="Link to this section">#</a></h2>
+<p>Without cloning anything, paste
+<a href="./installation.html#quick-start">the ready-made <code>docker-compose.yml</code></a>: it
+pulls the published images and starts the game server and the panel together.</p>
+<p>From the repository, the <code>factorio-admin</code> service already lives in
+its <code>docker-compose.yml</code>, next to the game server.</p>
+<div class="snippet" data-lang="bash"><pre><code>git clone https://github.com/EdwinAlkins/factorio-admin-rcon.git
+cd factorio-admin-rcon
+
+# Writes ./.env: one password per role, plus the session signing key
+./setup-admin.sh
+
+docker compose up -d --build factorio-admin
+# → http://127.0.0.1:3010</code></pre></div>
+<div class="note">
+  <strong>The panel is not published on the network</strong>
+  By default it only listens on <code>127.0.0.1</code>. That is deliberate: it
+  grants full RCON access. To expose it, put an HTTPS reverse proxy in front and
+  read <a href="./installation.html#proxy">the matching section</a>.
+</div>
+<h2 id="map">How to read this documentation<a class="anchor" href="#map" aria-label="Link to this section">#</a></h2>
+<ul class="cards">
+  <li><a href="./installation.html"><strong>Installation</strong>
+      <p>Production setup, hardened image, updating, health probes.</p></a></li>
+  <li><a href="./configuration.html"><strong>Configuration</strong>
+      <p>The complete environment variable reference.</p></a></li>
+  <li><a href="./commands.html"><strong>Custom commands</strong>
+      <p>The file format, the field types, and the Lua pitfalls specific to a server.</p></a></li>
+  <li><a href="./security.html"><strong>Security model</strong>
+      <p>Roles, sessions, CSP, audit, and the deployment assumptions.</p></a></li>
+  <li><a href="./api.html"><strong>HTTP API</strong>
+      <p>The routes, their permissions and the error format.</p></a></li>
+  <li><a href="./development.html"><strong>Development</strong>
+      <p>Architecture, tests, translations, releases.</p></a></li>
+</ul>
+
+<nav class="pager"><span></span><a href="./installation.html">Installation &rarr;</a></nav>
+</main>
+</div>
+
+<footer class="site">
+  Factorio admin panel documentation &mdash;
+  <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">EdwinAlkins/factorio-admin-rcon</a>
+</footer>
+</body>
+</html>

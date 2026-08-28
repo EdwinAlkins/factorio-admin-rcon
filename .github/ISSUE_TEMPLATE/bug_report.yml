@@ -1,0 +1,107 @@
+name: Bug report
+description: Something in the panel does not work as documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Questions and ideas belong in [Discussions](https://github.com/EdwinAlkins/factorio-admin-rcon/discussions);
+        vulnerabilities go through [SECURITY.md](https://github.com/EdwinAlkins/factorio-admin-rcon/blob/main/SECURITY.md),
+        never a public issue.
+
+        Worth two minutes first: mods, saves, starting the server and individual
+        user accounts are deliberate non-features — see the
+        [FAQ](https://github.com/EdwinAlkins/factorio-admin-rcon#faq).
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Sign in as moderator
+        2. Run the "Kick" action
+        3. …
+    validations:
+      required: true
+
+  - type: input
+    id: panel-version
+    attributes:
+      label: Panel version
+      description: The image tag you are running, or `git rev-parse --short HEAD` from source.
+      placeholder: "1.4.0-distroless"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: image
+    attributes:
+      label: Image variant
+      options:
+        - Standard (Node on Alpine)
+        - Hardened (-distroless)
+        - Built from source
+        - Running with npm run dev
+    validations:
+      required: true
+
+  - type: input
+    id: factorio
+    attributes:
+      label: Factorio version and server image
+      placeholder: "2.0.77, factoriotools/factorio:stable"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How is it deployed
+      options:
+        - Docker Compose, loopback only
+        - Behind Caddy
+        - Behind Nginx
+        - Behind Traefik
+        - Tailscale
+        - Other reverse proxy
+        - From source, no container
+    validations:
+      required: true
+
+  - type: textarea
+    id: ready
+    attributes:
+      label: Output of /api/ready
+      description: "`curl -s http://127.0.0.1:3010/api/ready` — it reports config, commands, database and RCON separately."
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Panel logs around the failure
+      description: "`docker compose logs factorio-admin`. Redact passwords, SESSION_SECRET and the RCON password."
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I am running Factorio 2.0 or later
+          required: true
+        - label: Only one instance of the panel talks to this server
+          required: true
+        - label: I removed passwords and secrets from everything I pasted
+          required: true

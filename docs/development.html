@@ -17,7 +17,7 @@
 </div>
 
 <div class="shell">
-<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./index.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html" aria-current="page">Development</a></li></ul></nav>
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html" aria-current="page">Development</a></li></ul></nav>
 <main id="content">
 <header>
   <h1>Development</h1>
@@ -33,7 +33,7 @@ npm run build</code></pre></div>
   <strong>Developing without a Factorio server</strong>
   The panel works: the status bar simply shows the RCON error. Your
   <code>.env</code> must set <code>RCON_PASSWORD_FILE</code> (for instance
-  <code>../data/config/rconpw</code>) or <code>RCON_PASSWORD</code>, otherwise the
+  <code>./data/config/rconpw</code>) or <code>RCON_PASSWORD</code>, otherwise the
   default path <code>/factorio-config/rconpw</code> does not exist on the host. To
   open the panel from another machine, set <code>NEXT_DEV_ORIGINS</code>, or hot
   reload is blocked.

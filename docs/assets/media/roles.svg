@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="430" viewBox="0 0 900 430" role="img"
+     aria-label="Permission matrix: the viewer reads, the moderator gets bounded moderation actions, only the administrator gets the raw RCON console.">
+  <rect width="900" height="430" rx="10" fill="#14161a"/>
+  <text x="32" y="42" fill="#f5a623" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13" font-weight="600" letter-spacing="1.1">ENFORCED SERVER-SIDE &#183; ONE PASSWORD PER ROLE</text>
+  <rect x="32" y="62" width="268" height="336" rx="8" fill="#1b1f26" stroke="#333b47"/>
+  <path d="M40 62 h252 a8 8 0 0 1 8 8 v54 h-268 v-54 a8 8 0 0 1 8 -8 z" fill="#232935" stroke="#333b47"/>
+  <text x="56" y="92" fill="#e6e8ec" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="17" font-weight="600">Viewer</text>
+  <text x="56" y="112" fill="#98a1b0" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12">VIEWER_PASSWORD</text>
+  <rect x="316" y="62" width="268" height="336" rx="8" fill="#1b1f26" stroke="#333b47"/>
+  <path d="M324 62 h252 a8 8 0 0 1 8 8 v54 h-268 v-54 a8 8 0 0 1 8 -8 z" fill="#232935" stroke="#333b47"/>
+  <text x="340" y="92" fill="#e6e8ec" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="17" font-weight="600">Moderator</text>
+  <text x="340" y="112" fill="#98a1b0" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12">MODERATOR_PASSWORD</text>
+  <rect x="600" y="62" width="268" height="336" rx="8" fill="#1b1f26" stroke="#333b47"/>
+  <path d="M608 62 h252 a8 8 0 0 1 8 8 v54 h-268 v-54 a8 8 0 0 1 8 -8 z" fill="#232935" stroke="#333b47"/>
+  <text x="624" y="92" fill="#e6e8ec" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="17" font-weight="600">Administrator</text>
+  <text x="624" y="112" fill="#98a1b0" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12">ADMIN_PASSWORD</text>
+  <text x="56" y="163" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Status, players, ban list</text>
+  <path d="M260 158 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="340" y="163" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Status, players, ban list</text>
+  <path d="M544 158 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="624" y="163" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Status, players, ban list</text>
+  <path d="M828 158 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="48" y1="178" x2="284" y2="178" stroke="#333b47"/>
+  <line x1="332" y1="178" x2="568" y2="178" stroke="#333b47"/>
+  <line x1="616" y1="178" x2="852" y2="178" stroke="#333b47"/>
+  <text x="56" y="207" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Kick, ban, mute</text>
+  <path d="M261 195 l14 14 M275 195 l-14 14" fill="none" stroke="#e5484d" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="340" y="207" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Kick, ban, mute</text>
+  <path d="M544 202 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="624" y="207" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Kick, ban, mute</text>
+  <path d="M828 202 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="48" y1="222" x2="284" y2="222" stroke="#333b47"/>
+  <line x1="332" y1="222" x2="568" y2="222" stroke="#333b47"/>
+  <line x1="616" y1="222" x2="852" y2="222" stroke="#333b47"/>
+  <text x="56" y="251" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Server &amp; private message</text>
+  <path d="M261 239 l14 14 M275 239 l-14 14" fill="none" stroke="#e5484d" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="340" y="251" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Server &amp; private message</text>
+  <path d="M544 246 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="624" y="251" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Server &amp; private message</text>
+  <path d="M828 246 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="48" y1="266" x2="284" y2="266" stroke="#333b47"/>
+  <line x1="332" y1="266" x2="568" y2="266" stroke="#333b47"/>
+  <line x1="616" y1="266" x2="852" y2="266" stroke="#333b47"/>
+  <text x="56" y="295" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Save, promote, demote</text>
+  <path d="M261 283 l14 14 M275 283 l-14 14" fill="none" stroke="#e5484d" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="340" y="295" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Save, promote, demote</text>
+  <path d="M545 283 l14 14 M559 283 l-14 14" fill="none" stroke="#e5484d" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="624" y="295" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Save, promote, demote</text>
+  <path d="M828 290 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="48" y1="310" x2="284" y2="310" stroke="#333b47"/>
+  <line x1="332" y1="310" x2="568" y2="310" stroke="#333b47"/>
+  <line x1="616" y1="310" x2="852" y2="310" stroke="#333b47"/>
+  <text x="56" y="339" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Audit log</text>
+  <path d="M261 327 l14 14 M275 327 l-14 14" fill="none" stroke="#e5484d" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="340" y="339" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Audit log</text>
+  <path d="M545 327 l14 14 M559 327 l-14 14" fill="none" stroke="#e5484d" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="624" y="339" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Audit log</text>
+  <path d="M828 334 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="48" y1="354" x2="284" y2="354" stroke="#333b47"/>
+  <line x1="332" y1="354" x2="568" y2="354" stroke="#333b47"/>
+  <line x1="616" y1="354" x2="852" y2="354" stroke="#333b47"/>
+  <text x="56" y="383" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Raw RCON console</text>
+  <path d="M261 371 l14 14 M275 371 l-14 14" fill="none" stroke="#e5484d" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="340" y="383" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Raw RCON console</text>
+  <path d="M545 371 l14 14 M559 371 l-14 14" fill="none" stroke="#e5484d" stroke-width="2.6" stroke-linecap="round"/>
+  <text x="624" y="383" fill="#98a1b0" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif" font-size="13.5">Raw RCON console</text>
+  <path d="M828 378 l5.5 6 l10.5 -12" fill="none" stroke="#3dd68c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

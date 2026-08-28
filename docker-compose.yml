@@ -68,7 +68,7 @@ services:
     mem_limit: 64m
     pids_limit: 64
 
-  # Web admin panel (Next.js) to run RCON commands - see admin/README.md
+  # Web admin panel (Next.js) to run RCON commands - see README.md
   factorio-admin:
     container_name: factorio-admin-panel
     build:

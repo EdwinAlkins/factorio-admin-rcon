@@ -3,96 +3,208 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Factorio admin panel &mdash; Factorio admin panel</title>
-<meta name="description" content="A web interface that drives a headless Factorio server over RCON, with roles, an audit log and bounded commands.">
+<title>Factorio Admin RCON &mdash; a hardened web console for Factorio servers</title>
+<meta name="description" content="Give moderators safe server actions without giving them full RCON. Roles enforced server-side, bounded commands, audit log. Docker, amd64 and arm64.">
 <link rel="stylesheet" href="./assets/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<meta property="og:title" content="Factorio Admin RCON">
+<meta property="og:description" content="Not a server manager: a hardened RCON admin console. Roles, bounded actions, audit log.">
+<meta property="og:type" content="website">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
 
 <div class="topbar">
-  <a class="brand" href="./index.html">Factorio <span>admin panel</span></a>
+  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
   <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
 </div>
 
-<div class="shell">
-<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./index.html" aria-current="page">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
-<main id="content">
-<header>
-  <h1>Factorio admin panel</h1>
-  <p class="lede">A web interface that drives a headless Factorio server over RCON, with roles, an audit log and bounded commands.</p>
+<main class="landing" id="content">
+
+<header class="hero">
+  <h1>Factorio Admin RCON</h1>
+  <p class="lede"><strong>Not a server manager: a hardened RCON admin console.</strong>
+  Give moderators the server actions they need without handing them full RCON.</p>
+  <div class="cta">
+    <a class="primary" href="#quick-start">Deploy with Docker</a>
+    <a href="./overview.html">Read the documentation</a>
+  </div>
 </header>
 
-<p>This panel exposes a <em>headless</em> Factorio server through the RCON
-protocol, from a browser. It exists because raw RCON is an all-or-nothing door:
-a single password, no rate limiting, no trace, and complete control of the
-server for whoever gets through it.</p>
+<video class="shot" autoplay muted loop playsinline controls poster="./assets/media/console.png"
+       aria-label="Signing in, running quick actions, typing a command, and reading the audit log.">
+  <source src="./assets/media/demo.mp4" type="video/mp4">
+  <img class="shot" src="./assets/media/demo.gif" alt="The panel: quick actions, RCON console and audit log.">
+</video>
+<p class="shot-caption">Signing in, quick actions, a manual command, the Lua guard, and the audit log &mdash; 48&nbsp;seconds.</p>
 
-<p>The panel puts three things in front of that door:</p>
-<ul>
-  <li><strong>roles</strong>, so that moderating does not have to mean full power;</li>
-  <li><strong>an audit log</strong>, so you know who did what, refusals included;</li>
-  <li><strong>bounded commands</strong>, built by the server from validated fields
-      rather than a free-form command line.</li>
-</ul>
+<h2 id="why">Why this exists<a class="anchor" href="#why" aria-label="Link to this section">#</a></h2>
+
+<p>RCON is an all-or-nothing door. One password, no rate limiting, no trace, and
+complete control of the server for whoever gets through it. That is fine when
+you are the only administrator. It stops being fine the moment you want someone
+else to be able to kick a griefer while you are asleep.</p>
+
+<p>The usual answer is to hand out the RCON password and hope. This panel is the
+other answer: the moderator gets a <em>Kick</em> button, and nothing else.</p>
+
+<img class="shot" src="./assets/media/roles.svg"
+     alt="Permission matrix: the viewer reads server state, the moderator adds kick, ban, mute and messages, and only the administrator gets save, promote, the audit log and the raw RCON console.">
+<p class="shot-caption">Permissions are filtered <em>and</em> re-checked server-side &mdash; the
+interface hiding a button is not what stops the request.</p>
+
 <h2 id="features">What it does<a class="anchor" href="#features" aria-label="Link to this section">#</a></h2>
 <ul class="cards">
-  <li><a href="./commands.html"><strong>Custom commands</strong>
-      <p>Your own catalogue in JSON, with user-filled fields and a permission per entry.</p></a></li>
   <li><a href="./security.html"><strong>Three roles</strong>
-      <p>Viewer, moderator, administrator. The catalogue is filtered server-side, and execution re-checks.</p></a></li>
+      <p>Viewer, moderator, administrator. The catalogue is filtered by role, and execution re-checks the permission.</p></a></li>
+  <li><a href="./commands.html"><strong>Bounded actions</strong>
+      <p>The server builds the command from validated fields. A value cannot break out of the Lua string it lands in.</p></a></li>
   <li><a href="./security.html#audit"><strong>Audit log</strong>
       <p>Every action and every refusal, in SQLite, with the command actually sent.</p></a></li>
-  <li><a href="./configuration.html#metrics"><strong>Metrics</strong>
-      <p>CPU, memory, players and UPS as time series &mdash; without mounting the Docker socket into the panel.</p></a></li>
   <li><a href="./api.html"><strong>RCON console</strong>
       <p>A full command line with history &mdash; restricted to the administrator role.</p></a></li>
-  <li><a href="./development.html#i18n"><strong>English and French</strong>
-      <p>Language inferred from the browser, switchable, remembered. No interface text lives server-side.</p></a></li>
+  <li><a href="./configuration.html#metrics"><strong>Metrics</strong>
+      <p>CPU, memory, players and UPS as time series, without mounting the Docker socket into the panel.</p></a></li>
+  <li><a href="./installation.html"><strong>Docker, amd64 and arm64</strong>
+      <p>A distroless variant, an SBOM and build provenance on every release.</p></a></li>
 </ul>
+
+<h2 id="security">Where it sits<a class="anchor" href="#security" aria-label="Link to this section">#</a></h2>
+
+<div class="diagram">
+<svg viewBox="0 0 940 190" role="img" xmlns="http://www.w3.org/2000/svg"
+     aria-label="Traffic flows from the internet through an HTTPS reverse proxy to the panel, which holds sessions, roles and the audit log, then through a bounded RCON queue to the Factorio server.">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+  <g font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif">
+    <g fill="var(--surface)" stroke="var(--line)">
+      <rect x="4"   y="40" width="150" height="72" rx="7"/>
+      <rect x="200" y="40" width="170" height="72" rx="7"/>
+      <rect x="416" y="24" width="200" height="104" rx="7"/>
+      <rect x="662" y="40" width="120" height="72" rx="7"/>
+      <rect x="828" y="40" width="108" height="72" rx="7"/>
+    </g>
+    <g fill="var(--ink)" font-size="14" font-weight="600" text-anchor="middle">
+      <text x="79"  y="72">Internet</text>
+      <text x="285" y="72">Reverse proxy</text>
+      <text x="516" y="60">Admin panel</text>
+      <text x="722" y="72">RCON queue</text>
+      <text x="882" y="72">Factorio</text>
+    </g>
+    <g fill="var(--muted)" font-size="11.5" text-anchor="middle">
+      <text x="79"  y="92">browsers</text>
+      <text x="285" y="92">HTTPS, TRUST_PROXY</text>
+      <text x="516" y="82">sessions &#183; roles &#183; audit</text>
+      <text x="516" y="100">rate limits &#183; origin &#183; CSP</text>
+      <text x="722" y="92">bounded, 503 beyond</text>
+      <text x="882" y="92">compose network</text>
+    </g>
+    <g stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow)">
+      <line x1="158" y1="76" x2="192" y2="76"/>
+      <line x1="374" y1="76" x2="408" y2="76"/>
+      <line x1="620" y1="76" x2="654" y2="76"/>
+      <line x1="786" y1="76" x2="820" y2="76"/>
+    </g>
+    <text x="470" y="162" fill="var(--muted)" font-size="12">The panel binds to 127.0.0.1 by default. RCON is never published on the host.</text>
+  </g>
+</svg>
+</div>
+
+<p>What that buys you, concretely: signing out really revokes the cookie, a
+compromised moderator password cannot reach the raw console, an oversized
+payload is refused before it is parsed, and the Docker socket is never mounted
+into the panel. The <a href="./security.html">security model</a> spells out the
+assumptions &mdash; including the ones that are <em>not</em> covered.</p>
+
+<img class="shot" src="./assets/media/audit.png"
+     alt="Audit log: timestamp, role, action, the command actually sent, and the result for each entry.">
+<p class="shot-caption">The audit log records refusals too &mdash; a moderator hitting a permission
+wall leaves a trace, which is usually the entry you want.</p>
+
+<h2 id="compare">What it does not do<a class="anchor" href="#compare" aria-label="Link to this section">#</a></h2>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Need</th><th>This panel</th><th>Where to look instead</th></tr></thead>
+  <tbody>
+    <tr><td>Kick, ban, mute, message players from a browser</td><td>Yes</td><td>&mdash;</td></tr>
+    <tr><td>Delegate moderation without handing out RCON</td><td>Yes</td><td>&mdash;</td></tr>
+    <tr><td>Know who ran what, and what was refused</td><td>Yes</td><td>&mdash;</td></tr>
+    <tr><td>Run your own Lua one-liners as bounded buttons</td><td>Yes</td><td><a href="./commands.html">Custom commands</a></td></tr>
+    <tr><td>Install, enable or update mods</td><td>No</td><td><a href="https://github.com/factoriotools/factorio-docker">factoriotools/factorio</a></td></tr>
+    <tr><td>Upload, download or roll back saves</td><td>No</td><td>The <code>./data</code> volume</td></tr>
+    <tr><td>Start, stop or update the server binary</td><td>No</td><td>Your compose file</td></tr>
+    <tr><td>Drive the server from scripts</td><td>No</td><td><a href="https://github.com/nekomeowww/factorio-rcon-api">factorio-rcon-api</a></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><em>Factorio Server Manager</em> drives the binary and covers mods and saves,
+but it has had no release since March 2021 and has never seen Factorio 2.0. It
+solves a different problem; where the two overlap, this panel is the narrower,
+harder-edged tool.</p>
+
 <h2 id="quick-start">Quick start<a class="anchor" href="#quick-start" aria-label="Link to this section">#</a></h2>
-<p>Without cloning anything, paste
-<a href="./installation.html#quick-start">the ready-made <code>docker-compose.yml</code></a>: it
-pulls the published images and starts the game server and the panel together.</p>
-<p>From the repository, the <code>factorio-admin</code> service already lives in
-its <code>docker-compose.yml</code>, next to the game server.</p>
-<div class="snippet" data-lang="bash"><pre><code>git clone https://github.com/EdwinAlkins/factorio-admin-rcon.git
-cd factorio-admin-rcon
 
-# Writes ../.env: one password per role, plus the session signing key
-./setup-admin.sh
+<p>Nothing to clone. One directory, the
+<a href="./installation.html#quick-start">ready-made <code>docker-compose.yml</code></a>
+pasted as it stands, and a <code>.env</code> you generate:</p>
 
-docker compose up -d --build factorio-admin
-# → http://127.0.0.1:3010</code></pre></div>
+<div class="snippet" data-lang="bash"><pre><code>cat &gt; .env &lt;&lt;EOF
+ADMIN_PASSWORD=$(openssl rand -base64 18)
+SESSION_SECRET=$(openssl rand -hex 32)
+EOF
+
+docker compose up -d
+cat .env            # the password to log in with
+                    # &rarr; http://127.0.0.1:3010</code></pre></div>
+
 <div class="note">
   <strong>The panel is not published on the network</strong>
-  By default it only listens on <code>127.0.0.1</code>. That is deliberate: it
-  grants full RCON access. To expose it, put an HTTPS reverse proxy in front and
-  read <a href="./installation.html#proxy">the matching section</a>.
+  By default it listens on <code>127.0.0.1</code> only. That is deliberate: it
+  grants full RCON access. To reach it from elsewhere, put an HTTPS reverse
+  proxy in front &mdash; there is a copy-paste recipe for Caddy, Nginx, Traefik
+  and Tailscale in <a href="./deployment.html">the deployment guide</a>.
 </div>
-<h2 id="map">How to read this documentation<a class="anchor" href="#map" aria-label="Link to this section">#</a></h2>
-<ul class="cards">
-  <li><a href="./installation.html"><strong>Installation</strong>
-      <p>Production setup, hardened image, updating, health probes.</p></a></li>
-  <li><a href="./configuration.html"><strong>Configuration</strong>
-      <p>The complete environment variable reference.</p></a></li>
-  <li><a href="./commands.html"><strong>Custom commands</strong>
-      <p>The file format, the field types, and the Lua pitfalls specific to a server.</p></a></li>
-  <li><a href="./security.html"><strong>Security model</strong>
-      <p>Roles, sessions, CSP, audit, and the deployment assumptions.</p></a></li>
-  <li><a href="./api.html"><strong>HTTP API</strong>
-      <p>The routes, their permissions and the error format.</p></a></li>
-  <li><a href="./development.html"><strong>Development</strong>
-      <p>Architecture, tests, translations, releases.</p></a></li>
-</ul>
 
-<nav class="pager"><span></span><a href="./installation.html">Installation &rarr;</a></nav>
-</main>
+<h2 id="faq">Questions people actually ask<a class="anchor" href="#faq" aria-label="Link to this section">#</a></h2>
+
+<dl class="faq">
+  <dt>Does it replace Factorio Server Manager?</dt>
+  <dd>No. That one drives the server binary; this one talks RCON to a server that is already running.</dd>
+
+  <dt>Does it start my server, or manage mods and saves?</dt>
+  <dd>No. It holds no Docker socket and never touches the server process.</dd>
+
+  <dt>Do I have to expose RCON to the internet?</dt>
+  <dd>No, and you should not. The panel reaches RCON over the compose network; the quickstart publishes no RCON port at all.</dd>
+
+  <dt>Does it run on ARM64?</dt>
+  <dd>Yes. Every release publishes <code>linux/amd64</code> and <code>linux/arm64</code> under the same tag.</dd>
+
+  <dt>How do I set up five moderators?</dt>
+  <dd>They share <code>MODERATOR_PASSWORD</code>. There is one password per role, not individual accounts &mdash; a deliberate fit for a small self-hosted server.</dd>
+
+  <dt>Can I add my own commands?</dt>
+  <dd>Yes, in a <a href="./commands.html">JSON catalogue</a> you provide. A custom command is bounded: your moderator gets the button without getting arbitrary Lua.</dd>
+</dl>
+
+<div class="closing">
+  <p><strong>MIT licensed, self-hosted, no telemetry.</strong></p>
+  <div class="cta">
+    <a class="primary" href="https://hub.docker.com/r/williamnauroy/factorio-admin-rcon">Docker Hub</a>
+    <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">GitHub</a>
+    <a href="./overview.html">Documentation</a>
+  </div>
 </div>
+
+</main>
 
 <footer class="site">
-  Factorio admin panel documentation &mdash;
+  Factorio Admin RCON &mdash;
   <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">EdwinAlkins/factorio-admin-rcon</a>
 </footer>
 </body>

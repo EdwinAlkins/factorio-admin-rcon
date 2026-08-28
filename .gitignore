@@ -47,8 +47,6 @@ next-env.d.ts
 data/
 private/
 
-# media
-/tools/media/captures-fr
-/tools/media/captures-en
-/tools/media/video
-/tools/media/out
+# Working media (captures, video, Playwright output). The subset published in
+# docs/assets/media/ is versioned; the raw material is not.
+/private/media/out
