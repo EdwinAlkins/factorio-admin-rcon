@@ -16,12 +16,12 @@
 # Trade-off: no `docker exec … sh` for troubleshooting. See README, "Hardened
 # image", for how to attach a throwaway toolbox container instead.
 
-FROM node:24-alpine AS deps
+FROM node:25-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM node:24-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
