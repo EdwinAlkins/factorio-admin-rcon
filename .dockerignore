@@ -14,5 +14,7 @@ Dockerfile*
 *.md
 tests
 coverage
+dev-tools
+private
 .data/
 data/

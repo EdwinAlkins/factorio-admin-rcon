@@ -1,0 +1,16 @@
+{
+  "name": "factorio-admin-rcon-media",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Screenshot and demo-video capture scripts for the panel (not part of the app build)",
+  "type": "module",
+  "scripts": {
+    "setup": "npm install && npx playwright install chromium",
+    "shots": "node capture.mjs",
+    "video": "MODE=video node capture.mjs",
+    "audit": "node audit.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}

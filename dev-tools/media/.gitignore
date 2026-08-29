@@ -1,0 +1,6 @@
+# Everything these scripts produce. The scripts are versioned, their output is
+# not: only the hand-picked subset copied into docs/assets/media/ is committed.
+out/
+
+node_modules/
+package-lock.json

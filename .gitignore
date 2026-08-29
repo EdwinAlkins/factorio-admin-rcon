@@ -49,4 +49,6 @@ private/
 
 # Working media (captures, video, Playwright output). The subset published in
 # docs/assets/media/ is versioned; the raw material is not.
-/private/media/out
+/dev-tools/media/out/
+/dev-tools/media/node_modules/
+/dev-tools/media/package-lock.json
