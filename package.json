@@ -1,6 +1,6 @@
 {
   "name": "factorio-admin-rcon",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "private": true,
   "description": "Factorio Admin RCON Panel",
   "author": "William Nauroy <william.nauroy@gmail.com>",
