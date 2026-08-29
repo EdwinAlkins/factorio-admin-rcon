@@ -89,7 +89,7 @@ services:
     # `latest` moves under you on the next release; in production, pin the exact
     # version instead. `-distroless` is the hardened variant (no shell, no
     # package manager) — the full tag list is on Docker Hub.
-    image: williamnauroy/factorio-admin-rcon:1.3-distroless
+    image: williamnauroy/factorio-admin-rcon:1.4-distroless
     restart: unless-stopped
     depends_on:
       - factorio
