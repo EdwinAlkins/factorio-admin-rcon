@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import IntlMessageFormat from "intl-messageformat";
 import en from "../../messages/en.json";
 import fr from "../../messages/fr.json";
+import zh from "../../messages/zh.json";
 import { ACTIONS } from "@/server/actions/definitions";
 import { RCON_ERROR_CODE } from "@/server/rcon/errors";
 import { ROLES } from "@/lib/permissions";
@@ -23,6 +24,7 @@ function flatten(value: Json, prefix = ""): string[] {
 
 const EN = flatten(en as unknown as Json);
 const FR = flatten(fr as unknown as Json);
+const ZH = flatten(zh as unknown as Json);
 
 function valueAt(messages: unknown, key: string): string {
   return key.split(".").reduce<unknown>((node, part) => (node as Json)[part], messages) as string;
@@ -79,13 +81,19 @@ const API_ERROR_CODES = [
 
 describe("dictionaries", () => {
   it("exposes exactly the same keys in every language", () => {
-    expect([...FR].sort()).toEqual([...EN].sort());
+    for (const [locale, keys] of [
+      ["fr", FR],
+      ["zh", ZH],
+    ] as const) {
+      expect([...keys].sort(), `clés de ${locale}`).toEqual([...EN].sort());
+    }
   });
 
   it("leaves no empty value", () => {
     for (const [locale, messages] of [
       ["en", en],
       ["fr", fr],
+      ["zh", zh],
     ] as const) {
       const empty = flatten(messages as unknown as Json).filter(
         (key) => valueAt(messages, key).trim() === "",
@@ -100,6 +108,7 @@ describe("dictionaries", () => {
     for (const [locale, messages, keys] of [
       ["en", en, EN],
       ["fr", fr, FR],
+      ["zh", zh, ZH],
     ] as const) {
       for (const key of keys) {
         if (RAW_KEYS.test(key)) continue;
@@ -119,6 +128,7 @@ describe("action catalogue", () => {
         const key = `actions.items.${action.id}.${suffix}`;
         expect(EN, `manquant en anglais : ${key}`).toContain(key);
         expect(FR, `manquant en français : ${key}`).toContain(key);
+        expect(ZH, `manquant en chinois : ${key}`).toContain(key);
       }
     }
   });
