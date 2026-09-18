@@ -6,7 +6,7 @@ import { defineRouting } from "next-intl/routing";
  * which avoids forcing `Accept-Language` on them at every visit.
  */
 export const routing = defineRouting({
-  locales: ["en", "fr"],
+  locales: ["en", "fr", "zh"],
   defaultLocale: "en",
   localePrefix: "as-needed",
 });

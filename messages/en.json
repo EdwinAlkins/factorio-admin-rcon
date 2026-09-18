@@ -84,7 +84,13 @@
   "localeSwitcher": {
     "label": "Language",
     "en": "English",
-    "fr": "Français"
+    "fr": "Français",
+    "zh": "中文"
+  },
+  "themeSwitcher": {
+    "label": "Theme",
+    "dark": "Dark",
+    "light": "Light"
   },
   "actions": {
     "groups": {

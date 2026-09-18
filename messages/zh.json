@@ -1,0 +1,235 @@
+{
+  "meta": {
+    "title": "Factorio — 管理面板",
+    "description": "无头 Factorio 服务器的 RCON 控制台"
+  },
+  "app": {
+    "brand": "Factorio",
+    "brandSuffix": "— 管理面板"
+  },
+  "login": {
+    "subtitle": "需要密码。",
+    "password": "密码",
+    "submit": "登录",
+    "submitting": "正在登录…"
+  },
+  "statusBar": {
+    "connecting": "连接中…",
+    "target": "RCON {target} · 版本 {version}",
+    "online": "{count} 人在线",
+    "unknown": "—",
+    "refresh": "刷新",
+    "logout": "退出登录",
+    "dot": {
+      "ok": "服务器可达，{count} 人在线",
+      "error": "服务器不可达",
+      "loading": "正在获取状态"
+    }
+  },
+  "roles": {
+    "viewer": "查看者",
+    "moderator": "协管员",
+    "admin": "管理员"
+  },
+  "console": {
+    "title": "RCON 控制台",
+    "titleReadOnly": "结果",
+    "shortcuts": "↑/↓ 历史 · Ctrl+L 清屏",
+    "clear": "清空显示",
+    "forgetHistory": "清除历史",
+    "emptyWritable": "输入 Factorio 命令（例如 /players、/version），或使用快捷操作。不以“/”开头的文本会作为聊天消息广播。",
+    "emptyReadOnly": "使用快捷操作，结果显示在这里。",
+    "noOutput": "（无输出）",
+    "inputLabel": "RCON 命令",
+    "inputPlaceholder": "/players online",
+    "send": "发送",
+    "sending": "…"
+  },
+  "quickActions": {
+    "title": "快捷操作",
+    "send": "发送",
+    "cancel": "取消"
+  },
+  "audit": {
+    "title": "审计日志",
+    "refresh": "刷新",
+    "show": "展开",
+    "hide": "收起",
+    "empty": "暂无记录。",
+    "columns": {
+      "date": "时间",
+      "account": "账号",
+      "action": "操作",
+      "status": "状态"
+    },
+    "status": {
+      "success": "成功",
+      "denied": "被拒绝",
+      "error": "错误"
+    },
+    "actions": {
+      "login": "登录",
+      "command": "原始命令"
+    }
+  },
+  "confirm": {
+    "confirm": "确认",
+    "cancel": "取消"
+  },
+  "lua": {
+    "title": "Lua 命令",
+    "warning": "此命令使用 Lua 控制台：它将永久禁用该存档的成就。",
+    "runAnyway": "仍然执行"
+  },
+  "localeSwitcher": {
+    "label": "语言",
+    "en": "English",
+    "fr": "Français",
+    "zh": "中文"
+  },
+  "themeSwitcher": {
+    "label": "主题",
+    "dark": "深色",
+    "light": "浅色"
+  },
+  "actions": {
+    "groups": {
+      "info": "信息",
+      "server": "服务器",
+      "moderation": "管理",
+      "comms": "通讯",
+      "custom": "自定义"
+    },
+    "fields": {
+      "player": { "label": "玩家", "placeholder": "玩家名称" },
+      "reason": { "label": "原因", "placeholder": "可选" },
+      "message": { "label": "消息", "placeholder": "你的消息" }
+    },
+    "items": {
+      "players-online": { "label": "在线玩家", "hint": "/players online" },
+      "players": { "label": "所有玩家", "hint": "/players" },
+      "admins": { "label": "管理员", "hint": "/admins" },
+      "banlist": { "label": "封禁列表", "hint": "/banlist get" },
+      "version": { "label": "版本", "hint": "/version" },
+      "time": { "label": "游玩时长", "hint": "/time" },
+      "seed": { "label": "地图种子", "hint": "/seed" },
+      "evolution": { "label": "进化度", "hint": "/evolution" },
+      "server-save": { "label": "保存", "hint": "/server-save" },
+      "kick": {
+        "label": "踢出",
+        "hint": "/kick <player> [reason]",
+        "confirmation": "踢出 {player}？"
+      },
+      "ban": {
+        "label": "封禁",
+        "hint": "/ban <player> [reason]",
+        "confirmation": "永久封禁 {player}？"
+      },
+      "unban": { "label": "解封", "hint": "/unban <player>" },
+      "mute": { "label": "禁言", "hint": "/mute <player>" },
+      "unmute": { "label": "解除禁言", "hint": "/unmute <player>" },
+      "promote": {
+        "label": "提升为管理员",
+        "hint": "/promote <player>",
+        "confirmation": "授予 {player} 管理员权限？"
+      },
+      "demote": { "label": "降级", "hint": "/demote <player>" },
+      "broadcast": {
+        "label": "服务器公告",
+        "hint": "广播到聊天频道",
+        "placeholders": { "message": "5 分钟后重启" }
+      },
+      "whisper": {
+        "label": "私信",
+        "hint": "/whisper <player> <message>",
+        "placeholders": { "message": "回头见" }
+      }
+    }
+  },
+  "notFound": {
+    "title": "页面未找到",
+    "description": "该地址不匹配面板中的任何页面。",
+    "back": "返回面板"
+  },
+  "tabs": {
+    "console": "控制台",
+    "metrics": "统计"
+  },
+
+  "metrics": {
+    "title": "统计",
+    "loading": "加载中…",
+    "empty": "该时间范围内暂无数据。",
+    "rangeLabel": "时间范围",
+    "ranges": { "1h": "1 小时", "6h": "6 小时", "24h": "24 小时", "7d": "7 天" },
+    "cpu": "CPU",
+    "memory": "内存",
+    "players": "玩家",
+    "ups": "UPS",
+    "average": "平均",
+    "peak": "峰值",
+    "low": "最低",
+    "memoryOf": "{used} / {limit}",
+    "chartLabel": "所选范围内的{metric}，当前为 {current}",
+    "dockerUnavailable": "容器指标不可用（Docker 代理不可达）。",
+    "dockerPending": "尚未采集容器指标。",
+    "dockerDegraded": "容器指标滞后（最近的采集失败）。",
+    "sparse": "该区间数据稀疏",
+    "dockerDisabled": "容器指标已禁用（METRICS_DOCKER=false）。",
+    "upsUnavailable": "UPS 测量已禁用或服务器不可达。"
+  },
+
+  "errors": {
+    "metrics_disabled": "该面板的指标功能已禁用。",
+    "unknown": "发生意外错误。",
+    "network": "面板不可达（网络请求失败）。",
+    "unreadable": "服务器返回了无法读取的响应（HTTP {status}）。",
+    "http": "HTTP 错误 {status}。",
+    "logout_failed": "退出登录失败，请重试。",
+
+    "bad_origin": "来源不被允许。",
+    "unauthenticated": "未登录。",
+    "forbidden": "权限不足。",
+    "config": "面板配置无效。",
+    "internal": "面板内部错误。",
+
+    "bad_credentials": "密码错误。",
+    "password_missing": "缺少密码。",
+    "no_account": "未配置账号：请设置 ADMIN_PASSWORD 后再使用面板。",
+    "rate_limited_panel": "面板尝试次数过多，请在 {seconds} 秒后重试。",
+    "rate_limited_ip": "尝试次数过多，请在 {seconds} 秒后重试。",
+    "rate_limited_session": "发送的命令过多，请在 {seconds} 秒后重试。",
+
+    "command_missing": "缺少或无效的 `command` 字段。",
+    "action_body_invalid": "无效的操作请求。",
+    "body_too_large": "请求体过大（最大 {max} 字节）。",
+    "unknown_action": "未知操作：{action}",
+    "invalid_arguments": "该操作的参数无效。",
+
+    "validation_required": "{field} 为必填项。",
+    "validation_player": "{field}：玩家名称无效（不含空格或引号，最多 60 个字符）。",
+    "validation_too_long": "{field}：最多 {max} 个字符。",
+    "validation_newline": "{field}：不允许换行。",
+    "validation_number": "{field}：数字无效。",
+    "validation_min": "{field}：最小值为 {min}。",
+    "validation_max": "{field}：最大值为 {max}。",
+    "validation_enum": "{field}：应为 {options} 之一。",
+    "validation_identifier": "{field}：名称无效（仅限字母、数字、“-”、“_”、“.”）。",
+    "validation_bool": "{field}：应为是/否值。",
+    "validation_control_char": "{field}：不允许控制字符。",
+    "validation_comment": "{field}：不允许“--”。",
+    "unknown_placeholder": "{field}：命令模板引用了未声明的字段。",
+
+    "config_password": "服务器上无法获取 RCON 密码。",
+    "connection_refused": "无法连接到 Factorio 服务器。",
+    "connection_lost": "与 Factorio 服务器的连接已断开。",
+    "timeout": "Factorio 服务器未及时响应。",
+    "auth_rejected": "Factorio 服务器拒绝了 RCON 认证。",
+    "protocol": "意外的 RCON 响应。",
+    "command_empty": "命令为空。",
+    "command_too_long": "命令过长（最大 {max} 字节）。",
+    "backpressure": "排队的命令过多，请稍后重试。",
+    "service_stopping": "面板正在关闭。",
+    "probe_failed": "RCON 检查失败。"
+  }
+}
