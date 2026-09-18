@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type { SessionInfo } from "@/lib/api-types";
 import type { ServerStatus } from "@/lib/types";
 
@@ -65,6 +66,7 @@ export default function ServerStatusBar({
           )}
         </p>
         <LocaleSwitcher />
+        <ThemeSwitcher />
         <button type="button" className="btn" onClick={onRefresh}>
           {t("statusBar.refresh")}
         </button>

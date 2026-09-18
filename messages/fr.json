@@ -87,6 +87,11 @@
     "fr": "Français",
     "zh": "中文"
   },
+  "themeSwitcher": {
+    "label": "Thème",
+    "dark": "Sombre",
+    "light": "Clair"
+  },
   "actions": {
     "groups": {
       "info": "Infos",

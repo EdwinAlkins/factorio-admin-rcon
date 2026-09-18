@@ -87,6 +87,11 @@
     "fr": "Français",
     "zh": "中文"
   },
+  "themeSwitcher": {
+    "label": "主题",
+    "dark": "深色",
+    "light": "浅色"
+  },
   "actions": {
     "groups": {
       "info": "信息",

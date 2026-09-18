@@ -20,6 +20,25 @@
   color-scheme: dark;
 }
 
+/* Light theme. Every utility compiled from the `@theme` block above reads its
+   value back through `var(--color-…)`, so redefining the tokens here recolours
+   the whole panel without touching a single component. The rule is unlayered,
+   which makes it win over Tailwind's `@layer theme` regardless of specificity. */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-ground: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-raised: #eef1f5;
+  --color-line: #d5dae1;
+  --color-ink: #16181d;
+  --color-muted: #5a6473;
+  --color-accent: #b96a00;
+  --color-accent-ink: #ffffff;
+  --color-danger: #c0363b;
+  --color-ok: #1a7f4b;
+}
+
 body {
   background-color: var(--color-ground);
   color: var(--color-ink);
