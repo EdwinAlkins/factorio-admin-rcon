@@ -5,8 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Development &mdash; Factorio admin panel</title>
 <meta name="description" content="Code layout, test layers, internationalisation and the release chain.">
+<link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/development.html">
 <link rel="stylesheet" href="./assets/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<meta property="og:site_name" content="Factorio Admin RCON">
+<meta property="og:title" content="Development &mdash; Factorio Admin RCON">
+<meta property="og:description" content="Code layout, test layers, internationalisation and the release chain.">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://edwinalkins.github.io/factorio-admin-rcon/development.html">
+<meta property="og:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Development &mdash; Factorio Admin RCON">
+<meta name="twitter:description" content="Code layout, test layers, internationalisation and the release chain.">
+<meta name="twitter:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -123,7 +135,11 @@ and the rest of the tooling in a single PR.</p>
 <p>The documentation is static HTML in <code>docs/</code>: no build step, no
 dependency, no external resource. Editing a page means editing an
 <code>.html</code> file; the styling lives in
-<code>docs/assets/style.css</code>.</p>
+<code>docs/assets/style.css</code>. Crawlers are pointed at
+<code>docs/robots.txt</code> and <code>docs/sitemap.xml</code> (live under
+the Pages prefix). Submit the sitemap in Google Search Console: a project
+site on <code>github.io</code> does not own the host-root
+<code>/robots.txt</code>.</p>
 
 <p>It is published by GitHub Pages. Two ways to enable it:</p>
 <ul>
