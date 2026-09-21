@@ -3,26 +3,37 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Factorio Admin RCON &mdash; a hardened web console for Factorio servers</title>
-<meta name="description" content="Give moderators safe server actions without giving them full RCON. Roles enforced server-side, bounded commands, audit log. Docker, amd64 and arm64.">
+<title>Factorio Admin RCON &mdash; kick and ban without sharing the RCON password</title>
+<meta name="description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, amd64 and arm64.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/">
 <link rel="stylesheet" href="./assets/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
 <meta property="og:site_name" content="Factorio Admin RCON">
-<meta property="og:title" content="Factorio Admin RCON">
-<meta property="og:description" content="Not a server manager: a hardened RCON admin console. Roles, bounded actions, audit log.">
+<meta property="og:title" content="Factorio Admin RCON &mdash; kick and ban without sharing the RCON password">
+<meta property="og:description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, amd64 and arm64.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://edwinalkins.github.io/factorio-admin-rcon/">
 <meta property="og:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
 <meta property="og:image:alt" content="The panel: quick actions, RCON console and audit log.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Factorio Admin RCON">
-<meta name="twitter:description" content="Not a server manager: a hardened RCON admin console. Roles, bounded actions, audit log.">
+<meta name="twitter:title" content="Factorio Admin RCON &mdash; kick and ban without sharing the RCON password">
+<meta name="twitter:description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, amd64 and arm64.">
 <meta name="twitter:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
 <meta name="google-site-verification" content="P8_q5m3CQFlDe184FcNYOAyA1Mddt9Jkh3AhzLzw1QU">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Factorio Admin RCON","description":"A hardened web console for Factorio servers: roles, bounded commands and an audit log, without handing out full RCON.","url":"https://edwinalkins.github.io/factorio-admin-rcon/","applicationCategory":"DeveloperApplication","operatingSystem":"Linux","license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/EdwinAlkins/factorio-admin-rcon","image":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+{"@context":"https://schema.org","@graph":[
+  {"@type":"SoftwareApplication","name":"Factorio Admin RCON","description":"A hardened web console for Factorio servers: roles, bounded commands and an audit log, without handing out full RCON.","url":"https://edwinalkins.github.io/factorio-admin-rcon/","applicationCategory":"DeveloperApplication","operatingSystem":"Linux","license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/EdwinAlkins/factorio-admin-rcon","image":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
+  {"@type":"VideoObject","name":"Factorio Admin RCON panel walkthrough","description":"Signing in, running quick actions, typing a command, the Lua guard, and reading the audit log.","thumbnailUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","contentUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/demo.mp4","uploadDate":"2026-08-28","duration":"PT48S"},
+  {"@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Does it replace Factorio Server Manager?","acceptedAnswer":{"@type":"Answer","text":"No. That one drives the server binary; this one talks RCON to a server that is already running."}},
+    {"@type":"Question","name":"Does it start my server, or manage mods and saves?","acceptedAnswer":{"@type":"Answer","text":"No. It holds no Docker socket and never touches the server process."}},
+    {"@type":"Question","name":"Do I have to expose RCON to the internet?","acceptedAnswer":{"@type":"Answer","text":"No, and you should not. The panel reaches RCON over the compose network; the quickstart publishes no RCON port at all."}},
+    {"@type":"Question","name":"Does it run on ARM64?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every release publishes linux/amd64 and linux/arm64 under the same tag."}},
+    {"@type":"Question","name":"How do I set up five moderators?","acceptedAnswer":{"@type":"Answer","text":"They share MODERATOR_PASSWORD. There is one password per role, not individual accounts — a deliberate fit for a small self-hosted server."}},
+    {"@type":"Question","name":"Can I add my own commands?","acceptedAnswer":{"@type":"Answer","text":"Yes, in a JSON catalogue you provide. A custom command is bounded: your moderator gets the button without getting arbitrary Lua."}}
+  ]}
+]}
 </script>
 </head>
 <body>

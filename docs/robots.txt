@@ -1,10 +1,9 @@
-# Project Pages serve this file at
-# https://edwinalkins.github.io/factorio-admin-rcon/robots.txt
-# Google still fetches robots.txt from the host root (github.io); submit the
-# sitemap in Search Console as well.
+# Google fetches robots.txt from the host root only:
+# https://edwinalkins.github.io/robots.txt
+# This file is still useful for crawlers that look beside the sitemap,
+# and for the Sitemap: hint if they do fetch it.
 
 User-agent: *
 Allow: /
-Disallow: /DOCKERHUB.md
 
 Sitemap: https://edwinalkins.github.io/factorio-admin-rcon/sitemap.xml

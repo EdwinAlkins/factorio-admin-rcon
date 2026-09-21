@@ -37,9 +37,17 @@ jobs:
 
       - uses: actions/configure-pages@v6
 
+      # docs/DOCKERHUB.md is the Docker Hub overview source, not a docs page.
+      # Publishing it would duplicate the README-shaped copy in the index.
+      - name: Stage Pages tree without the Docker Hub copy
+        run: |
+          mkdir -p _pages
+          cp -a docs/. _pages/
+          rm -f _pages/DOCKERHUB.md
+
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: docs
+          path: _pages
 
       - id: deployment
         uses: actions/deploy-pages@v5
