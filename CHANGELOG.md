@@ -1,3 +1,5 @@
+## [1.5.3](https://github.com/edwinalkins/factorio-admin-rcon/compare/v1.5.2...v1.5.3) (2026-09-29)
+
 ## [1.5.2](https://github.com/edwinalkins/factorio-admin-rcon/compare/v1.5.1...v1.5.2) (2026-09-18)
 
 ## [1.5.1](https://github.com/edwinalkins/factorio-admin-rcon/compare/v1.5.0...v1.5.1) (2026-09-18)
