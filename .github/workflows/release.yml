@@ -31,6 +31,7 @@ env:
   # Docker Hub namespace (williamnauroy), different from the GitHub account (EdwinAlkins).
   IMAGE_NAME: williamnauroy/factorio-admin-rcon
   AGENT_IMAGE_NAME: williamnauroy/factorio-control-agent
+  DATA_AGENT_IMAGE_NAME: williamnauroy/factorio-data-agent
 
 jobs:
   # 1. Same checks as on a PR. Nothing is published if they fail.
@@ -228,6 +229,37 @@ jobs:
           labels: ${{ steps.meta-agent.outputs.labels }}
           annotations: ${{ steps.meta-agent.outputs.annotations }}
           cache-from: type=gha,scope=control-agent
+          provenance: mode=max
+          sbom: true
+
+      # The data agent, same versioning and build as the control agent.
+      - name: Metadata — data agent
+        id: meta-data-agent
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.DATA_AGENT_IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}},value=${{ env.VERSION }}
+          flavor: latest=auto
+          labels: |
+            org.opencontainers.image.title=Factorio data agent
+            org.opencontainers.image.description=Closed API over Factorio saves for the admin panel — archive, verify, download, restore
+
+      # Go cross-compiles from the build platform (see its Dockerfile), so the
+      # arm64 build needs no emulation.
+      - name: Build and push — data agent
+        uses: docker/build-push-action@v7
+        with:
+          context: services/agents
+          build-args: AGENT=data-agent
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta-data-agent.outputs.tags }}
+          labels: ${{ steps.meta-data-agent.outputs.labels }}
+          annotations: ${{ steps.meta-data-agent.outputs.annotations }}
+          cache-from: type=gha,scope=data-agent
           provenance: mode=max
           sbom: true
 

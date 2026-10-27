@@ -5,7 +5,7 @@ import { fetchJson, type FetchFailure } from "@/lib/fetch-json";
 import { usePolling } from "@/hooks/usePolling";
 import type {
   ServerOperationResult,
-  ServerOperationType,
+  ServerLifecycleType,
   ServerResult,
 } from "@/lib/api-types";
 
@@ -83,7 +83,7 @@ export function useServerControl(options: {
   usePolling(tick, { enabled, intervalMs: moving ? 2000 : 10_000 });
 
   const run = useCallback(
-    async (type: ServerOperationType, force = false): Promise<OperationOutcome> => {
+    async (type: ServerLifecycleType, force = false): Promise<OperationOutcome> => {
       setSubmitting(true);
       try {
         const outcome = await fetchJson<ServerOperationResult>(`/api/server/${type}`, {

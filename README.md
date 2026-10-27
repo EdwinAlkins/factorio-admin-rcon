@@ -22,6 +22,8 @@ need without handing them full RCON.
   "Kick" button without getting arbitrary Lua;
 - **audit log** of every action, refusals included;
 - **raw RCON console**, restricted to the administrator;
+- **saves** — archives on demand or on a schedule, download, and restore with a safety copy and
+  automatic rollback — through a second agent that holds the game's files but not the socket;
 - **server control** — start, stop (after a confirmed save), restart and logs — through a separate
   agent with a closed API, the only component that holds the Docker socket;
 - **Docker**, `amd64` and `arm64`, with a distroless variant, SBOM and provenance;
@@ -31,8 +33,9 @@ need without handing them full RCON.
 
 Raw RCON is an all-or-nothing door: one password, no rate limiting, no trace, and full control of
 the server for whoever gets through it. This panel puts roles, bounded commands and an audit log in
-front of that door. It can also start, stop and restart the server container — through a separate
-agent, never by holding the Docker socket itself — but it does not manage mods or saves.
+front of that door. It can also archive and restore saves, and start, stop and restart the server
+container — through two separate agents, never by holding the Docker socket or the game's files
+itself — but it does not manage mods yet.
 
 | Need | This panel | Where to look instead |
 | --- | --- | --- |
@@ -41,7 +44,7 @@ agent, never by holding the Docker socket itself — but it does not manage mods
 | Know who ran what, and what was refused | ✅ | — |
 | Run your own Lua one-liners as bounded buttons | ✅ | [Custom commands](#custom-commands) |
 | Install, enable or update **mods** | ❌ | [factoriotools/factorio](https://github.com/factoriotools/factorio-docker) and its env vars |
-| Upload, download or roll back **saves** | ❌ | The `./data` volume |
+| Archive, download or roll back **saves**, on a schedule too | ✅ | [Saves](#saves) |
 | Start, stop or restart the **server**, read its logs | ✅ | [Server control](#server-control) |
 | Update the **server binary** | ❌ | The image tag in your compose file, or [OpenFactorioServerManager](https://github.com/OpenFactorioServerManager/factorio-server-manager) |
 | Drive the server **from scripts** rather than a browser | ❌ | [nekomeowww/factorio-rcon-api](https://github.com/nekomeowww/factorio-rcon-api) |
@@ -533,6 +536,30 @@ container id, and the agent has no code for `exec`, create, delete, images, volu
 It sits alone with the panel on an `internal` network, unpublished, and requires a token both share
 as a Compose secret. Details and threat model: [services/agents/README.md](services/agents/README.md).
 
+## Saves
+
+The **Saves** tab lists the server's saves folder and the panel's archives. Moderators see both;
+archiving, downloading, restoring, deleting and the schedule are for administrators.
+`SAVES_ENABLED=false` removes the tab, its endpoints and the scheduler.
+
+- **Back up now** asks Factorio to save, waits for the save to be written, then archives it.
+- **Scheduled backups** are set in the tab: interval, how many to keep, for how long. By default
+  they archive the newest autosave instead of triggering a save, which would freeze the game while
+  it is written; that is an option.
+- **Download** streams the archive; it is a full copy of the world, so it is audited.
+- **Restore** runs as one operation: verify the archive, refuse if the game version or mod set
+  differs or players are online (unless confirmed a second time), save and stop the server, take
+  a safety archive of the current state, restore, restart. If the server does not come back, the
+  safety archive is restored the same way. A damaged archive is refused before the server is
+  touched.
+
+Archives live in `./backups` on the host, next to `./data` rather than inside it, so they can be
+copied elsewhere with the tool of your choice. Each is a zip plus a JSON sidecar recording its
+checksum, the Factorio version and the mod set. The **data agent** (`services/agents`,
+`cmd/data-agent`) is the only component that writes these files or the saves folder: it runs as
+the Factorio image's uid, sees no Docker socket, and every archive it writes or restores is
+verified entry by entry. Details: [services/agents/README.md](services/agents/README.md).
+
 ## Endpoints
 
 | Route | Auth | Role |
@@ -548,7 +575,13 @@ as a Compose secret. Details and threat model: [services/agents/README.md](servi
 | `GET /api/server/logs` | `server:logs` | Last lines of the Factorio container, `?tail=1..1000` |
 | `POST /api/server/start` · `stop` · `restart` | `server:start` · `stop` · `restart` | `202` + operation; `{ "force": true }` overrides the player / RCON checks |
 | `GET /api/health` | public | Liveness (Docker probe) |
-| `GET /api/ready` | public | Readiness: config + command catalogue + database + RCON + control agent |
+| `GET /api/saves` | `saves:read` | Saves folder, archives, schedule, operation in progress |
+| `POST /api/saves` | `saves:create` | `202` + operation: archive now (saves first) |
+| `GET /api/saves/{id}/download` | `saves:download` | The archive, streamed |
+| `POST /api/saves/{id}/restore` | `saves:restore` | `202` + operation; `{ "force": true }` overrides the version / mods / players checks |
+| `DELETE /api/saves/{id}` | `saves:delete` | Deletes an archive |
+| `GET` · `PUT /api/saves/settings` | `saves:read` · `saves:configure` | Backup schedule and retention |
+| `GET /api/ready` | public | Readiness: config + command catalogue + database + RCON + both agents |
 
 ## Security model
 
@@ -692,7 +725,6 @@ No dates and no promises — the order reflects what would help most, and issues
 - password rotation from the interface instead of a restart;
 - richer audit filtering and export.
 
-Next on the server-management side: **saves** (create, download, scheduled archives, restore with a
-safety copy) and then **mods** (search the official portal, install, enable, update). Both will go
-through a second agent that mounts the game's files but not the Docker socket — the agent that can
-stop the server will never be the one that can rewrite its files.
+Next on the server-management side: **mods** (search the official portal, install, enable,
+update), through the data agent — the agent that can stop the server will never be the one that can
+rewrite its files.

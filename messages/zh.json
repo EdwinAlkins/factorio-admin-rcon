@@ -77,7 +77,12 @@
       "command": "原始命令",
       "start": "启动服务器",
       "stop": "停止服务器",
-      "restart": "重启服务器"
+      "restart": "重启服务器",
+      "backup": "备份",
+      "restore": "恢复",
+      "delete": "删除归档",
+      "download": "下载归档",
+      "settings": "修改备份计划"
     }
   },
   "confirm": {
@@ -162,7 +167,8 @@
   "tabs": {
     "console": "控制台",
     "metrics": "统计",
-    "server": "服务器"
+    "server": "服务器",
+    "saves": "存档"
   },
 
   "metrics": {
@@ -224,7 +230,10 @@
       "saving": "正在保存地图",
       "stopping": "正在停止服务器",
       "starting": "正在启动容器",
-      "waiting_rcon": "正在加载地图"
+      "waiting_rcon": "正在加载地图",
+      "archiving": "正在归档存档",
+      "restoring": "正在恢复归档",
+      "rolling_back": "正在回退到之前的状态"
     },
     "operationBy": "由 {username} 发起",
     "history": "最近的操作",
@@ -232,7 +241,9 @@
     "type": {
       "start": "启动",
       "stop": "停止",
-      "restart": "重启"
+      "restart": "重启",
+      "backup": "备份",
+      "restore": "恢复"
     },
     "status": {
       "running": "进行中",
@@ -246,6 +257,59 @@
       "hint": "最近 {count} 行",
       "refresh": "刷新",
       "empty": "无输出。"
+    }
+  },
+
+  "saves": {
+    "title": "存档",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "backupNow": "立即备份",
+    "labelPlaceholder": "标签（可选）",
+    "operation": "进行中：{step}",
+    "live": "存档文件夹",
+    "liveEmpty": "尚无存档：服务器还未创建地图。",
+    "latest": "下次启动时加载",
+    "archives": "归档",
+    "archivesEmpty": "暂无归档。",
+    "columns": {
+      "date": "日期",
+      "source": "来源",
+      "label": "标签",
+      "size": "大小",
+      "version": "版本",
+      "mods": "模组"
+    },
+    "source": {
+      "manual": "手动",
+      "scheduled": "计划",
+      "pre-restore": "恢复前",
+      "pre-mods": "模组变更前"
+    },
+    "modsCount": "{count, plural, =0 {无模组} other {# 个模组}}",
+    "download": "下载",
+    "restore": "恢复",
+    "delete": "删除",
+    "confirm": {
+      "restoreTitle": "恢复此归档？",
+      "restoreMessage": "服务器将先保存并停止，当前状态会被归档，然后 {id} 成为存档并重启服务器。玩家将被断开连接。",
+      "deleteTitle": "删除此归档？",
+      "deleteMessage": "{id} 将被永久删除。",
+      "forceTitle": "仍要恢复？",
+      "forceLabel": "仍然恢复"
+    },
+    "schedule": {
+      "title": "计划备份",
+      "enabled": "已启用",
+      "interval": "间隔（分钟）",
+      "keepLast": "保留最近（0 = 不限）",
+      "maxAgeDays": "保留天数（0 = 不限）",
+      "triggerSave": "先让 Factorio 保存",
+      "triggerSaveHint": "写入存档时游戏会暂停。关闭时归档最新的自动存档。",
+      "save": "保存计划",
+      "saved": "计划已保存。",
+      "lastRun": "上次运行：{date}",
+      "never": "尚未运行。"
     }
   },
 
@@ -321,6 +385,23 @@
     "save_timeout": "保存未及时完成；服务器保持运行。",
     "rcon_not_back": "服务器已启动，但 RCON 未及时响应。",
     "invalid_body": "请求体无效。",
-    "invalid_tail": "行数无效（1 到 {max}）。"
+    "invalid_tail": "行数无效（1 到 {max}）。",
+
+    "data_disabled": "此面板已禁用存档功能。",
+    "data_config": "面板无法读取数据代理令牌。",
+    "data_unreachable": "无法连接数据代理。",
+    "data_timeout": "数据代理未及时响应。",
+    "data_rejected": "数据代理拒绝了面板的令牌。",
+    "data_busy": "数据代理正在执行另一项操作。",
+    "data_rate_limited": "文件操作过多，请一分钟后重试。",
+    "data_protocol": "数据代理返回了意外的响应。",
+    "data_io": "数据代理无法读写文件。",
+    "backup_not_found": "该归档不存在。",
+    "no_save": "服务器尚无存档。",
+    "invalid_archive": "该文件不是有效的 Factorio 存档。",
+    "checksum_mismatch": "该归档自创建以来已被修改，不会被恢复。",
+    "restore_incompatible": "该归档来自不同的游戏：{gaps}。",
+    "restore_rolled_back": "恢复失败（{reason}），已回退到之前的状态。",
+    "restore_rollback_failed": "恢复失败（{reason}），且无法回退到之前的状态：请检查存档文件夹和最近的“恢复前”归档。"
   }
 }

@@ -17,6 +17,10 @@ const { GET: status } = await import("@/app/api/status/route");
 const { POST: serverStart } = await import("@/app/api/server/start/route");
 const { POST: serverStop } = await import("@/app/api/server/stop/route");
 const { POST: serverRestart } = await import("@/app/api/server/restart/route");
+const { POST: savesCreate } = await import("@/app/api/saves/route");
+const { PUT: savesSettings } = await import("@/app/api/saves/settings/route");
+const { DELETE: savesDelete } = await import("@/app/api/saves/[id]/route");
+const { POST: savesRestore } = await import("@/app/api/saves/[id]/restore/route");
 const { resetEnvCache, useMemoryDatabase, withEnv } = await import("../helpers");
 const { call, clearCookies, expectError, signIn, HOST, ORIGIN } = await import("../api/helpers");
 
@@ -25,7 +29,15 @@ const { call, clearCookies, expectError, signIn, HOST, ORIGIN } = await import("
  * first place. The origin check is the second barrier, and the one that stays
  * valid if the cookie policy changes or the browser is old.
  */
-const MUTATIONS = [
+type Mutation = {
+  name: string;
+  handler: (request: Request) => Promise<Response>;
+  path: string;
+  body: unknown;
+  method?: string;
+};
+
+const MUTATIONS: Mutation[] = [
   { name: "login", handler: login, path: "/api/login", body: { password: "admin-pw" } },
   { name: "logout", handler: logout, path: "/api/logout", body: undefined },
   { name: "rcon", handler: rcon, path: "/api/rcon", body: { command: "/players" } },
@@ -33,6 +45,10 @@ const MUTATIONS = [
   { name: "server/start", handler: serverStart, path: "/api/server/start", body: {} },
   { name: "server/stop", handler: serverStop, path: "/api/server/stop", body: {} },
   { name: "server/restart", handler: serverRestart, path: "/api/server/restart", body: {} },
+  { name: "saves", handler: savesCreate, path: "/api/saves", body: {} },
+  { name: "saves/settings", handler: savesSettings, path: "/api/saves/settings", body: {}, method: "PUT" },
+  { name: "saves/[id]", handler: savesDelete, path: "/api/saves/20261027-100000-manual", body: undefined, method: "DELETE" },
+  { name: "saves/[id]/restore", handler: savesRestore, path: "/api/saves/20261027-100000-manual/restore", body: {} },
 ];
 
 beforeEach(() => {
@@ -47,11 +63,11 @@ afterEach(() => {
 });
 
 describe("origin checking", () => {
-  it.each(MUTATIONS)("refuses a foreign origin on /api/$name", async ({ handler, path, body }) => {
+  it.each(MUTATIONS)("refuses a foreign origin on /api/$name", async ({ handler, path, body, method = "POST" }) => {
     signIn("admin");
 
     const result = await call(handler, {
-      method: "POST",
+      method,
       path,
       body,
       origin: "http://attaquant.example",
@@ -60,17 +76,17 @@ describe("origin checking", () => {
     expectError(result, 403, "bad_origin");
   });
 
-  it.each(MUTATIONS)("refuses an unparseable origin on /api/$name", async ({ handler, path, body }) => {
+  it.each(MUTATIONS)("refuses an unparseable origin on /api/$name", async ({ handler, path, body, method = "POST" }) => {
     signIn("admin");
 
-    const result = await call(handler, { method: "POST", path, body, origin: "pas-une-url" });
+    const result = await call(handler, { method, path, body, origin: "pas-une-url" });
     expectError(result, 403, "bad_origin");
   });
 
-  it.each(MUTATIONS)("accepts the served host's origin on /api/$name", async ({ handler, path, body }) => {
+  it.each(MUTATIONS)("accepts the served host's origin on /api/$name", async ({ handler, path, body, method = "POST" }) => {
     signIn("admin");
 
-    const result = await call(handler, { method: "POST", path, body, origin: ORIGIN });
+    const result = await call(handler, { method, path, body, origin: ORIGIN });
     expect(result.status).not.toBe(403);
   });
 

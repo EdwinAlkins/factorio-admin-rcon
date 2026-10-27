@@ -2,7 +2,7 @@ import { recordAudit, type AuditKind } from "@/server/audit/service";
 import { errorFields, logger } from "@/server/log";
 import { ApiFailure, isApiFailure } from "@/server/http/errors";
 import { isRconError } from "@/server/rcon/errors";
-import { isControlError } from "@/server/control/errors";
+import { isAgentError } from "@/server/agents/errors";
 import { createOperation, finishOperation, setOperationStep } from "@/server/operations/store";
 import type { ServerOperationDto, ServerOperationStep, ServerOperationType } from "@/lib/api-types";
 
@@ -57,13 +57,13 @@ const engine: EngineState = (globalRef.__factorioOperations ??= { current: null 
 
 /** Code recorded for a failure: the translation key the interface will show. */
 export function errorCodeOf(error: unknown): string {
-  if (isControlError(error) || isRconError(error)) return error.key;
+  if (isAgentError(error) || isRconError(error)) return error.key;
   if (isApiFailure(error)) return error.code;
   return "internal";
 }
 
 function detailOf(error: unknown): string {
-  if (isControlError(error) || isRconError(error)) return error.detail;
+  if (isAgentError(error) || isRconError(error)) return error.detail;
   return errorFields(error).error as string;
 }
 

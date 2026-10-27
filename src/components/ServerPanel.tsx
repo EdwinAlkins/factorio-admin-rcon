@@ -11,7 +11,7 @@ import type { FetchFailure } from "@/lib/fetch-json";
 import { can } from "@/lib/permissions";
 import type {
   ServerOperationDto,
-  ServerOperationType,
+  ServerLifecycleType,
   ServerResult,
   ServerState,
   SessionInfo,
@@ -29,7 +29,7 @@ type Props = {
   server: ServerResult | null;
   failure: FetchFailure | null;
   submitting: boolean;
-  run: (type: ServerOperationType, force?: boolean) => Promise<OperationOutcome>;
+  run: (type: ServerLifecycleType, force?: boolean) => Promise<OperationOutcome>;
   onRefresh: () => void;
   /** `false` while the tab is hidden: the logs stop refreshing. */
   active: boolean;
@@ -95,7 +95,7 @@ export default function ServerPanel({
   );
 
   const launch = useCallback(
-    async (type: ServerOperationType) => {
+    async (type: ServerLifecycleType) => {
       setRunError(null);
       const outcome = await run(type);
 
@@ -115,7 +115,7 @@ export default function ServerPanel({
     [errorMessage, report, run, t],
   );
 
-  const ask = (type: ServerOperationType) => {
+  const ask = (type: ServerLifecycleType) => {
     setPending({
       title: t(`confirm.${type}Title`),
       message: t(`confirm.${type}Message`),

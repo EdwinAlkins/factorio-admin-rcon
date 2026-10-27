@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { agentLogs, agentStatus, agentStop, resetControlToken } = await import("@/server/control/client");
+const { agentLogs, agentStatus, agentStop } = await import("@/server/control/client");
+const { resetAgentTokens } = await import("@/server/agents/transport");
 const { resetEnvCache, withEnv } = await import("../helpers");
 
 const TOKEN = "0123456789abcdef0123456789abcdef-test";
@@ -32,14 +33,14 @@ async function failure(promise: Promise<unknown>) {
 
 beforeEach(() => {
   seen = [];
-  resetControlToken();
+  resetAgentTokens();
   withEnv({ CONTROL_AGENT_TOKEN: TOKEN, CONTROL_AGENT_URL: "http://agent.test:8080" });
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
   withEnv({ CONTROL_AGENT_TOKEN: undefined, CONTROL_AGENT_URL: undefined, CONTROL_AGENT_TOKEN_FILE: undefined });
-  resetControlToken();
+  resetAgentTokens();
   resetEnvCache();
 });
 

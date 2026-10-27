@@ -116,3 +116,12 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha,scope=control-agent
           cache-to: type=gha,mode=max,scope=control-agent
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: services/agents
+          build-args: AGENT=data-agent
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=data-agent
+          cache-to: type=gha,mode=max,scope=data-agent

@@ -2,7 +2,7 @@ import { env } from "@/server/config/env";
 import { errorFields, logger } from "@/server/log";
 import { getRcon } from "@/server/rcon";
 import { getServerStatus } from "@/server/rcon/status";
-import { isControlError } from "@/server/control/errors";
+import { isAgentError } from "@/server/agents/errors";
 import { cpuPercent, memoryUsage, readStats } from "@/server/metrics/docker";
 import {
   purgeMetrics,
@@ -209,7 +209,7 @@ async function collectDocker(state: State, now: number) {
     if (state.docker.failures === 0) {
       logger.warn("docker metrics unavailable", {
         ...errorFields(error),
-        detail: isControlError(error) ? error.detail : undefined,
+        detail: isAgentError(error) ? error.detail : undefined,
       });
     }
     fail(state.docker, now, env().METRICS_INTERVAL_MS);

@@ -77,7 +77,12 @@
       "command": "Commande brute",
       "start": "Démarrage du serveur",
       "stop": "Arrêt du serveur",
-      "restart": "Redémarrage du serveur"
+      "restart": "Redémarrage du serveur",
+      "backup": "Sauvegarde",
+      "restore": "Restauration",
+      "delete": "Archive supprimée",
+      "download": "Archive téléchargée",
+      "settings": "Planification modifiée"
     }
   },
   "confirm": {
@@ -162,7 +167,8 @@
   "tabs": {
     "console": "Console",
     "metrics": "Statistiques",
-    "server": "Serveur"
+    "server": "Serveur",
+    "saves": "Sauvegardes"
   },
 
   "metrics": {
@@ -224,7 +230,10 @@
       "saving": "Sauvegarde de la carte",
       "stopping": "Arrêt du serveur",
       "starting": "Démarrage du conteneur",
-      "waiting_rcon": "Chargement de la carte"
+      "waiting_rcon": "Chargement de la carte",
+      "archiving": "Archivage de la sauvegarde",
+      "restoring": "Restauration de l'archive",
+      "rolling_back": "Retour à l'état précédent"
     },
     "operationBy": "demandé par {username}",
     "history": "Opérations récentes",
@@ -232,7 +241,9 @@
     "type": {
       "start": "Démarrage",
       "stop": "Arrêt",
-      "restart": "Redémarrage"
+      "restart": "Redémarrage",
+      "backup": "Sauvegarde",
+      "restore": "Restauration"
     },
     "status": {
       "running": "en cours",
@@ -246,6 +257,59 @@
       "hint": "{count} dernières lignes",
       "refresh": "Actualiser",
       "empty": "Aucune sortie."
+    }
+  },
+
+  "saves": {
+    "title": "Sauvegardes",
+    "refresh": "Actualiser",
+    "loading": "Chargement…",
+    "backupNow": "Sauvegarder maintenant",
+    "labelPlaceholder": "Libellé (facultatif)",
+    "operation": "En cours : {step}",
+    "live": "Dossier des sauvegardes",
+    "liveEmpty": "Aucune sauvegarde : le serveur n'a pas encore créé sa carte.",
+    "latest": "chargée au prochain démarrage",
+    "archives": "Archives",
+    "archivesEmpty": "Aucune archive pour l'instant.",
+    "columns": {
+      "date": "Date",
+      "source": "Origine",
+      "label": "Libellé",
+      "size": "Taille",
+      "version": "Version",
+      "mods": "Mods"
+    },
+    "source": {
+      "manual": "manuelle",
+      "scheduled": "planifiée",
+      "pre-restore": "avant restauration",
+      "pre-mods": "avant changement de mods"
+    },
+    "modsCount": "{count, plural, =0 {aucun mod} one {# mod} other {# mods}}",
+    "download": "Télécharger",
+    "restore": "Restaurer",
+    "delete": "Supprimer",
+    "confirm": {
+      "restoreTitle": "Restaurer cette archive ?",
+      "restoreMessage": "Le serveur est sauvegardé puis arrêté, l'état actuel est archivé, puis {id} devient la sauvegarde et le serveur redémarre. Les joueurs seront déconnectés.",
+      "deleteTitle": "Supprimer cette archive ?",
+      "deleteMessage": "{id} sera supprimée définitivement.",
+      "forceTitle": "Restaurer quand même ?",
+      "forceLabel": "Restaurer quand même"
+    },
+    "schedule": {
+      "title": "Sauvegardes planifiées",
+      "enabled": "Activées",
+      "interval": "Toutes les (minutes)",
+      "keepLast": "Garder les dernières (0 = sans limite)",
+      "maxAgeDays": "Garder pendant (jours, 0 = sans limite)",
+      "triggerSave": "Demander d'abord une sauvegarde à Factorio",
+      "triggerSaveHint": "Fige le jeu pendant l'écriture. Désactivé : la dernière autosave est archivée.",
+      "save": "Enregistrer la planification",
+      "saved": "Planification enregistrée.",
+      "lastRun": "Dernière exécution : {date}",
+      "never": "Jamais exécutée."
     }
   },
 
@@ -321,6 +385,23 @@
     "save_timeout": "La sauvegarde n'a pas abouti à temps ; le serveur a été laissé en marche.",
     "rcon_not_back": "Le serveur a démarré mais RCON n'a pas répondu à temps.",
     "invalid_body": "Corps de requête invalide.",
-    "invalid_tail": "Nombre de lignes invalide (1 à {max})."
+    "invalid_tail": "Nombre de lignes invalide (1 à {max}).",
+
+    "data_disabled": "Les sauvegardes sont désactivées sur ce panel.",
+    "data_config": "Jeton de l'agent de données indisponible côté panel.",
+    "data_unreachable": "L'agent de données est injoignable.",
+    "data_timeout": "L'agent de données n'a pas répondu à temps.",
+    "data_rejected": "L'agent de données a refusé le jeton du panel.",
+    "data_busy": "L'agent de données exécute déjà une opération.",
+    "data_rate_limited": "Trop d'opérations sur les fichiers. Réessayez dans une minute.",
+    "data_protocol": "Réponse inattendue de l'agent de données.",
+    "data_io": "L'agent de données n'a pas pu lire ou écrire les fichiers.",
+    "backup_not_found": "Cette archive n'existe pas.",
+    "no_save": "Le serveur n'a pas encore de sauvegarde.",
+    "invalid_archive": "Ce fichier n'est pas une sauvegarde Factorio valide.",
+    "checksum_mismatch": "Cette archive a été modifiée depuis sa création ; elle ne sera pas restaurée.",
+    "restore_incompatible": "Cette archive provient d'un jeu différent : {gaps}.",
+    "restore_rolled_back": "La restauration a échoué ({reason}) ; l'état précédent a été remis en place.",
+    "restore_rollback_failed": "La restauration a échoué ({reason}) et l'état précédent n'a pas pu être remis en place : vérifiez le dossier des sauvegardes et la dernière archive « avant restauration »."
   }
 }

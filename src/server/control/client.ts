@@ -1,7 +1,5 @@
-import { readFile } from "node:fs/promises";
 import { env } from "@/server/config/env";
-import { errorFields } from "@/server/log";
-import { ControlError, fromAgentCode } from "@/server/control/errors";
+import { agentTransport } from "@/server/agents/transport";
 import type { ContainerStatusDto, ServerLogLineDto } from "@/lib/api-types";
 import type { DockerStats } from "@/server/metrics/docker";
 
@@ -20,94 +18,19 @@ import type { DockerStats } from "@/server/metrics/docker";
  */
 export const MUTATION_TIMEOUT_MS = 6 * 60 * 1000;
 
-const globalRef = globalThis as typeof globalThis & { __factorioControlToken?: string };
-
-/**
- * Read once, then kept: the agent reads it once too, so a rotation needs both
- * restarted anyway. A failed read is not cached, so fixing the file is enough.
- */
-async function token(): Promise<string> {
-  if (globalRef.__factorioControlToken) return globalRef.__factorioControlToken;
-
+const transport = agentTransport("control", () => {
   const config = env();
-  let value = config.CONTROL_AGENT_TOKEN;
-  if (!value) {
-    try {
-      value = (await readFile(/* turbopackIgnore: true */ config.CONTROL_AGENT_TOKEN_FILE, "utf8")).trim();
-    } catch (error) {
-      throw new ControlError("control_config", {
-        detail: `tokenFile=${config.CONTROL_AGENT_TOKEN_FILE} ${errorFields(error).error}`,
-      });
-    }
-  }
-  if (value.length < 32) {
-    throw new ControlError("control_config", { detail: "control agent token shorter than 32 characters" });
-  }
-
-  return (globalRef.__factorioControlToken = value);
-}
-
-/** Forgets the cached token (tests). */
-export function resetControlToken() {
-  globalRef.__factorioControlToken = undefined;
-}
-
-type AgentRequest = {
-  method: "GET" | "POST";
-  path: string;
-  body?: unknown;
-  timeoutMs?: number;
-};
-
-async function call<T>({ method, path, body, timeoutMs }: AgentRequest): Promise<T> {
-  // No feature flag here: the agent serves two features (server control and
-  // container metrics), and each caller checks its own.
-  const config = env();
-  const url = `${config.CONTROL_AGENT_URL}${path}`;
-  const headers: Record<string, string> = {
-    accept: "application/json",
-    authorization: `Bearer ${await token()}`,
+  return {
+    url: config.CONTROL_AGENT_URL,
+    token: config.CONTROL_AGENT_TOKEN,
+    tokenFile: config.CONTROL_AGENT_TOKEN_FILE,
+    timeoutMs: config.CONTROL_AGENT_TIMEOUT_MS,
   };
-  if (body !== undefined) headers["content-type"] = "application/json";
+});
 
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(timeoutMs ?? config.CONTROL_AGENT_TIMEOUT_MS),
-    });
-  } catch (error) {
-    const name = (error as Error | undefined)?.name;
-    if (name === "TimeoutError" || name === "AbortError") {
-      throw new ControlError("control_timeout", { detail: `${method} ${url}: no answer` });
-    }
-    throw new ControlError("control_unreachable", {
-      detail: `${method} ${url}: ${errorFields(error).error}`,
-    });
-  }
-
-  let payload: unknown;
-  try {
-    payload = await response.json();
-  } catch {
-    // Draining the body keeps undici from leaving the socket hanging.
-    await response.body?.cancel().catch(() => undefined);
-    throw new ControlError("control_protocol", {
-      detail: `${method} ${url} → HTTP ${response.status}, body is not JSON`,
-    });
-  }
-
-  if (!response.ok) {
-    const code = (payload as { code?: string } | null)?.code;
-    throw new ControlError(fromAgentCode(code, response.status), {
-      detail: `${method} ${url} → HTTP ${response.status} ${code ?? ""}`.trim(),
-    });
-  }
-
-  return payload as T;
-}
+// No feature flag here: the agent serves two features (server control and
+// container metrics), and each caller checks its own.
+const call = transport.call;
 
 export async function agentStatus(): Promise<ContainerStatusDto> {
   const result = await call<{ container: ContainerStatusDto }>({ method: "GET", path: "/v1/server/status" });
@@ -145,14 +68,4 @@ export function agentRestart(): Promise<AgentMutation> {
 }
 
 /** Liveness of the agent itself; does not touch Docker. */
-export async function agentHealthy(): Promise<boolean> {
-  try {
-    const response = await fetch(`${env().CONTROL_AGENT_URL}/healthz`, {
-      signal: AbortSignal.timeout(env().CONTROL_AGENT_TIMEOUT_MS),
-    });
-    await response.body?.cancel().catch(() => undefined);
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
+export const agentHealthy = transport.healthy;

@@ -98,6 +98,23 @@ const API_ERROR_CODES = [
   "rcon_not_back",
   "invalid_body",
   "invalid_tail",
+  // Saves (src/server/saves, data agent).
+  "data_disabled",
+  "data_config",
+  "data_unreachable",
+  "data_timeout",
+  "data_rejected",
+  "data_busy",
+  "data_rate_limited",
+  "data_protocol",
+  "data_io",
+  "backup_not_found",
+  "no_save",
+  "invalid_archive",
+  "checksum_mismatch",
+  "restore_incompatible",
+  "restore_rolled_back",
+  "restore_rollback_failed",
 ];
 
 describe("dictionaries", () => {

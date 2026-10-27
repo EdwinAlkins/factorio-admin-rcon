@@ -13,7 +13,7 @@ const { POST: start } = await import("@/app/api/server/start/route");
 const { POST: stop } = await import("@/app/api/server/stop/route");
 const { POST: restart } = await import("@/app/api/server/restart/route");
 const { currentOperation, invalidateContainerCache, timing } = await import("@/server/control/service");
-const { ControlError } = await import("@/server/control/errors");
+const { AgentError } = await import("@/server/agents/errors");
 const { SERVER_OPERATIONS_PER_MINUTE } = await import("@/server/auth/limiters");
 const { listAudit } = await import("@/server/audit/service");
 const { resetEnvCache, useMemoryDatabase, withEnv } = await import("../helpers");
@@ -60,7 +60,7 @@ describe("GET /api/server", () => {
   it("reports an unreachable agent as a state, not an error", async () => {
     signIn("viewer");
     fakes.agent.status.mockImplementation(async () => {
-      throw new ControlError("control_unreachable");
+      throw new AgentError("control_unreachable");
     });
 
     const result = await call(server, { path: "/api/server" });
@@ -160,7 +160,7 @@ describe("POST /api/server/{start,stop,restart}", () => {
   it("translates agent failures", async () => {
     signIn("admin");
     fakes.agent.status.mockImplementation(async () => {
-      throw new ControlError("control_target_ambiguous");
+      throw new AgentError("control_target_ambiguous");
     });
 
     expectError(await call(stop, { method: "POST", path: "/api/server/stop", body: {} }), 503, "control_target_ambiguous");

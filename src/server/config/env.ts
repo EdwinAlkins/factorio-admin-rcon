@@ -95,6 +95,20 @@ const EnvSchema = z.object({
   // `/server-save` before giving up. Large maps take tens of seconds.
   CONTROL_SAVE_TIMEOUT_MS: z.coerce.number().int().min(5000).default(120_000),
 
+  // Saves: archives, downloads, restores and scheduled backups, through the
+  // data agent — the only component writing the game's files, and one that
+  // never sees the Docker socket. SAVES_ENABLED=false removes the Saves tab,
+  // its endpoints and the scheduler.
+  SAVES_ENABLED: booleanish.default(true),
+  DATA_AGENT_URL: z.url({ protocol: /^https?$/ }).default("http://data-agent:8080"),
+  // Distinct from the control agent's: a compromised agent cannot use its
+  // token to call the other.
+  DATA_AGENT_TOKEN: z.string().min(32).optional(),
+  DATA_AGENT_TOKEN_FILE: z.string().min(1).default("/run/secrets/data_agent_token"),
+  // Deadline of a listing. Archiving and restoring get their own, much
+  // longer one: they copy and verify whole saves.
+  DATA_AGENT_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+
   // Metrics, in three levels: one master switch and two sources.
   //
   // METRICS_ENABLED=false turns the whole feature off — no collector, no tab,

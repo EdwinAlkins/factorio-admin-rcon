@@ -77,7 +77,12 @@
       "command": "Raw command",
       "start": "Server start",
       "stop": "Server stop",
-      "restart": "Server restart"
+      "restart": "Server restart",
+      "backup": "Backup",
+      "restore": "Restore",
+      "delete": "Archive deleted",
+      "download": "Archive downloaded",
+      "settings": "Backup schedule changed"
     }
   },
   "confirm": {
@@ -162,7 +167,8 @@
   "tabs": {
     "console": "Console",
     "metrics": "Statistics",
-    "server": "Server"
+    "server": "Server",
+    "saves": "Saves"
   },
 
   "metrics": {
@@ -224,7 +230,10 @@
       "saving": "Saving the map",
       "stopping": "Stopping the server",
       "starting": "Starting the container",
-      "waiting_rcon": "Waiting for the map to load"
+      "waiting_rcon": "Waiting for the map to load",
+      "archiving": "Archiving the save",
+      "restoring": "Restoring the archive",
+      "rolling_back": "Rolling back to the previous state"
     },
     "operationBy": "requested by {username}",
     "history": "Recent operations",
@@ -232,7 +241,9 @@
     "type": {
       "start": "Start",
       "stop": "Stop",
-      "restart": "Restart"
+      "restart": "Restart",
+      "backup": "Backup",
+      "restore": "Restore"
     },
     "status": {
       "running": "in progress",
@@ -246,6 +257,59 @@
       "hint": "last {count} lines",
       "refresh": "Refresh",
       "empty": "No output."
+    }
+  },
+
+  "saves": {
+    "title": "Saves",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "backupNow": "Back up now",
+    "labelPlaceholder": "Label (optional)",
+    "operation": "In progress: {step}",
+    "live": "Saves folder",
+    "liveEmpty": "No save yet: the server has not created its map.",
+    "latest": "loaded at next start",
+    "archives": "Archives",
+    "archivesEmpty": "No archive yet.",
+    "columns": {
+      "date": "Date",
+      "source": "Source",
+      "label": "Label",
+      "size": "Size",
+      "version": "Version",
+      "mods": "Mods"
+    },
+    "source": {
+      "manual": "manual",
+      "scheduled": "scheduled",
+      "pre-restore": "before restore",
+      "pre-mods": "before mod change"
+    },
+    "modsCount": "{count, plural, =0 {no mod} one {# mod} other {# mods}}",
+    "download": "Download",
+    "restore": "Restore",
+    "delete": "Delete",
+    "confirm": {
+      "restoreTitle": "Restore this archive?",
+      "restoreMessage": "The server is saved and stopped, the current state is archived, then {id} becomes the save and the server restarts. Players will be disconnected.",
+      "deleteTitle": "Delete this archive?",
+      "deleteMessage": "{id} will be deleted for good.",
+      "forceTitle": "Restore anyway?",
+      "forceLabel": "Restore anyway"
+    },
+    "schedule": {
+      "title": "Scheduled backups",
+      "enabled": "Enabled",
+      "interval": "Every (minutes)",
+      "keepLast": "Keep the last (0 = no limit)",
+      "maxAgeDays": "Keep for (days, 0 = no limit)",
+      "triggerSave": "Ask Factorio to save first",
+      "triggerSaveHint": "Freezes the game while the save is written. Off: the newest autosave is archived.",
+      "save": "Save the schedule",
+      "saved": "Schedule saved.",
+      "lastRun": "Last run: {date}",
+      "never": "Never run yet."
     }
   },
 
@@ -321,6 +385,23 @@
     "save_timeout": "The save did not finish in time; the server was left running.",
     "rcon_not_back": "The server started but RCON did not answer in time.",
     "invalid_body": "Invalid request body.",
-    "invalid_tail": "Invalid line count (1 to {max})."
+    "invalid_tail": "Invalid line count (1 to {max}).",
+
+    "data_disabled": "Saves are disabled on this panel.",
+    "data_config": "Data agent token unavailable on the panel.",
+    "data_unreachable": "The data agent is unreachable.",
+    "data_timeout": "The data agent did not respond in time.",
+    "data_rejected": "The data agent refused the panel's token.",
+    "data_busy": "The data agent is already running an operation.",
+    "data_rate_limited": "Too many file operations. Try again in a minute.",
+    "data_protocol": "Unexpected response from the data agent.",
+    "data_io": "The data agent could not read or write the files.",
+    "backup_not_found": "This archive does not exist.",
+    "no_save": "The server has no save yet.",
+    "invalid_archive": "This file is not a valid Factorio save.",
+    "checksum_mismatch": "This archive changed since it was made; it will not be restored.",
+    "restore_incompatible": "This archive comes from a different game: {gaps}.",
+    "restore_rolled_back": "The restore failed ({reason}); the previous state was put back.",
+    "restore_rollback_failed": "The restore failed ({reason}) and the previous state could not be put back: check the saves folder and the latest “before restore” archive."
   }
 }

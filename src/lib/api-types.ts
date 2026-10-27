@@ -224,10 +224,19 @@ export type ServerLogLineDto = {
   text: string;
 };
 
-export type ServerOperationType = "start" | "stop" | "restart";
+/** The three operations of the Server tab's buttons. */
+export type ServerLifecycleType = "start" | "stop" | "restart";
+export type ServerOperationType = ServerLifecycleType | "backup" | "restore";
 export type ServerOperationStatus = "running" | "success" | "error" | "interrupted";
 /** Where a running operation stands, for the progress display. */
-export type ServerOperationStep = "saving" | "stopping" | "starting" | "waiting_rcon";
+export type ServerOperationStep =
+  | "saving"
+  | "stopping"
+  | "starting"
+  | "waiting_rcon"
+  | "archiving"
+  | "restoring"
+  | "rolling_back";
 
 export type ServerOperationDto = {
   id: number;
@@ -276,6 +285,72 @@ export type ServerOperationResult = {
 export type ServerLogsResult = {
   ok: true;
   lines: ServerLogLineDto[];
+};
+
+/** One mod of the server's set, as the data agent reads it. */
+export type ModDto = {
+  name: string;
+  enabled: boolean;
+  /** Empty for mods that ship with the game. */
+  version?: string;
+  builtin: boolean;
+};
+
+/** One file of Factorio's saves folder. */
+export type SaveFileDto = {
+  name: string;
+  size: number;
+  modified: string;
+  /** The save factoriotools loads at the next start. */
+  latest: boolean;
+};
+
+export type BackupSource = "manual" | "scheduled" | "pre-restore" | "pre-mods";
+
+/** One archive kept by the panel, as described by its sidecar. */
+export type BackupDto = {
+  id: string;
+  source: BackupSource;
+  label?: string;
+  createdAt: string;
+  createdBy?: string;
+  size: number;
+  sha256: string;
+  saveName: string;
+  factorioVersion?: string;
+  mods: ModDto[];
+};
+
+export type BackupSettingsDto = {
+  enabled: boolean;
+  intervalMinutes: number;
+  /** 0: no limit on the number of scheduled archives. */
+  keepLast: number;
+  /** 0: no age limit. */
+  maxAgeDays: number;
+  /**
+   * Ask Factorio to save before archiving. Off by default: a blocking save
+   * freezes the game while it is written; without it the newest autosave is
+   * archived instead.
+   */
+  triggerSave: boolean;
+  lastRunAt: number | null;
+};
+
+export type SavesResult = {
+  ok: true;
+  saves: SaveFileDto[];
+  backups: BackupDto[];
+  /** The server's mod set now, to compare with an archive's. */
+  mods: ModDto[];
+  settings: BackupSettingsDto;
+  /** Any operation in progress — a backup or restore, or a server one. */
+  operation: ServerOperationDto | null;
+};
+
+export type BackupSettingsResult = {
+  ok: true;
+  settings: BackupSettingsDto;
 };
 
 export type SessionInfo = {

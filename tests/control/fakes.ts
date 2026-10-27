@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { ContainerStatusDto, ServerLogLineDto } from "@/lib/api-types";
+import type { BackupDto, ContainerStatusDto, ModDto, ServerLogLineDto } from "@/lib/api-types";
 
 /**
  * Shared fakes for the control agent client and RCON. Each test file wires
@@ -13,6 +13,25 @@ export function container(state: string, extra: Partial<ContainerStatusDto> = {}
     exitCode: 0,
     restartCount: 0,
     image: "factoriotools/factorio:stable",
+    ...extra,
+  };
+}
+
+export const MODS: ModDto[] = [
+  { name: "base", enabled: true, builtin: true },
+  { name: "even-distribution", enabled: true, version: "2.0.3", builtin: false },
+];
+
+export function backup(id: string, extra: Partial<BackupDto> = {}): BackupDto {
+  return {
+    id,
+    source: "manual",
+    createdAt: "2026-10-27T10:00:00Z",
+    size: 1000,
+    sha256: "a".repeat(64),
+    saveName: "_autosave1.zip",
+    factorioVersion: "2.0.72",
+    mods: MODS,
     ...extra,
   };
 }
@@ -40,8 +59,32 @@ export function createFakes() {
     players: 0 as number | Error,
   };
 
+  const data = {
+    backups: [] as BackupDto[],
+    mods: MODS,
+    create: vi.fn(async (request: { source: string }) => backup(`20261027-120000-${request.source}`, { source: request.source as BackupDto["source"] })),
+    restore: vi.fn(async (id: string) => ({ saveName: "_autosave1.zip", replaced: [id] })),
+    remove: vi.fn(async () => undefined),
+    verify: vi.fn(async (id: string): Promise<void> => void id),
+    prune: vi.fn(async () => [] as string[]),
+    download: vi.fn(
+      async () =>
+        new Response("ZIPDATA", {
+          headers: { "content-type": "application/zip", "content-length": "7", "x-content-sha256": "b".repeat(64) },
+        }),
+    ),
+  };
+
   function reset() {
     calls.length = 0;
+    data.backups = [backup("20261027-100000-manual")];
+    data.mods = MODS;
+    for (const fn of [data.create, data.restore, data.remove, data.prune, data.download, data.verify]) fn.mockClear();
+    data.verify.mockImplementation(async () => undefined);
+    data.create.mockImplementation(async (request: { source: string }) =>
+      backup(`20261027-120000-${request.source}`, { source: request.source as BackupDto["source"] }),
+    );
+    data.restore.mockImplementation(async (id: string) => ({ saveName: "_autosave1.zip", replaced: [id] }));
     for (const fn of [...Object.values(agent), rcon.execute, rcon.healthCheck, rcon.disconnect]) {
       fn.mockClear();
     }
@@ -75,6 +118,18 @@ export function createFakes() {
     agentHealthy: async () => true,
   };
 
+  const dataModule = {
+    dataSaves: track("data.saves", async () => ({ saves: [], mods: data.mods })),
+    dataBackups: track("data.backups", async () => data.backups),
+    dataCreateBackup: track("data.create", (request: { source: string }) => data.create(request)),
+    dataRestore: track("data.restore", (id: string) => data.restore(id)),
+    dataVerify: track("data.verify", (id: string) => data.verify(id)),
+    dataDeleteBackup: track("data.delete", () => data.remove()),
+    dataPrune: track("data.prune", () => data.prune()),
+    dataDownload: track("data.download", () => data.download()),
+    dataHealthy: async () => true,
+  };
+
   const rconModule = {
     getRcon: () => ({
       execute: track("rcon.execute", (command: string) => rcon.execute(command)),
@@ -93,5 +148,5 @@ export function createFakes() {
     invalidateStatusCache: () => undefined,
   };
 
-  return { agent, rcon, calls, reset, clientModule, rconModule, statusModule };
+  return { agent, rcon, data, calls, reset, clientModule, dataModule, rconModule, statusModule };
 }

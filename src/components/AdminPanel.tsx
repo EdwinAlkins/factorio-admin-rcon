@@ -8,6 +8,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Console from "@/components/Console";
 import MetricsPanel from "@/components/MetricsPanel";
 import QuickActions from "@/components/QuickActions";
+import SavesPanel from "@/components/SavesPanel";
 import ServerPanel from "@/components/ServerPanel";
 import ServerStatusBar from "@/components/ServerStatusBar";
 import { useActionText } from "@/hooks/useActionText";
@@ -28,7 +29,7 @@ type Pending = {
   run: () => void;
 };
 
-type Tab = "console" | "metrics" | "server";
+type Tab = "console" | "metrics" | "server" | "saves";
 
 /**
  * The command as it will be sent, shown before confirming. Purely informative:
@@ -53,9 +54,11 @@ type Props = {
   metricsEnabled: boolean;
   /** Same, for the Server tab (CONTROL_ENABLED). */
   controlEnabled: boolean;
+  /** Same, for the Saves tab (SAVES_ENABLED). */
+  savesEnabled: boolean;
 };
 
-export default function AdminPanel({ session, actions, metricsEnabled, controlEnabled }: Props) {
+export default function AdminPanel({ session, actions, metricsEnabled, controlEnabled, savesEnabled }: Props) {
   const t = useTranslations();
   const text = useActionText();
   const router = useRouter();
@@ -77,10 +80,12 @@ export default function AdminPanel({ session, actions, metricsEnabled, controlEn
   });
 
   const showServer = controlEnabled && can(session.role, "server:read");
+  const showSaves = savesEnabled && can(session.role, "saves:read");
   const tabs: Tab[] = [
     "console",
     ...(metricsEnabled ? (["metrics"] as const) : []),
     ...(showServer ? (["server"] as const) : []),
+    ...(showSaves ? (["saves"] as const) : []),
   ];
 
   // Mounted with the panel rather than the tab: the status bar uses its state
@@ -221,6 +226,15 @@ export default function AdminPanel({ session, actions, metricsEnabled, controlEn
                 active={tab === "server"}
                 onUnauthorized={onUnauthorized}
                 className={tab === "server" ? "flex-1" : "hidden"}
+              />
+            )}
+
+            {showSaves && (
+              <SavesPanel
+                session={session}
+                active={tab === "saves"}
+                onUnauthorized={onUnauthorized}
+                className={tab === "saves" ? "flex-1" : "hidden"}
               />
             )}
           </div>

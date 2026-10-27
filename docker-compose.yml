@@ -90,6 +90,47 @@ services:
     mem_limit: 32m
     pids_limit: 32
 
+  # The only container that writes the game's files: it archives saves,
+  # restores them, and lets the panel download them. It never sees the Docker
+  # socket — stopping the server around a restore goes through the control
+  # agent. It runs as the factoriotools uid (845) so the files it writes keep
+  # their owner. Unpublished, on the `control` network with the panel only.
+  # With SAVES_ENABLED=false, DELETE this service.
+  data-agent:
+    container_name: factorio-data-agent
+    build:
+      context: services/agents
+      args:
+        AGENT: data-agent
+    restart: unless-stopped
+    depends_on:
+      - factorio
+    user: "845:845"
+    volumes:
+      - ./data/saves:/factorio/saves
+      # Read-only: archives record the mod set they were taken with.
+      - ./data/mods:/factorio/mods:ro
+      # Archives, outside ./data so they can be replicated elsewhere. Must
+      # belong to uid 845 (./setup-admin.sh takes care of it).
+      - ./backups:/backups
+    secrets:
+      - data_agent_token
+    environment:
+      - DATA_AGENT_TOKEN_FILE=/run/secrets/data_agent_token
+      # Only if the server loads a fixed SAVE_NAME (LOAD_LATEST_SAVE=false):
+      # restores then write the save under that name, e.g. my-map.zip.
+      - TARGET_SAVE_NAME=${TARGET_SAVE_NAME:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - control
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    pids_limit: 32
+
   # Web admin panel (Next.js) to run RCON commands - see README.md
   factorio-admin:
     container_name: factorio-admin-panel
@@ -107,6 +148,7 @@ services:
     depends_on:
       - factorio
       - control-agent
+      - data-agent
     ports:
       # Bound to localhost only: the panel gives full RCON access.
       # Both stacks, so browsers resolving "localhost" to ::1 also reach it.
@@ -119,6 +161,7 @@ services:
       - factorio-admin-data:/data
     secrets:
       - control_agent_token
+      - data_agent_token
     # `game` to reach RCON (and to publish the port above), `control` to reach
     # the control agent.
     networks:
@@ -177,6 +220,12 @@ services:
       - CONTROL_AGENT_TOKEN_FILE=/run/secrets/control_agent_token
       - CONTROL_AGENT_TIMEOUT_MS=${CONTROL_AGENT_TIMEOUT_MS:-}
       - CONTROL_SAVE_TIMEOUT_MS=${CONTROL_SAVE_TIMEOUT_MS:-}
+      # Saves (archives, downloads, restores, schedule), through the data
+      # agent. SAVES_ENABLED=false removes the Saves tab and the scheduler.
+      - SAVES_ENABLED=${SAVES_ENABLED:-}
+      - DATA_AGENT_URL=http://data-agent:8080
+      - DATA_AGENT_TOKEN_FILE=/run/secrets/data_agent_token
+      - DATA_AGENT_TIMEOUT_MS=${DATA_AGENT_TIMEOUT_MS:-}
       # Metrics, master switch first, then one flag per source.
       # METRICS_ENABLED=false turns the whole feature off: no collector, no
       # Statistics tab, no /api/metrics -- and the two source flags are ignored.
@@ -214,12 +263,14 @@ networks:
   # Panel <-> game server (RCON). Not internal: the game port is published from
   # here, and the server downloads mod updates.
   game:
-  # Panel <-> control agent. `internal`: no route out, nothing published.
+  # Panel <-> agents. `internal`: no route out, nothing published.
   control:
     internal: true
 
 secrets:
-  # Shared by the panel and the control agent. Kept outside ./data, which the
-  # game server mounts. ./setup-admin.sh generates it.
+  # One per agent, each shared with the panel only. Kept outside ./data, which
+  # the game server mounts. ./setup-admin.sh generates them.
   control_agent_token:
     file: ./secrets/control-agent-token
+  data_agent_token:
+    file: ./secrets/data-agent-token

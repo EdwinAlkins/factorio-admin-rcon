@@ -23,12 +23,20 @@ export const PERMISSIONS = [
   "server:start",
   "server:stop",
   "server:restart",
+  // Saves. Moderators can see what archives exist; acting on them —
+  // including downloading a copy of the whole map — is for administrators.
+  "saves:read",
+  "saves:create",
+  "saves:download",
+  "saves:restore",
+  "saves:delete",
+  "saves:configure",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
 const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   viewer: ["status:read", "action:info", "server:read"],
-  moderator: ["status:read", "action:info", "action:moderate", "server:read"],
+  moderator: ["status:read", "action:info", "action:moderate", "server:read", "saves:read"],
   admin: [
     "status:read",
     "action:info",
@@ -42,6 +50,12 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "server:start",
     "server:stop",
     "server:restart",
+    "saves:read",
+    "saves:create",
+    "saves:download",
+    "saves:restore",
+    "saves:delete",
+    "saves:configure",
   ],
 };
 

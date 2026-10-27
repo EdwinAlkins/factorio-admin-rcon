@@ -4,6 +4,7 @@ import { getRcon } from "@/server/rcon";
 import { loadCustomCatalog } from "@/server/actions/custom";
 import { hasAnyAccount } from "@/server/auth/users";
 import { agentHealthy } from "@/server/control/client";
+import { dataHealthy } from "@/server/data/client";
 import { errorFields, logger } from "@/server/log";
 
 export const runtime = "nodejs";
@@ -13,7 +14,7 @@ type Check = { name: string; ok: boolean };
 
 /**
  * Readiness: valid configuration, reachable database, reachable Factorio
- * server and control agent. Kept distinct from /api/health so a Factorio outage does not restart
+ * server and both agents. Kept distinct from /api/health so a Factorio outage does not restart
  * the panel in a loop.
  */
 export async function GET() {
@@ -62,6 +63,11 @@ export async function GET() {
     const control = await agentHealthy();
     if (!control) logger.warn("readiness: control agent unavailable", { url: config.CONTROL_AGENT_URL });
     checks.push({ name: "control", ok: control });
+  }
+  if (config.SAVES_ENABLED) {
+    const data = await dataHealthy();
+    if (!data) logger.warn("readiness: data agent unavailable", { url: config.DATA_AGENT_URL });
+    checks.push({ name: "data", ok: data });
   }
 
   const ready = checks.every((check) => check.ok);

@@ -7,7 +7,7 @@ import { errorFields, logger, newRequestId } from "@/server/log";
 import { isConfigError } from "@/server/config/env";
 import { ApiFailure, isApiFailure, retryAfterOf } from "@/server/http/errors";
 import { isRconError, RCON_HTTP_STATUS } from "@/server/rcon/errors";
-import { isControlError } from "@/server/control/errors";
+import { isAgentError } from "@/server/agents/errors";
 import { englishError } from "@/server/error-text";
 import type { ApiError, ErrorParams } from "@/lib/api-types";
 
@@ -219,8 +219,8 @@ export function route(options: RouteOptions, handler: (ctx: ApiContext) => Promi
           detail: error.detail,
         });
         response = jsonError(RCON_HTTP_STATUS[error.code], error.key, error.params);
-      } else if (isControlError(error)) {
-        logger.warn("control agent error", {
+      } else if (isAgentError(error)) {
+        logger.warn("agent error", {
           requestId,
           route: options.name,
           code: error.key,

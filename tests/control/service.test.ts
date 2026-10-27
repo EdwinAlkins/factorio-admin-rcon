@@ -13,7 +13,7 @@ const { currentOperation, deriveState, invalidateContainerCache, requestOperatio
 const { getOperation, markInterruptedOperations, createOperation, recentOperations } = await import(
   "@/server/operations/store"
 );
-const { ControlError } = await import("@/server/control/errors");
+const { AgentError } = await import("@/server/agents/errors");
 const { listAudit } = await import("@/server/audit/service");
 const { resetEnvCache, useMemoryDatabase, withEnv } = await import("../helpers");
 
@@ -132,7 +132,7 @@ describe("stop", () => {
 
   it("records the agent's failure on the operation", async () => {
     fakes.agent.stop.mockImplementation(async () => {
-      throw new ControlError("control_docker", { detail: "HTTP 500" });
+      throw new AgentError("control_docker", { detail: "HTTP 500" });
     });
 
     const done = await runToEnd("stop");
@@ -207,7 +207,7 @@ describe("one operation at a time", () => {
 
   it("releases the lock when a pre-check fails", async () => {
     fakes.agent.status.mockImplementation(async () => {
-      throw new ControlError("control_unreachable");
+      throw new AgentError("control_unreachable");
     });
     await refusal(requestOperation(request("stop")));
     expect(currentOperation()).toBeNull();
@@ -279,7 +279,7 @@ describe("container state cache", () => {
     const { getServerState, invalidateContainerCache } = await import("@/server/control/service");
     invalidateContainerCache();
     fakes.agent.status.mockImplementation(async () => {
-      throw new ControlError("control_unreachable");
+      throw new AgentError("control_unreachable");
     });
 
     expect((await getServerState()).controlError).toBe("control_unreachable");

@@ -4,14 +4,14 @@ import { route } from "@/server/http/context";
 import { ApiFailure } from "@/server/http/errors";
 import { limiters } from "@/server/auth/limiters";
 import { recordAudit } from "@/server/audit/service";
-import { ControlError } from "@/server/control/errors";
+import { AgentError } from "@/server/agents/errors";
 import { requestOperation } from "@/server/control/service";
 import type { Permission } from "@/lib/permissions";
-import type { ServerOperationResult, ServerOperationType } from "@/lib/api-types";
+import type { ServerOperationResult } from "@/lib/api-types";
 
 /** CONTROL_ENABLED=false: the endpoints answer as if they did not exist. */
 export function requireControl() {
-  if (!env().CONTROL_ENABLED) throw new ControlError("control_disabled");
+  if (!env().CONTROL_ENABLED) throw new AgentError("control_disabled");
 }
 
 /**
@@ -21,7 +21,7 @@ export function requireControl() {
 const OperationBody = z.object({ force: z.boolean().optional() }).strict();
 
 /** Handler shared by `POST /api/server/{start,stop,restart}`. */
-export function operationRoute(type: ServerOperationType, permission: Permission) {
+export function operationRoute(type: "start" | "stop" | "restart", permission: Permission) {
   return route(
     { name: `server.${type}`, mutation: true, permission, maxBodyBytes: 1024 },
     async ({ json, session, ip, requestId }) => {

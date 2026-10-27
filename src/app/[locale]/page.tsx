@@ -38,6 +38,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
       actions={catalogFor(session!, locale)}
       metricsEnabled={env().METRICS_ENABLED}
       controlEnabled={env().CONTROL_ENABLED}
+      savesEnabled={env().SAVES_ENABLED}
     />
   );
 }

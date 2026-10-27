@@ -55,6 +55,7 @@ export async function register() {
       auditPurged: purged,
       metrics: config.METRICS_ENABLED,
       control: config.CONTROL_ENABLED ? config.CONTROL_AGENT_URL : "disabled",
+      saves: config.SAVES_ENABLED ? config.DATA_AGENT_URL : "disabled",
       operationsInterrupted: interrupted,
       commands: commands.actions.length,
       commandsRejected: commands.rejected,
@@ -63,6 +64,9 @@ export async function register() {
 
     const { startMetricsCollector } = await import("@/server/metrics/collector");
     startMetricsCollector();
+
+    const { startBackupScheduler } = await import("@/server/saves/scheduler");
+    startBackupScheduler();
   } catch (error) {
     logger.error("storage initialisation failed", errorFields(error));
   }

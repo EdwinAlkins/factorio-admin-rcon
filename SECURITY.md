@@ -60,7 +60,10 @@ Some of this panel's most alarming-looking behaviour is deliberate. Before repor
 - making the control agent act on any container other than its stack's `factorio` service, reach a
   Docker endpoint outside its documented list, or return anything from a container's environment;
 - starting, stopping or restarting the server, or reading its logs, without the matching
-  permission.
+  permission;
+- making the data agent read or write outside the saves, mods and backups folders, restore an
+  archive that does not match its recorded checksum, or serve an archive to a role without
+  `saves:download`.
 
 ## Hardening the deployment
 
