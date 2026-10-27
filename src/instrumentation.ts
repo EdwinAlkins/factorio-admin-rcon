@@ -32,7 +32,7 @@ export async function register() {
 
     // Server operations still marked running belong to a previous process,
     // which went down mid-operation.
-    const { markInterruptedOperations, purgeOperations } = await import("@/server/control/operations");
+    const { markInterruptedOperations, purgeOperations } = await import("@/server/operations/store");
     const interrupted = markInterruptedOperations();
     purgeOperations();
 

@@ -11,7 +11,7 @@ const { currentOperation, deriveState, invalidateContainerCache, requestOperatio
   "@/server/control/service"
 );
 const { getOperation, markInterruptedOperations, createOperation, recentOperations } = await import(
-  "@/server/control/operations"
+  "@/server/operations/store"
 );
 const { ControlError } = await import("@/server/control/errors");
 const { listAudit } = await import("@/server/audit/service");
