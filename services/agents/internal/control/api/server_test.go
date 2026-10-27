@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EdwinAlkins/factorio-admin-rcon/services/control-agent/internal/api"
-	"github.com/EdwinAlkins/factorio-admin-rcon/services/control-agent/internal/docker"
-	"github.com/EdwinAlkins/factorio-admin-rcon/services/control-agent/internal/fakedocker"
-	"github.com/EdwinAlkins/factorio-admin-rcon/services/control-agent/internal/target"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/control/api"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/docker"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/fakedocker"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/target"
 )
 
 const token = "0123456789abcdef0123456789abcdef-test"

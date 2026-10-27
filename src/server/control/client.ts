@@ -6,7 +6,7 @@ import type { ContainerStatusDto, ServerLogLineDto } from "@/lib/api-types";
 import type { DockerStats } from "@/server/metrics/docker";
 
 /**
- * Client of the control agent (services/control-agent).
+ * Client of the control agent (services/agents, cmd/control-agent).
  *
  * The agent is the only component holding the Docker socket, and it exposes a
  * closed list of operations on the Factorio container. This module never

@@ -135,7 +135,7 @@ the group that owns it.</p>
 <div class="note">
   <strong>No Docker socket in the panel</strong>
   Server control and CPU/memory metrics go through the control agent
-  (<code>services/control-agent</code>), which holds the socket and answers a
+  (<code>services/agents</code>), which holds the socket and answers a
   closed list of operations on the one <code>factorio</code> container of its
   stack: status, stats, logs, start, stop, restart. No endpoint takes a container
   id, nothing maps onto <code>exec</code>, and its answers are built field by

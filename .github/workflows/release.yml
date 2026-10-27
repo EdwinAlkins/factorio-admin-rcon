@@ -220,7 +220,8 @@ jobs:
       - name: Build and push — control agent
         uses: docker/build-push-action@v7
         with:
-          context: services/control-agent
+          context: services/agents
+          build-args: AGENT=control-agent
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta-agent.outputs.tags }}

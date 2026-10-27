@@ -75,7 +75,7 @@ const EnvSchema = z.object({
 
   // Server control (start/stop/restart/logs) and container metrics both go
   // through the control agent, the only component holding the Docker socket
-  // (see services/control-agent). CONTROL_ENABLED=false removes the Server tab
+  // (see services/agents). CONTROL_ENABLED=false removes the Server tab
   // and its endpoints; container metrics have their own flag below.
   CONTROL_ENABLED: booleanish.default(true),
   // Constrained on purpose: `z.url()` alone would accept "control-agent:8080"

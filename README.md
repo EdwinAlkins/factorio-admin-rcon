@@ -452,7 +452,7 @@ src/
 
 messages/           dictionaries (en.json is the reference)
 services/
-└── control-agent/  Go service holding the Docker socket (see its README)
+└── agents/         Go module of the agents (control-agent holds the Docker socket; see its README)
 ```
 
 Two distinct execution paths:
@@ -526,12 +526,12 @@ before `SIGKILL`. A **start** returns once RCON answers. One operation runs at a
 request gets `409 operation_in_progress`. Each one is recorded in the audit log and in an operation
 history shown on the tab; an operation cut short by the panel restarting is marked `interrupted`.
 
-The panel never holds the Docker socket. The **control agent** (`services/control-agent`, a small Go
+The panel never holds the Docker socket. The **control agent** (`services/agents`, a small Go
 service) does, and answers a closed list of operations — status, stats, logs, start, stop, restart —
 on the one container carrying this stack's `factorio` Compose service label. No endpoint takes a
 container id, and the agent has no code for `exec`, create, delete, images, volumes or networks.
 It sits alone with the panel on an `internal` network, unpublished, and requires a token both share
-as a Compose secret. Details and threat model: [services/control-agent/README.md](services/control-agent/README.md).
+as a Compose secret. Details and threat model: [services/agents/README.md](services/agents/README.md).
 
 ## Endpoints
 

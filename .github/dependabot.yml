@@ -80,7 +80,7 @@ updates:
   # socket. The module has no dependency today; the gomod entry covers any
   # added later. Keep go.mod's `toolchain` line in step by hand.
   - package-ecosystem: docker
-    directory: "/services/control-agent"
+    directory: "/services/agents"
     schedule:
       interval: weekly
       day: monday
@@ -92,7 +92,7 @@ updates:
       include: scope
 
   - package-ecosystem: gomod
-    directory: "/services/control-agent"
+    directory: "/services/agents"
     schedule:
       interval: weekly
       day: monday

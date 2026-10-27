@@ -42,22 +42,23 @@ jobs:
 
       - run: npm test
 
-  # The control agent is the only component holding the Docker socket: it gets
-  # the race detector, a vulnerability scan and gosec on every PR.
-  control-agent:
-    name: Control agent (Go)
+  # The agents hold the Docker socket and the game's files: they get the race
+  # detector, a vulnerability scan, gosec and the privilege-boundary test
+  # (boundaries_test.go) on every PR.
+  agents:
+    name: Agents (Go)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: services/control-agent
+        working-directory: services/agents
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-go@v7
         with:
           # go.mod's `toolchain` line is the single source of the Go version.
-          go-version-file: services/control-agent/go.mod
-          cache-dependency-path: services/control-agent/go.mod
+          go-version-file: services/agents/go.mod
+          cache-dependency-path: services/agents/go.mod
 
       - run: go vet ./...
 
@@ -73,7 +74,7 @@ jobs:
         with:
           version: v2.15.0
           install-mode: goinstall
-          working-directory: services/control-agent
+          working-directory: services/agents
 
   image:
     name: Build image (no push)
@@ -105,11 +106,12 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha
 
-      # The control agent's image, from its own context. A separate cache scope:
-      # it shares no layer with the panel's.
+      # The control agent's image, from the agents' module. A separate cache
+      # scope: it shares no layer with the panel's.
       - uses: docker/build-push-action@v7
         with:
-          context: services/control-agent
+          context: services/agents
+          build-args: AGENT=control-agent
           push: false
           platforms: linux/amd64
           cache-from: type=gha,scope=control-agent

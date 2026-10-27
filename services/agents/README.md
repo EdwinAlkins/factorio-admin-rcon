@@ -1,4 +1,22 @@
-# Factorio control agent
+# Agents
+
+The privileged half of the stack, as small Go services the panel talks to over a private network.
+One module, one binary and one image per agent:
+
+| Agent | Holds | Never holds |
+| --- | --- | --- |
+| `cmd/control-agent` | the Docker socket | the game's files |
+| `cmd/data-agent` (phase 3) | the game's saves and mods | the Docker socket |
+
+The split is enforced, not just described: `boundaries_test.go` fails if either binary links the
+other's packages, or if the shared kit (`internal/agentkit`: token check, logging, mutation guard,
+strict JSON) links either.
+
+```bash
+docker build --build-arg AGENT=control-agent -t factorio-control-agent .
+```
+
+# Control agent
 
 The only component of the stack that mounts the Docker socket. It lets the admin panel start, stop
 and restart the Factorio container, read its state, CPU/memory and logs — and nothing else.
@@ -72,7 +90,7 @@ harmless. Keep it unpublished, keep its image pinned, and rebuild it on Go secur
 
 ## Development
 
-Go 1.27, standard library only.
+Go 1.27, standard library only, for the whole module.
 
 ```bash
 go vet ./... && go test -race ./...

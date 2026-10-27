@@ -6,15 +6,12 @@ package config
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
-)
 
-// MinTokenBytes is the shortest shared token accepted: below it, the token is
-// guessable enough that the bearer check stops meaning anything.
-const MinTokenBytes = 32
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/agentkit"
+)
 
 // Bounds on the grace period given to Factorio before Docker kills it. Below
 // 10 s a large map cannot finish writing its save; above 5 min an operator is
@@ -45,12 +42,7 @@ type Config struct {
 // Load reads the configuration from a lookup function (os.LookupEnv in
 // production, a map in tests).
 func Load(lookup func(string) (string, bool)) (Config, error) {
-	get := func(key, fallback string) string {
-		if value, ok := lookup(key); ok && strings.TrimSpace(value) != "" {
-			return strings.TrimSpace(value)
-		}
-		return fallback
-	}
+	get := agentkit.Env(lookup)
 
 	cfg := Config{
 		ListenAddr:       get("LISTEN_ADDR", ":8080"),
@@ -67,13 +59,11 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 		errs = append(errs, fmt.Errorf("DOCKER_API_VERSION: %q is not of the form 1.NN", cfg.DockerAPIVersion))
 	}
 
-	switch cfg.LogLevel {
-	case "debug", "info", "warn", "error":
-	default:
-		errs = append(errs, fmt.Errorf("LOG_LEVEL: %q is not one of debug, info, warn, error", cfg.LogLevel))
+	if err := agentkit.CheckLogLevel(cfg.LogLevel); err != nil {
+		errs = append(errs, err)
 	}
 
-	token, err := readToken(get)
+	token, err := agentkit.ReadToken(get, "CONTROL_AGENT")
 	if err != nil {
 		errs = append(errs, err)
 	}
@@ -95,26 +85,6 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 		return Config{}, fmt.Errorf("invalid configuration: %w", err)
 	}
 	return cfg, nil
-}
-
-// readToken prefers the file (a Compose secret) over the variable: a token in
-// the environment shows up in `docker inspect`.
-func readToken(get func(string, string) string) ([]byte, error) {
-	var token string
-	if path := get("CONTROL_AGENT_TOKEN_FILE", ""); path != "" {
-		raw, err := os.ReadFile(path) //nolint:gosec // G304: the path is the operator's own setting
-		if err != nil {
-			return nil, fmt.Errorf("CONTROL_AGENT_TOKEN_FILE: %w", err)
-		}
-		token = strings.TrimSpace(string(raw))
-	} else {
-		token = get("CONTROL_AGENT_TOKEN", "")
-	}
-
-	if len(token) < MinTokenBytes {
-		return nil, fmt.Errorf("control agent token: at least %d characters required (set CONTROL_AGENT_TOKEN_FILE)", MinTokenBytes)
-	}
-	return []byte(token), nil
 }
 
 func validAPIVersion(version string) bool {

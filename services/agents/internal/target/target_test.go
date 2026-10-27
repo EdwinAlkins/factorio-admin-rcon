@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EdwinAlkins/factorio-admin-rcon/services/control-agent/internal/docker"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/docker"
 )
 
 type stubDocker struct {

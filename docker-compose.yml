@@ -45,7 +45,7 @@ services:
   # Docker API: it answers a closed list of operations on the `factorio`
   # service of this stack — status, CPU/memory, logs, start, stop, restart —
   # behind a shared token. No exec, no create/delete, no image, volume or
-  # network call exists in its code. See services/control-agent/README.md.
+  # network call exists in its code. See services/agents/README.md.
   #
   # Still the most privileged component here: whoever controls this process
   # controls the socket, hence the confinement below.
@@ -56,7 +56,9 @@ services:
   control-agent:
     container_name: factorio-control-agent
     build:
-      context: services/control-agent
+      context: services/agents
+      args:
+        AGENT: control-agent
     restart: unless-stopped
     # Non-root (distroless "nonroot"), plus the group that owns the socket on
     # the host. ./setup-admin.sh writes DOCKER_GID to .env; by hand:
