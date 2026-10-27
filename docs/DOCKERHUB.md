@@ -72,8 +72,9 @@ services:
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
       - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
-      # No docker-socket-proxy in this stack, so the CPU and memory graphs are
-      # off. Players and UPS keep working.
+      # No control agent in this stack: no Server tab, no CPU and memory
+      # graphs. Players and UPS keep working.
+      - CONTROL_ENABLED=false
       - METRICS_DOCKER=false
 
 volumes:
@@ -138,7 +139,8 @@ What is in place: sessions persisted in SQLite so signing out really revokes the
 constant-time password comparison, login attempt limiting, per-session command rate limiting and a
 bounded RCON queue, origin checking on every mutating request, a nonce-based CSP, HSTS, a bounded
 request body, and an audit log that fingerprints rather than stores raw console commands. The panel
-holds **no Docker socket**.
+holds **no Docker socket**: starting and stopping the server goes through a separate control agent
+(`williamnauroy/factorio-control-agent`) with a closed, Factorio-only API.
 
 Be clear about the limit: the `admin` role has full RCON access by design, which means arbitrary
 Lua. That is the account you protect, not one the panel can constrain.

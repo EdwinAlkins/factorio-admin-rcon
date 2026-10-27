@@ -100,8 +100,9 @@
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
       - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
-      # No docker-socket-proxy here, so the CPU and memory graphs are off.
+      # No control agent here: no Server tab, no CPU and memory graphs.
       # Players and UPS keep working.
+      - CONTROL_ENABLED=false
       - METRICS_DOCKER=false
 
 volumes:

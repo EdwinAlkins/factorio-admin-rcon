@@ -17,9 +17,12 @@ type Limiters = {
   loginPerIp: FixedWindowLimiter;
   loginGlobal: FixedWindowLimiter;
   rconPerSession: FixedWindowLimiter;
+  serverPerSession: FixedWindowLimiter;
 };
 
 const globalRef = globalThis as typeof globalThis & { __factorioLimiters?: Limiters };
+
+export const SERVER_OPERATIONS_PER_MINUTE = 6;
 
 export function limiters(): Limiters {
   if (globalRef.__factorioLimiters) return globalRef.__factorioLimiters;
@@ -31,6 +34,9 @@ export function limiters(): Limiters {
     loginPerIp: new FixedWindowLimiter(config.LOGIN_MAX_ATTEMPTS, windowMs),
     loginGlobal: new FixedWindowLimiter(config.LOGIN_GLOBAL_MAX_ATTEMPTS, windowMs),
     rconPerSession: new FixedWindowLimiter(config.RCON_MAX_PER_MINUTE, 60 * 1000),
+    // Start/stop/restart: a handful per minute is already more than a human
+    // needs, and each one disconnects every player.
+    serverPerSession: new FixedWindowLimiter(SERVER_OPERATIONS_PER_MINUTE, 60 * 1000),
   };
 
   return globalRef.__factorioLimiters;

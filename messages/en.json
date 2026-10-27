@@ -24,6 +24,11 @@
       "ok": "Server reachable, {count, plural, =0 {no player} one {# player} other {# players}} online",
       "error": "Server unreachable",
       "loading": "Status loading"
+    },
+    "lifecycle": {
+      "stopped": "Server stopped",
+      "starting": "Server starting",
+      "stopping": "Server stopping"
     }
   },
   "roles": {
@@ -69,7 +74,10 @@
     },
     "actions": {
       "login": "Sign-in",
-      "command": "Raw command"
+      "command": "Raw command",
+      "start": "Server start",
+      "stop": "Server stop",
+      "restart": "Server restart"
     }
   },
   "confirm": {
@@ -153,7 +161,8 @@
   },
   "tabs": {
     "console": "Console",
-    "metrics": "Statistics"
+    "metrics": "Statistics",
+    "server": "Server"
   },
 
   "metrics": {
@@ -171,12 +180,73 @@
     "low": "low",
     "memoryOf": "{used} / {limit}",
     "chartLabel": "{metric} over the selected range, currently {current}",
-    "dockerUnavailable": "Container metrics unavailable (Docker proxy unreachable).",
+    "dockerUnavailable": "Container metrics unavailable (control agent unreachable).",
     "dockerPending": "Container metrics not collected yet.",
     "dockerDegraded": "Container metrics are lagging (recent readings failed).",
     "sparse": "sparse data over this slice",
     "dockerDisabled": "Container metrics disabled (METRICS_DOCKER=false).",
     "upsUnavailable": "UPS measurement disabled or server unreachable."
+  },
+
+  "server": {
+    "title": "Server",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "state": {
+      "stopped": "Stopped",
+      "starting": "Starting",
+      "running": "Running",
+      "stopping": "Stopping",
+      "error": "Error",
+      "unknown": "Unknown"
+    },
+    "rconDown": "RCON not answering",
+    "players": "Players",
+    "version": "Version",
+    "uptime": "Uptime",
+    "uptimeValue": "{hours} h {minutes} min",
+    "image": "Image",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "confirm": {
+      "startTitle": "Start the server?",
+      "startMessage": "The Factorio container will start and load the map.",
+      "stopTitle": "Stop the server?",
+      "stopMessage": "The map is saved first, then the server is stopped. Players will be disconnected.",
+      "restartTitle": "Restart the server?",
+      "restartMessage": "The map is saved first, then the server restarts. Players will be disconnected.",
+      "forceTitle": "Continue anyway?",
+      "forceLabel": "Continue anyway"
+    },
+    "step": {
+      "pending": "Preparing",
+      "saving": "Saving the map",
+      "stopping": "Stopping the server",
+      "starting": "Starting the container",
+      "waiting_rcon": "Waiting for the map to load"
+    },
+    "operationBy": "requested by {username}",
+    "history": "Recent operations",
+    "historyEmpty": "No operation yet.",
+    "type": {
+      "start": "Start",
+      "stop": "Stop",
+      "restart": "Restart"
+    },
+    "status": {
+      "running": "in progress",
+      "success": "done",
+      "error": "failed",
+      "interrupted": "interrupted"
+    },
+    "forced": "forced",
+    "logs": {
+      "title": "Logs",
+      "hint": "last {count} lines",
+      "refresh": "Refresh",
+      "empty": "No output."
+    }
   },
 
   "errors": {
@@ -230,6 +300,27 @@
     "command_too_long": "Command too long (maximum {max} bytes).",
     "backpressure": "Too many commands queued, try again in a few seconds.",
     "service_stopping": "The panel is shutting down.",
-    "probe_failed": "RCON check failed."
+    "probe_failed": "RCON check failed.",
+
+    "control_disabled": "Server control is disabled on this panel.",
+    "control_config": "Control agent token unavailable on the panel.",
+    "control_unreachable": "The control agent is unreachable.",
+    "control_timeout": "The control agent did not respond in time.",
+    "control_rejected": "The control agent refused the panel's token.",
+    "control_target_missing": "The Factorio container does not exist.",
+    "control_target_ambiguous": "Several containers match the Factorio service; refusing to guess.",
+    "control_busy": "The control agent is already running an operation.",
+    "control_rate_limited": "Too many server operations. Try again in a minute.",
+    "control_docker": "Docker refused or failed the operation.",
+    "control_protocol": "Unexpected response from the control agent.",
+    "operation_in_progress": "Another server operation is in progress.",
+    "server_already_running": "The server is already running.",
+    "server_not_running": "The server is not running.",
+    "players_online": "Players online: {count}. They will be disconnected.",
+    "rcon_unavailable_force_required": "RCON does not answer: the map cannot be saved first, and Factorio will only save on its own if it quits within the grace period.",
+    "save_timeout": "The save did not finish in time; the server was left running.",
+    "rcon_not_back": "The server started but RCON did not answer in time.",
+    "invalid_body": "Invalid request body.",
+    "invalid_tail": "Invalid line count (1 to {max})."
   }
 }

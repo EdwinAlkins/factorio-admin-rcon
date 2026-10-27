@@ -11,7 +11,7 @@ import type { AuditEntryDto } from "@/lib/api-types";
  * durable trace of the panel's activity.
  */
 
-export type AuditKind = "auth" | "rcon" | "action";
+export type AuditKind = "auth" | "rcon" | "action" | "server";
 export type AuditStatus = "success" | "denied" | "error";
 
 export type AuditInput = {

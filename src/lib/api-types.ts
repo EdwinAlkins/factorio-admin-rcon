@@ -206,6 +206,78 @@ export type MetricsResult = {
   health: MetricsHealthDto;
 };
 
+/** Docker's view of the Factorio container, as relayed by the control agent. */
+export type ContainerStatusDto = {
+  /** created, running, paused, restarting, removing, exited or dead. */
+  state: string;
+  /** Only when the image defines a healthcheck. */
+  health?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  exitCode: number;
+  restartCount: number;
+  image: string;
+};
+
+export type ServerLogLineDto = {
+  stream: "stdout" | "stderr";
+  text: string;
+};
+
+export type ServerOperationType = "start" | "stop" | "restart";
+export type ServerOperationStatus = "running" | "success" | "error" | "interrupted";
+/** Where a running operation stands, for the progress display. */
+export type ServerOperationStep = "saving" | "stopping" | "starting" | "waiting_rcon";
+
+export type ServerOperationDto = {
+  id: number;
+  type: ServerOperationType;
+  status: ServerOperationStatus;
+  step: ServerOperationStep | null;
+  username: string;
+  startedAt: number;
+  finishedAt: number | null;
+  /** Translation key under `errors.*` when the operation failed. */
+  errorCode: string | null;
+  /** Whether the operator bypassed the player / RCON checks. */
+  forced: boolean;
+};
+
+/**
+ * The panel's synthesis of the two sources of truth: Docker for the
+ * container, RCON for the game.
+ *
+ * - `stopped`  : the container is not running, on purpose or not;
+ * - `starting` : the container runs but RCON does not answer yet (map loading);
+ * - `running`  : container up and RCON answering;
+ * - `stopping` : an operation of the panel is bringing it down;
+ * - `error`    : the container runs but RCON stays silent, or Docker reports
+ *                it dead or paused;
+ * - `unknown`  : the control agent itself cannot be reached.
+ */
+export type ServerState = "stopped" | "starting" | "running" | "stopping" | "error" | "unknown";
+
+export type ServerResult = {
+  ok: true;
+  state: ServerState;
+  container: ContainerStatusDto | null;
+  /** Translation key under `errors.*` when the agent could not be read. */
+  controlError: string | null;
+  rcon: { ok: boolean; count: number | null; version: string | null };
+  operation: ServerOperationDto | null;
+  recent: ServerOperationDto[];
+};
+
+export type ServerOperationResult = {
+  ok: true;
+  operation: ServerOperationDto;
+};
+
+export type ServerLogsResult = {
+  ok: true;
+  lines: ServerLogLineDto[];
+};
+
 export type SessionInfo = {
   username: string;
   role: Role;

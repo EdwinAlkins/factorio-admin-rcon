@@ -27,7 +27,7 @@
   {"@type":"VideoObject","name":"Factorio Admin RCON panel walkthrough","description":"Signing in, running quick actions, typing a command, the Lua guard, and reading the audit log.","thumbnailUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","contentUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/demo.mp4","uploadDate":"2026-08-28","duration":"PT48S"},
   {"@type":"FAQPage","mainEntity":[
     {"@type":"Question","name":"Does it replace Factorio Server Manager?","acceptedAnswer":{"@type":"Answer","text":"No. That one drives the server binary; this one talks RCON to a server that is already running."}},
-    {"@type":"Question","name":"Does it start my server, or manage mods and saves?","acceptedAnswer":{"@type":"Answer","text":"No. It holds no Docker socket and never touches the server process."}},
+    {"@type":"Question","name":"Does it start my server, or manage mods and saves?","acceptedAnswer":{"@type":"Answer","text":"It starts, stops and restarts the server container, through a separate agent that alone holds the Docker socket. It does not manage mods or saves."}},
     {"@type":"Question","name":"Do I have to expose RCON to the internet?","acceptedAnswer":{"@type":"Answer","text":"No, and you should not. The panel reaches RCON over the compose network; the quickstart publishes no RCON port at all."}},
     {"@type":"Question","name":"Does it run on ARM64?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every release publishes linux/amd64 and linux/arm64 under the same tag."}},
     {"@type":"Question","name":"How do I set up five moderators?","acceptedAnswer":{"@type":"Answer","text":"They share MODERATOR_PASSWORD. There is one password per role, not individual accounts — a deliberate fit for a small self-hosted server."}},
@@ -202,7 +202,9 @@ cat .env            # the password to log in with
   <dd>No. That one drives the server binary; this one talks RCON to a server that is already running.</dd>
 
   <dt>Does it start my server, or manage mods and saves?</dt>
-  <dd>No. It holds no Docker socket and never touches the server process.</dd>
+  <dd>It starts, stops (after saving) and restarts the server container, through a
+  separate agent that alone holds the Docker socket. It does not manage mods or
+  saves.</dd>
 
   <dt>Do I have to expose RCON to the internet?</dt>
   <dd>No, and you should not. The panel reaches RCON over the compose network; the quickstart publishes no RCON port at all.</dd>

@@ -16,12 +16,19 @@ export const PERMISSIONS = [
   "action:custom",
   "rcon:raw",
   "audit:read",
+  // Server lifecycle, through the control agent. Reading the state is open to
+  // every role; the logs are not: they carry player names and IP addresses.
+  "server:read",
+  "server:logs",
+  "server:start",
+  "server:stop",
+  "server:restart",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
 const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  viewer: ["status:read", "action:info"],
-  moderator: ["status:read", "action:info", "action:moderate"],
+  viewer: ["status:read", "action:info", "server:read"],
+  moderator: ["status:read", "action:info", "action:moderate", "server:read"],
   admin: [
     "status:read",
     "action:info",
@@ -30,6 +37,11 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "action:custom",
     "rcon:raw",
     "audit:read",
+    "server:read",
+    "server:logs",
+    "server:start",
+    "server:stop",
+    "server:restart",
   ],
 };
 

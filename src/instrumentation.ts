@@ -30,6 +30,12 @@ export async function register() {
     purgeExpiredSessions();
     const purged = purgeAudit();
 
+    // Server operations still marked running belong to a previous process,
+    // which went down mid-operation.
+    const { markInterruptedOperations, purgeOperations } = await import("@/server/control/operations");
+    const interrupted = markInterruptedOperations();
+    purgeOperations();
+
     // Metrics off: nothing to purge, and above all nothing to start. Rows
     // already collected stay in the database — re-enabling must give the
     // history back, not start from scratch.
@@ -48,6 +54,8 @@ export async function register() {
       dataDir: config.DATA_DIR,
       auditPurged: purged,
       metrics: config.METRICS_ENABLED,
+      control: config.CONTROL_ENABLED ? config.CONTROL_AGENT_URL : "disabled",
+      operationsInterrupted: interrupted,
       commands: commands.actions.length,
       commandsRejected: commands.rejected,
       trustProxy: config.TRUST_PROXY,

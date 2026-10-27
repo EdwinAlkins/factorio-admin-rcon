@@ -14,6 +14,9 @@ const { POST: logout } = await import("@/app/api/logout/route");
 const { POST: rcon } = await import("@/app/api/rcon/route");
 const { POST: actions } = await import("@/app/api/actions/route");
 const { GET: status } = await import("@/app/api/status/route");
+const { POST: serverStart } = await import("@/app/api/server/start/route");
+const { POST: serverStop } = await import("@/app/api/server/stop/route");
+const { POST: serverRestart } = await import("@/app/api/server/restart/route");
 const { resetEnvCache, useMemoryDatabase, withEnv } = await import("../helpers");
 const { call, clearCookies, expectError, signIn, HOST, ORIGIN } = await import("../api/helpers");
 
@@ -27,6 +30,9 @@ const MUTATIONS = [
   { name: "logout", handler: logout, path: "/api/logout", body: undefined },
   { name: "rcon", handler: rcon, path: "/api/rcon", body: { command: "/players" } },
   { name: "actions", handler: actions, path: "/api/actions", body: { action: "version" } },
+  { name: "server/start", handler: serverStart, path: "/api/server/start", body: {} },
+  { name: "server/stop", handler: serverStop, path: "/api/server/stop", body: {} },
+  { name: "server/restart", handler: serverRestart, path: "/api/server/restart", body: {} },
 ];
 
 beforeEach(() => {

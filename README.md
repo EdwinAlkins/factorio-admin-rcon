@@ -22,6 +22,8 @@ need without handing them full RCON.
   "Kick" button without getting arbitrary Lua;
 - **audit log** of every action, refusals included;
 - **raw RCON console**, restricted to the administrator;
+- **server control** — start, stop (after a confirmed save), restart and logs — through a separate
+  agent with a closed API, the only component that holds the Docker socket;
 - **Docker**, `amd64` and `arm64`, with a distroless variant, SBOM and provenance;
 - **English and French**, inferred from the browser.
 
@@ -29,7 +31,8 @@ need without handing them full RCON.
 
 Raw RCON is an all-or-nothing door: one password, no rate limiting, no trace, and full control of
 the server for whoever gets through it. This panel puts roles, bounded commands and an audit log in
-front of that door. It does **not** manage the server process.
+front of that door. It can also start, stop and restart the server container — through a separate
+agent, never by holding the Docker socket itself — but it does not manage mods or saves.
 
 | Need | This panel | Where to look instead |
 | --- | --- | --- |
@@ -39,7 +42,8 @@ front of that door. It does **not** manage the server process.
 | Run your own Lua one-liners as bounded buttons | ✅ | [Custom commands](#custom-commands) |
 | Install, enable or update **mods** | ❌ | [factoriotools/factorio](https://github.com/factoriotools/factorio-docker) and its env vars |
 | Upload, download or roll back **saves** | ❌ | The `./data` volume |
-| Start, stop or update the **server binary** | ❌ | Your compose file, or [OpenFactorioServerManager](https://github.com/OpenFactorioServerManager/factorio-server-manager) |
+| Start, stop or restart the **server**, read its logs | ✅ | [Server control](#server-control) |
+| Update the **server binary** | ❌ | The image tag in your compose file, or [OpenFactorioServerManager](https://github.com/OpenFactorioServerManager/factorio-server-manager) |
 | Drive the server **from scripts** rather than a browser | ❌ | [nekomeowww/factorio-rcon-api](https://github.com/nekomeowww/factorio-rcon-api) |
 
 The honest comparison: *Factorio Server Manager* drives the binary and covers mods and saves, but
@@ -118,9 +122,10 @@ services:
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
       - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
-      # This stack has no docker-socket-proxy, so the CPU and memory graphs are
-      # off. Players and UPS keep working. Add the service from the repository's
-      # compose file to get them back.
+      # This stack has no control agent: no Server tab, and no CPU and memory
+      # graphs. Players and UPS keep working. Add the `control-agent` service
+      # from the repository's compose file to get both back.
+      - CONTROL_ENABLED=false
       - METRICS_DOCKER=false
 
 volumes:
@@ -220,13 +225,34 @@ PR.
 The `factorio-admin` service in the root `docker-compose.yml`:
 
 ```bash
-./setup-admin.sh                              # generates ./.env (passwords + session key)
-docker compose up -d --build factorio-admin   # http://127.0.0.1:3010
+./setup-admin.sh                                            # .env + ./secrets/control-agent-token
+docker compose up -d --build control-agent factorio-admin   # http://127.0.0.1:3010
 ```
 
 `setup-admin.sh --all` also creates the moderator and viewer passwords, `--ask` prompts for them
 instead of generating them, and `--force` rotates every secret (which ends open sessions). Values
-already present in `.env` are kept by default.
+already present in `.env` are kept by default. The script also generates the token the panel shares
+with the control agent (`./secrets/control-agent-token`, a Compose secret) and writes `DOCKER_GID`,
+the group that owns the Docker socket on this host, to `.env`.
+
+### Upgrading from 1.x
+
+2.0 replaces the `docker-proxy` service (`tecnativa/docker-socket-proxy`) with the project's own
+control agent. With `CONTAINERS=1`, that proxy answered `GET /containers/{id}/json` for every
+container on the host — environment variables included, so the panel's own `ADMIN_PASSWORD` and
+`SESSION_SECRET` were one request away from anything that reached it.
+
+1. Take the new `docker-compose.yml` (or port its `control-agent` service, `networks:` and
+   `secrets:` blocks into yours) and delete the `docker-proxy` service.
+2. Run `./setup-admin.sh` once: existing passwords are kept; it adds the agent token and
+   `DOCKER_GID`.
+3. Drop `DOCKER_API_URL`, `METRICS_CONTAINER` and `DOCKER_TIMEOUT_MS` from your environment: the
+   panel no longer reads them (`CONTROL_AGENT_URL` and `CONTROL_AGENT_TIMEOUT_MS` replace them).
+4. `docker compose up -d --build --remove-orphans`.
+
+Not using server control or container metrics? Set `CONTROL_ENABLED=false` and
+`METRICS_DOCKER=false`, and leave the agent out: nothing in the stack then touches the Docker
+socket.
 
 An image is published on every release to `williamnauroy/factorio-admin-rcon` (`linux/amd64` and
 `linux/arm64`). Pin an exact version in production:
@@ -419,11 +445,14 @@ src/
     ├── audit/      SQLite log
     ├── auth/       accounts, sessions, rate limiters
     ├── config/     validated environment variables (zod)
+    ├── control/    control agent client, start/stop/restart orchestration
     ├── http/       route wrapper (session, permission, origin, logs)
-    ├── metrics/    Docker client, sampler, time series
+    ├── metrics/    CPU/memory computation, sampler, time series
     └── rcon/       service, queue, parsing, status cache
 
 messages/           dictionaries (en.json is the reference)
+services/
+└── control-agent/  Go service holding the Docker socket (see its README)
 ```
 
 Two distinct execution paths:
@@ -442,9 +471,10 @@ restores the history. Below the master switch sit one flag per source: `METRICS_
 memory) and `METRICS_UPS` (the Lua tick probe), both on by default and both ignored when the master
 is off.
 
-When metrics are disabled, **remove the `docker-proxy` service** from the compose file: it is the
-only component that mounts the Docker socket, and running it for a switched-off feature keeps the
-attack surface without the benefit.
+CPU and memory come from the [control agent](#server-control). When neither metrics nor server
+control use it (`METRICS_DOCKER=false` and `CONTROL_ENABLED=false`), **remove the `control-agent`
+service** from the compose file: it is the only component that mounts the Docker socket, and running
+it for switched-off features keeps the attack surface without the benefit.
 
 The panel samples the server every `METRICS_INTERVAL_MS` (15 s by default) and stores the result
 in the same SQLite file, keeping `METRICS_RETENTION_DAYS` (7 days ≈ 2 MB) and purging the rest at
@@ -452,7 +482,7 @@ startup and hourly. Four series are collected:
 
 | Metric | Source |
 | --- | --- |
-| CPU %, memory | Docker API, through `docker-proxy` |
+| CPU %, memory | Docker stats, through the control agent |
 | Players online | RCON, via the existing status cache |
 | UPS | RCON, tick delta between two samples (`/silent-command`) |
 
@@ -477,6 +507,32 @@ inferring it from the absence of points.
 The sampler runs in the Node process (`src/server/metrics/collector.ts`, started from
 `src/instrumentation.ts`) — there is no external scheduler to deploy.
 
+## Server control
+
+The **Server** tab shows the container's state as Docker sees it and the game's as RCON sees it —
+which is what tells a server stopped on purpose from one whose RCON is down — and lets an
+administrator start, stop and restart it. `CONTROL_ENABLED=false` removes the tab and its endpoints.
+
+| Role | Sees | Can |
+| --- | --- | --- |
+| `viewer`, `moderator` | state, players, version, uptime, recent operations | — |
+| `admin` | the same, plus the last 200 log lines | start, stop, restart |
+
+A **stop** (or restart) runs in order: refuse if players are online or RCON does not answer, unless
+the administrator confirms a second time; `/server-save` over RCON; wait until the log reports the
+save written (`CONTROL_SAVE_TIMEOUT_MS`, 2 min by default — on timeout the server is **left
+running**); then ask Docker to stop the container, with `STOP_TIMEOUT_SECONDS` (60 s) of grace
+before `SIGKILL`. A **start** returns once RCON answers. One operation runs at a time: a second
+request gets `409 operation_in_progress`. Each one is recorded in the audit log and in an operation
+history shown on the tab; an operation cut short by the panel restarting is marked `interrupted`.
+
+The panel never holds the Docker socket. The **control agent** (`services/control-agent`, a small Go
+service) does, and answers a closed list of operations — status, stats, logs, start, stop, restart —
+on the one container carrying this stack's `factorio` Compose service label. No endpoint takes a
+container id, and the agent has no code for `exec`, create, delete, images, volumes or networks.
+It sits alone with the panel on an `internal` network, unpublished, and requires a token both share
+as a Compose secret. Details and threat model: [services/control-agent/README.md](services/control-agent/README.md).
+
 ## Endpoints
 
 | Route | Auth | Role |
@@ -488,8 +544,11 @@ The sampler runs in the Node process (`src/server/metrics/collector.ts`, started
 | `POST /api/rcon` | `rcon:raw` | Raw console |
 | `GET /api/audit` | `audit:read` | Last 50 audit entries |
 | `GET /api/metrics` | `status:read` | Time series, `?range=1h\|6h\|24h\|7d` (404 when disabled) |
+| `GET /api/server` | `server:read` | Container + game state, operation in progress, recent operations |
+| `GET /api/server/logs` | `server:logs` | Last lines of the Factorio container, `?tail=1..1000` |
+| `POST /api/server/start` · `stop` · `restart` | `server:start` · `stop` · `restart` | `202` + operation; `{ "force": true }` overrides the player / RCON checks |
 | `GET /api/health` | public | Liveness (Docker probe) |
-| `GET /api/ready` | public | Readiness: config + command catalogue + database + RCON |
+| `GET /api/ready` | public | Readiness: config + command catalogue + database + RCON + control agent |
 
 ## Security model
 
@@ -505,10 +564,10 @@ This panel assumes:
   it only if you drive RCON yourself, and bind it to loopback when you do: the protocol offers a
   single password, no rate limiting, and full server control to whoever gets through.
 
-Both the panel and `docker-proxy` run confined in `docker-compose.yml`: `read_only` root filesystem,
-`cap_drop: [ALL]`, `no-new-privileges`, plus memory and PID caps. The panel writes only to the
-`/data` volume, so nothing needs a writable root; `docker-proxy` needs a tmpfs on `/run` because
-haproxy puts its pidfile there.
+Both the panel and the control agent run confined in `docker-compose.yml`: `read_only` root
+filesystem, `cap_drop: [ALL]`, `no-new-privileges`, plus memory and PID caps. The panel writes only
+to the `/data` volume, so nothing needs a writable root; the agent writes nothing at all and runs as
+a non-root uid, reaching the socket through the group that owns it (`DOCKER_GID`).
 
 The `factorio` service is deliberately left alone — it writes saves, mods and config to
 `/factorio`, so a read-only root would break it. If you want the memory graph to show a real
@@ -543,13 +602,16 @@ What is in place:
   keeping. Commands typed in the **raw console** are not: only a 48-character prefix and a
   SHA-256 fingerprint are stored, so a token pasted there does not end up living a second life in
   the database and its backups. Set `AUDIT_FULL_COMMANDS=true` to keep them verbatim;
-- **no Docker socket in the panel**. CPU and memory metrics go through the `docker-proxy`
-  service, which holds the socket and exposes only `GET /containers/...` (`CONTAINERS=1`,
-  `POST=0`). Mounting the socket into the panel itself would hand an attacker who compromised it
-  the whole host — `:ro` on the mount changes nothing, since the Docker API is a write API. The
-  proxy is not published on any port and is reachable only from the compose network. Removing it
-  (and setting `METRICS_ENABLED=false`) only costs the CPU/memory graphs; players and UPS keep
-  working.
+- **no Docker socket in the panel**. Server control and CPU/memory metrics go through the control
+  agent, which holds the socket and exposes a closed, Factorio-specific API rather than a filtered
+  view of Docker's: the panel can ask to stop *the* server, never name a container, and nothing
+  maps onto `exec`. Its answers are built field by field, so container environments — the panel's
+  own secrets included — never leave it. Mounting the socket into the panel itself would hand an
+  attacker who compromised it the whole host — `:ro` on the mount changes nothing, since the Docker
+  API is a write API. The agent stays the most privileged component of the stack: it is unpublished,
+  alone with the panel on an `internal` network the game server is not on, and authenticates the
+  panel with a shared token. Removing it (with `CONTROL_ENABLED=false` and `METRICS_DOCKER=false`)
+  only costs the Server tab and the CPU/memory graphs;
 
 - **user input never reaches Lua unescaped**. The custom command catalogue is written by the
   operator, so it is trusted the same way an environment variable is; what a viewer or moderator
@@ -563,12 +625,14 @@ account has full RCON access by definition.
 ## FAQ
 
 **Does it replace Factorio Server Manager?**
-No. That project drives the server binary — mods, saves, start/stop. This one talks RCON to a
-server that is already running. See [What it is, and what it is not](#what-it-is-and-what-it-is-not).
+No. That project drives the server binary — mods, saves, start/stop. This one talks RCON to the
+server and can start, stop and restart its container, but manages neither mods nor saves. See
+[What it is, and what it is not](#what-it-is-and-what-it-is-not).
 
 **Does it start or stop my server?**
-No. The panel never touches the server process; it holds no Docker socket. Starting the server is
-your compose file's job.
+Yes, from the **Server** tab, for administrators — a stop saves the map first. The panel itself
+still holds no Docker socket: the [control agent](#server-control) does, and only acts on the
+`factorio` service of its own Compose stack.
 
 **Does it manage mods?**
 No. Use the Factorio image's own mod handling (`UPDATE_MODS_ON_START`, the `./data/mods` volume).
@@ -601,8 +665,9 @@ gets your "Kill all enemies" button without getting arbitrary Lua. See
 [Custom commands](#custom-commands).
 
 **Can I run it without the metrics?**
-Yes. `METRICS_ENABLED=false` turns the feature off end to end, and you can then delete the
-`docker-proxy` service — it is the only component that touches the Docker socket.
+Yes. `METRICS_ENABLED=false` turns the feature off end to end. With `CONTROL_ENABLED=false` as well,
+you can then delete the `control-agent` service — it is the only component that touches the Docker
+socket.
 
 **How much does it need?**
 The compose file caps the panel at 256 MB and 128 PIDs, and it stays well under that. Storage is a
@@ -627,6 +692,7 @@ No dates and no promises — the order reflects what would help most, and issues
 - password rotation from the interface instead of a restart;
 - richer audit filtering and export.
 
-Out of scope for the foreseeable future: mod management, save management, and anything that starts
-or stops the server process. Those need control of the binary, which this panel deliberately does
-not have.
+Next on the server-management side: **saves** (create, download, scheduled archives, restore with a
+safety copy) and then **mods** (search the official portal, install, enable, update). Both will go
+through a second agent that mounts the game's files but not the Docker socket — the agent that can
+stop the server will never be the one that can rewrite its files.

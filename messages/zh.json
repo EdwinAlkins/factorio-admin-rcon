@@ -24,6 +24,11 @@
       "ok": "服务器可达，{count} 人在线",
       "error": "服务器不可达",
       "loading": "正在获取状态"
+    },
+    "lifecycle": {
+      "stopped": "服务器已停止",
+      "starting": "服务器启动中",
+      "stopping": "服务器停止中"
     }
   },
   "roles": {
@@ -69,7 +74,10 @@
     },
     "actions": {
       "login": "登录",
-      "command": "原始命令"
+      "command": "原始命令",
+      "start": "启动服务器",
+      "stop": "停止服务器",
+      "restart": "重启服务器"
     }
   },
   "confirm": {
@@ -153,7 +161,8 @@
   },
   "tabs": {
     "console": "控制台",
-    "metrics": "统计"
+    "metrics": "统计",
+    "server": "服务器"
   },
 
   "metrics": {
@@ -171,12 +180,73 @@
     "low": "最低",
     "memoryOf": "{used} / {limit}",
     "chartLabel": "所选范围内的{metric}，当前为 {current}",
-    "dockerUnavailable": "容器指标不可用（Docker 代理不可达）。",
+    "dockerUnavailable": "容器指标不可用（控制代理不可达）。",
     "dockerPending": "尚未采集容器指标。",
     "dockerDegraded": "容器指标滞后（最近的采集失败）。",
     "sparse": "该区间数据稀疏",
     "dockerDisabled": "容器指标已禁用（METRICS_DOCKER=false）。",
     "upsUnavailable": "UPS 测量已禁用或服务器不可达。"
+  },
+
+  "server": {
+    "title": "服务器",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "state": {
+      "stopped": "已停止",
+      "starting": "启动中",
+      "running": "运行中",
+      "stopping": "停止中",
+      "error": "错误",
+      "unknown": "未知"
+    },
+    "rconDown": "RCON 无响应",
+    "players": "玩家",
+    "version": "版本",
+    "uptime": "运行时间",
+    "uptimeValue": "{hours} 小时 {minutes} 分钟",
+    "image": "镜像",
+    "start": "启动",
+    "stop": "停止",
+    "restart": "重启",
+    "confirm": {
+      "startTitle": "启动服务器？",
+      "startMessage": "Factorio 容器将启动并加载地图。",
+      "stopTitle": "停止服务器？",
+      "stopMessage": "先保存地图，然后停止服务器。玩家将被断开连接。",
+      "restartTitle": "重启服务器？",
+      "restartMessage": "先保存地图，然后重启服务器。玩家将被断开连接。",
+      "forceTitle": "仍要继续？",
+      "forceLabel": "仍然继续"
+    },
+    "step": {
+      "pending": "准备中",
+      "saving": "正在保存地图",
+      "stopping": "正在停止服务器",
+      "starting": "正在启动容器",
+      "waiting_rcon": "正在加载地图"
+    },
+    "operationBy": "由 {username} 发起",
+    "history": "最近的操作",
+    "historyEmpty": "暂无操作。",
+    "type": {
+      "start": "启动",
+      "stop": "停止",
+      "restart": "重启"
+    },
+    "status": {
+      "running": "进行中",
+      "success": "完成",
+      "error": "失败",
+      "interrupted": "已中断"
+    },
+    "forced": "强制",
+    "logs": {
+      "title": "日志",
+      "hint": "最近 {count} 行",
+      "refresh": "刷新",
+      "empty": "无输出。"
+    }
   },
 
   "errors": {
@@ -230,6 +300,27 @@
     "command_too_long": "命令过长（最大 {max} 字节）。",
     "backpressure": "排队的命令过多，请稍后重试。",
     "service_stopping": "面板正在关闭。",
-    "probe_failed": "RCON 检查失败。"
+    "probe_failed": "RCON 检查失败。",
+
+    "control_disabled": "此面板已禁用服务器控制。",
+    "control_config": "面板无法读取控制代理令牌。",
+    "control_unreachable": "无法连接控制代理。",
+    "control_timeout": "控制代理未及时响应。",
+    "control_rejected": "控制代理拒绝了面板的令牌。",
+    "control_target_missing": "Factorio 容器不存在。",
+    "control_target_ambiguous": "有多个容器匹配 Factorio 服务，拒绝猜测。",
+    "control_busy": "控制代理正在执行另一项操作。",
+    "control_rate_limited": "服务器操作过多，请一分钟后重试。",
+    "control_docker": "Docker 拒绝或未能完成该操作。",
+    "control_protocol": "控制代理返回了意外的响应。",
+    "operation_in_progress": "另一项服务器操作正在进行中。",
+    "server_already_running": "服务器已在运行。",
+    "server_not_running": "服务器未运行。",
+    "players_online": "在线玩家：{count}。他们将被断开连接。",
+    "rcon_unavailable_force_required": "RCON 无响应：无法先保存地图，只有在宽限期内退出时 Factorio 才会自行保存。",
+    "save_timeout": "保存未及时完成；服务器保持运行。",
+    "rcon_not_back": "服务器已启动，但 RCON 未及时响应。",
+    "invalid_body": "请求体无效。",
+    "invalid_tail": "行数无效（1 到 {max}）。"
   }
 }

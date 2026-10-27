@@ -1,0 +1,31 @@
+version: "2"
+
+linters:
+  # `standard` (errcheck, govet, ineffassign, staticcheck, unused) plus the
+  # checks that matter for a service holding the Docker socket.
+  enable:
+    - bodyclose
+    - errorlint
+    - gosec
+    - noctx
+    - misspell
+    - usestdlibvars
+  exclusions:
+    # Unchecked Close/Flush/print errors: the usual, deliberate idiom.
+    presets:
+      - std-error-handling
+    rules:
+      # The fake daemon and the tests write to sockets they own; gosec's
+      # integer-conversion and unhandled-write findings there are noise.
+      - path: (_test\.go|internal/fakedocker/)
+        linters: [gosec, noctx]
+      # The -healthcheck probe only ever calls 127.0.0.1 on the agent's own
+      # port; the taint analysis flags it because the port comes from the
+      # environment.
+      - path: cmd/control-agent/main.go
+        linters: [gosec]
+        text: G704
+
+formatters:
+  enable:
+    - gofmt

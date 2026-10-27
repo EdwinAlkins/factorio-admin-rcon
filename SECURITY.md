@@ -41,6 +41,9 @@ Some of this panel's most alarming-looking behaviour is deliberate. Before repor
 - **The panel is reachable without HTTPS on `127.0.0.1`.** It binds to loopback by default and
   expects a reverse proxy for anything else; see the
   [deployment guide](https://edwinalkins.github.io/factorio-admin-rcon/deployment.html).
+- **The control agent can stop and start the Factorio container.** That is its job, for whoever
+  holds the shared token — the panel. The boundary is that it cannot do anything *else*, nor do it
+  to anything else.
 - **Rate limiting is bypassable behind a load balancer.** Documented: limiters and the status cache
   live in process memory, so the panel assumes a single instance.
 - **`style-src` keeps `'unsafe-inline'`.** The charts set style attributes on SVG elements. CSS
@@ -53,7 +56,11 @@ Some of this panel's most alarming-looking behaviour is deliberate. Before repor
 - forging or replaying a session cookie, or a sign-out that does not actually revoke it;
 - a mutating route that accepts a cross-origin request;
 - reading the RCON password, `SESSION_SECRET`, or another role's password out of the panel;
-- anything that turns a request into code execution in the container.
+- anything that turns a request into code execution in the container;
+- making the control agent act on any container other than its stack's `factorio` service, reach a
+  Docker endpoint outside its documented list, or return anything from a container's environment;
+- starting, stopping or restarting the server, or reading its logs, without the matching
+  permission.
 
 ## Hardening the deployment
 

@@ -1,18 +1,14 @@
-import { env } from "@/server/config/env";
+import { agentStats } from "@/server/control/client";
 
 /**
- * Minimal Docker Engine API client, with no dependency.
+ * Container CPU and memory, computed from the Docker stats reading.
  *
- * The panel never talks to the Docker socket: it queries a read-only proxy
- * (`tecnativa/docker-socket-proxy`, `CONTAINERS=1 POST=0`) sitting in front of
- * it. The proxy speaks HTTP on a Compose-network host, so `fetch` is enough —
- * no need to pull in `dockerode` for two GET requests.
- *
- * No function in this module throws: a proxy outage must degrade the metrics,
- * not interrupt collection.
+ * The panel never talks to the Docker socket: the reading comes from the
+ * control agent (`GET /v1/server/stats`), which resolves the Factorio
+ * container itself and returns only the fields below.
  */
 
-/** The subset of `GET /containers/{id}/stats` actually used. */
+/** The subset of the Docker stats reading the agent returns. */
 export type DockerStats = {
   cpu_stats?: CpuStats;
   precpu_stats?: CpuStats;
@@ -83,70 +79,7 @@ export function memoryUsage(stats: DockerStats): MemoryUsage | null {
   return { bytes, limit };
 }
 
-type ContainerSummary = { Id: string };
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-async function dockerGet<T>(path: string): Promise<T | null> {
-  const { DOCKER_API_URL, DOCKER_TIMEOUT_MS } = env();
-
-  const response = await fetch(`${DOCKER_API_URL}${path}`, {
-    signal: AbortSignal.timeout(DOCKER_TIMEOUT_MS),
-    headers: { accept: "application/json" },
-  });
-
-  if (!response.ok) {
-    // Draining the body keeps undici from leaving the socket hanging.
-    await response.body?.cancel();
-    if (response.status === 404) return null;
-    throw new Error(`docker ${path} → HTTP ${response.status}`);
-  }
-
-  return (await response.json()) as T;
-}
-
-const globalRef = globalThis as typeof globalThis & { __factorioContainerId?: string };
-
-/**
- * Id of the watched container, remembered between samples.
- *
- * Looked up by Compose label first, then by name: the stack may have been
- * started by something other than `docker compose`, in which case the label is
- * absent.
- */
-export async function findContainerId(): Promise<string | null> {
-  if (globalRef.__factorioContainerId) return globalRef.__factorioContainerId;
-
-  const service = env().METRICS_CONTAINER;
-  const filters = [
-    { label: [`com.docker.compose.service=${service}`] },
-    // Docker's `name` filter is a regular expression matched as a substring:
-    // "factorio" would also catch "factorio-admin-panel", and the panel would
-    // end up measuring itself. So it is anchored to the exact name (the API
-    // prefixes names with a "/").
-    { name: [`^/${escapeRegExp(service)}$`] },
-  ];
-
-  for (const filter of filters) {
-    const query = encodeURIComponent(JSON.stringify(filter));
-    const found = await dockerGet<ContainerSummary[]>(`/containers/json?filters=${query}`);
-    const id = found?.[0]?.Id;
-    if (id) {
-      globalRef.__factorioContainerId = id;
-      return id;
-    }
-  }
-
-  return null;
-}
-
-/** Call this whenever a read fails: the container may have been recreated. */
-export function forgetContainerId() {
-  globalRef.__factorioContainerId = undefined;
-}
-
-export async function readStats(id: string): Promise<DockerStats | null> {
-  return dockerGet<DockerStats>(`/containers/${id}/stats?stream=false`);
+/** One reading of the Factorio container. Throws a `ControlError` on failure. */
+export async function readStats(): Promise<DockerStats> {
+  return agentStats();
 }

@@ -73,6 +73,28 @@ const EnvSchema = z.object({
   // mistakenly pasted secret lives on.
   AUDIT_FULL_COMMANDS: booleanish.default(false),
 
+  // Server control (start/stop/restart/logs) and container metrics both go
+  // through the control agent, the only component holding the Docker socket
+  // (see services/control-agent). CONTROL_ENABLED=false removes the Server tab
+  // and its endpoints; container metrics have their own flag below.
+  CONTROL_ENABLED: booleanish.default(true),
+  // Constrained on purpose: `z.url()` alone would accept "control-agent:8080"
+  // by reading it as an exotic URL scheme, and the error would only surface on
+  // the first fetch, hours later.
+  CONTROL_AGENT_URL: z.url({ protocol: /^https?$/ }).default("http://control-agent:8080"),
+  // Token shared with the agent. The file (a Compose secret) is preferred: a
+  // variable shows up in `docker inspect`.
+  CONTROL_AGENT_TOKEN: z.string().min(32).optional(),
+  CONTROL_AGENT_TOKEN_FILE: z.string().min(1).default("/run/secrets/control_agent_token"),
+  // Deadline of a read (status, stats, logs). Distinct from RCON_TIMEOUT_MS: a
+  // stats reading ties up the daemon for ~1 s to compute its CPU delta, where
+  // RCON is a low-latency persistent socket. Start/stop/restart get their own,
+  // much longer deadline: they last as long as Factorio takes to quit.
+  CONTROL_AGENT_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+  // How long a stop waits for Factorio to report "Saving finished" after
+  // `/server-save` before giving up. Large maps take tens of seconds.
+  CONTROL_SAVE_TIMEOUT_MS: z.coerce.number().int().min(5000).default(120_000),
+
   // Metrics, in three levels: one master switch and two sources.
   //
   // METRICS_ENABLED=false turns the whole feature off — no collector, no tab,
@@ -80,21 +102,10 @@ const EnvSchema = z.object({
   // The remaining variables keep being validated: a malformed value must show
   // up at startup, not months later on the day someone re-enables metrics.
   METRICS_ENABLED: booleanish.default(true),
-  // Docker source (CPU + memory), queried through a read-only proxy (see
-  // docker-compose.yml). At false, only the RCON-sourced metrics are
-  // collected; the rest of the panel keeps working.
+  // Container source (CPU + memory), read from the control agent. At false,
+  // only the RCON-sourced metrics are collected; the rest of the panel keeps
+  // working.
   METRICS_DOCKER: booleanish.default(true),
-  // Constrained on purpose: `z.url()` alone would accept "docker-proxy:2375"
-  // by reading it as an exotic URL scheme, and the error would only surface on
-  // the first fetch, hours later.
-  DOCKER_API_URL: z.url({ protocol: /^https?$/ }).default("http://docker-proxy:2375"),
-  // Value of the `com.docker.compose.service` label, falling back to the container name.
-  METRICS_CONTAINER: z.string().min(1).default("factorio"),
-  // Distinct from RCON_TIMEOUT_MS: a Docker reading crosses an HTTP proxy and
-  // ties up the daemon for ~1 s to compute its CPU delta, where RCON is a
-  // low-latency persistent socket. Tying the two together would break metrics
-  // as soon as the RCON timeout is tightened.
-  DOCKER_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
   // Floored at 5 s: every Docker reading ties up the daemon for ~1 s to
   // compute the CPU delta, and an RCON sample crosses the serialised queue.
   METRICS_INTERVAL_MS: z.coerce.number().int().min(5000).default(15_000),

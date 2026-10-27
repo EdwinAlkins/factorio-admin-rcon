@@ -127,17 +127,23 @@ which outcome and how long it took.</p>
       <code>AUDIT_FULL_COMMANDS=true</code> restores verbatim storage.</li>
 </ul>
 <h2 id="container">Container isolation<a class="anchor" href="#container" aria-label="Link to this section">#</a></h2>
-<p>The panel and <code>docker-proxy</code> both run confined: read-only root,
+<p>The panel and the control agent both run confined: read-only root,
 <code>cap_drop: [ALL]</code>, <code>no-new-privileges</code>, memory and PID
-caps.</p>
+caps. The agent also runs as a non-root uid, reaching the Docker socket through
+the group that owns it.</p>
 
 <div class="note">
   <strong>No Docker socket in the panel</strong>
-  CPU and memory metrics go through the <code>docker-proxy</code> service, which
-  holds the socket and only exposes <code>GET /containers/…</code>. Mounting the
-  socket into the panel would hand the whole host to anyone who compromised it
-  &mdash; and <code>:ro</code> would change nothing, the Docker API being a write
-  API.
+  Server control and CPU/memory metrics go through the control agent
+  (<code>services/control-agent</code>), which holds the socket and answers a
+  closed list of operations on the one <code>factorio</code> container of its
+  stack: status, stats, logs, start, stop, restart. No endpoint takes a container
+  id, nothing maps onto <code>exec</code>, and its answers are built field by
+  field, so no container's environment ever leaves it. It is unpublished, alone
+  with the panel on an <code>internal</code> network, and requires a shared
+  token. Mounting the socket into the panel would hand the whole host to anyone
+  who compromised it &mdash; and <code>:ro</code> would change nothing, the
+  Docker API being a write API.
 </div>
 
 <p>The <code>factorio</code> service is deliberately left alone: it writes its

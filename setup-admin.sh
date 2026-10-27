@@ -1,6 +1,8 @@
 #!/bin/bash
 # Prepares the .env file used by the factorio-admin service:
-# generates the role passwords and the session signing key.
+# generates the role passwords and the session signing key, the token shared
+# with the control agent (./secrets/control-agent-token) and records the group
+# owning the Docker socket (DOCKER_GID).
 #
 # Values already present are kept by default; use --force to regenerate them
 # (which invalidates every open session).
@@ -9,6 +11,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
+SECRETS_DIR="$SCRIPT_DIR/secrets"
+AGENT_TOKEN_FILE="$SECRETS_DIR/control-agent-token"
 
 FORCE=false
 ASSUME_YES=false
@@ -38,6 +42,9 @@ Examples:
   ./setup-admin.sh                 # ADMIN_PASSWORD + SESSION_SECRET
   ./setup-admin.sh --all           # all three roles
   ./setup-admin.sh --force --yes   # full rotation, no questions asked
+
+Also creates ./secrets/control-agent-token (the panel <-> control agent token)
+and writes DOCKER_GID, the group owning the Docker socket, to the .env file.
 EOF
 }
 
@@ -210,6 +217,44 @@ fi
 # session cookie signature.
 ensure_var SESSION_SECRET "session signing key" 32
 
+# Token shared by the panel and the control agent, as a Compose secret: a file
+# rather than a variable, so it never shows up in `docker inspect`. Outside
+# ./data, which the game server mounts.
+ensure_agent_token() {
+    if [[ -s "$AGENT_TOKEN_FILE" && "$FORCE" != true ]]; then
+        KEPT+=("control-agent-token")
+        return
+    fi
+
+    echo "→ creating secrets/control-agent-token (panel <-> control agent)"
+    mkdir -p "$SECRETS_DIR"
+    # The directory keeps other host users out. The file itself must be
+    # readable by both containers, which run as different uids (1000 and
+    # 65532): a bind-mounted secret keeps its host permissions.
+    chmod 700 "$SECRETS_DIR"
+    # Removed first: the previous one is read-only.
+    rm -f "$AGENT_TOKEN_FILE"
+    (umask 022 && generate_secret 32 >"$AGENT_TOKEN_FILE")
+    chmod 444 "$AGENT_TOKEN_FILE"
+    GENERATED+=("control-agent-token=")
+}
+
+ensure_agent_token
+
+# The control agent runs as a non-root uid and reaches the socket through the
+# group that owns it, which differs from host to host.
+DOCKER_SOCKET_PATH="$(get_env_var DOCKER_SOCKET)"
+DOCKER_SOCKET_PATH="${DOCKER_SOCKET_PATH:-/var/run/docker.sock}"
+if [[ -S "$DOCKER_SOCKET_PATH" ]]; then
+    docker_gid="$(stat -c %g "$DOCKER_SOCKET_PATH")"
+    if [[ "$(get_env_var DOCKER_GID)" != "$docker_gid" ]]; then
+        echo "→ DOCKER_GID=$docker_gid (group of $DOCKER_SOCKET_PATH)"
+        upsert_env_var DOCKER_GID "$docker_gid"
+    fi
+elif [[ -z "$(get_env_var DOCKER_GID)" ]]; then
+    echo "warning: $DOCKER_SOCKET_PATH not found; set DOCKER_GID in $ENV_FILE by hand" >&2
+fi
+
 echo
 
 if [[ ${#KEPT[@]} -gt 0 ]]; then
@@ -222,7 +267,7 @@ if [[ ${#GENERATED[@]} -gt 0 ]]; then
     for entry in "${GENERATED[@]}"; do
         key="${entry%%=*}"
         value="${entry#*=}"
-        if [[ "$key" == "SESSION_SECRET" ]]; then
+        if [[ "$key" == "SESSION_SECRET" || "$key" == "control-agent-token" ]]; then
             echo "  $key = (generated, never used by hand)"
         else
             echo "  $key = $value"
@@ -237,10 +282,10 @@ fi
 
 echo
 echo "Next steps:"
-echo "  docker compose up -d --build factorio-admin"
+echo "  docker compose up -d --build control-agent factorio-admin"
 echo "  then http://127.0.0.1:3010"
 
 if [[ ${#KEPT[@]} -gt 0 || ${#GENERATED[@]} -gt 0 ]] && confirm "Start the panel now?"; then
     echo
-    (cd "$SCRIPT_DIR" && docker compose up -d --build factorio-admin)
+    (cd "$SCRIPT_DIR" && docker compose up -d --build control-agent factorio-admin)
 fi

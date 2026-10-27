@@ -1,0 +1,6 @@
+*.md
+*_test.go
+internal/fakedocker
+.golangci.yml
+Dockerfile
+.dockerignore

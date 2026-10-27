@@ -3,6 +3,7 @@ import { getDb } from "@/server/db";
 import { getRcon } from "@/server/rcon";
 import { loadCustomCatalog } from "@/server/actions/custom";
 import { hasAnyAccount } from "@/server/auth/users";
+import { agentHealthy } from "@/server/control/client";
 import { errorFields, logger } from "@/server/log";
 
 export const runtime = "nodejs";
@@ -12,7 +13,7 @@ type Check = { name: string; ok: boolean };
 
 /**
  * Readiness: valid configuration, reachable database, reachable Factorio
- * server. Kept distinct from /api/health so a Factorio outage does not restart
+ * server and control agent. Kept distinct from /api/health so a Factorio outage does not restart
  * the panel in a loop.
  */
 export async function GET() {
@@ -53,6 +54,15 @@ export async function GET() {
     logger.warn("readiness: rcon unavailable", { code: rcon.error.code, detail: rcon.error.detail });
   }
   checks.push({ name: "rcon", ok: rcon.ok });
+
+  // Only when something uses the agent. Its liveness probe, not a Docker
+  // call: a stopped Factorio container must not make the panel "unready".
+  const config = env();
+  if (config.CONTROL_ENABLED || (config.METRICS_ENABLED && config.METRICS_DOCKER)) {
+    const control = await agentHealthy();
+    if (!control) logger.warn("readiness: control agent unavailable", { url: config.CONTROL_AGENT_URL });
+    checks.push({ name: "control", ok: control });
+  }
 
   const ready = checks.every((check) => check.ok);
   return Response.json({ status: ready ? "ready" : "unavailable", checks }, {

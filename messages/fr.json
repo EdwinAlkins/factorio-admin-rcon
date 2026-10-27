@@ -24,6 +24,11 @@
       "ok": "Serveur joignable, {count, plural, =0 {aucun joueur} one {# joueur} other {# joueurs}} en ligne",
       "error": "Serveur injoignable",
       "loading": "Statut en cours de chargement"
+    },
+    "lifecycle": {
+      "stopped": "Serveur arrêté",
+      "starting": "Serveur en démarrage",
+      "stopping": "Serveur en cours d'arrêt"
     }
   },
   "roles": {
@@ -69,7 +74,10 @@
     },
     "actions": {
       "login": "Connexion",
-      "command": "Commande brute"
+      "command": "Commande brute",
+      "start": "Démarrage du serveur",
+      "stop": "Arrêt du serveur",
+      "restart": "Redémarrage du serveur"
     }
   },
   "confirm": {
@@ -153,7 +161,8 @@
   },
   "tabs": {
     "console": "Console",
-    "metrics": "Statistiques"
+    "metrics": "Statistiques",
+    "server": "Serveur"
   },
 
   "metrics": {
@@ -171,12 +180,73 @@
     "low": "min.",
     "memoryOf": "{used} / {limit}",
     "chartLabel": "{metric} sur la plage sélectionnée, actuellement {current}",
-    "dockerUnavailable": "Métriques du conteneur indisponibles (proxy Docker injoignable).",
+    "dockerUnavailable": "Métriques du conteneur indisponibles (agent de contrôle injoignable).",
     "dockerPending": "Métriques du conteneur pas encore relevées.",
     "dockerDegraded": "Métriques du conteneur en retard (relevés récents en échec).",
     "sparse": "données clairsemées sur cette tranche",
     "dockerDisabled": "Métriques du conteneur désactivées (METRICS_DOCKER=false).",
     "upsUnavailable": "Mesure de l'UPS désactivée ou serveur injoignable."
+  },
+
+  "server": {
+    "title": "Serveur",
+    "refresh": "Actualiser",
+    "loading": "Chargement…",
+    "state": {
+      "stopped": "Arrêté",
+      "starting": "Démarrage",
+      "running": "En ligne",
+      "stopping": "Arrêt en cours",
+      "error": "Erreur",
+      "unknown": "Inconnu"
+    },
+    "rconDown": "RCON ne répond pas",
+    "players": "Joueurs",
+    "version": "Version",
+    "uptime": "Uptime",
+    "uptimeValue": "{hours} h {minutes} min",
+    "image": "Image",
+    "start": "Démarrer",
+    "stop": "Arrêter",
+    "restart": "Redémarrer",
+    "confirm": {
+      "startTitle": "Démarrer le serveur ?",
+      "startMessage": "Le conteneur Factorio va démarrer et charger la carte.",
+      "stopTitle": "Arrêter le serveur ?",
+      "stopMessage": "La carte est d'abord sauvegardée, puis le serveur est arrêté. Les joueurs seront déconnectés.",
+      "restartTitle": "Redémarrer le serveur ?",
+      "restartMessage": "La carte est d'abord sauvegardée, puis le serveur redémarre. Les joueurs seront déconnectés.",
+      "forceTitle": "Continuer quand même ?",
+      "forceLabel": "Continuer quand même"
+    },
+    "step": {
+      "pending": "Préparation",
+      "saving": "Sauvegarde de la carte",
+      "stopping": "Arrêt du serveur",
+      "starting": "Démarrage du conteneur",
+      "waiting_rcon": "Chargement de la carte"
+    },
+    "operationBy": "demandé par {username}",
+    "history": "Opérations récentes",
+    "historyEmpty": "Aucune opération pour l'instant.",
+    "type": {
+      "start": "Démarrage",
+      "stop": "Arrêt",
+      "restart": "Redémarrage"
+    },
+    "status": {
+      "running": "en cours",
+      "success": "terminé",
+      "error": "échec",
+      "interrupted": "interrompu"
+    },
+    "forced": "forcé",
+    "logs": {
+      "title": "Logs",
+      "hint": "{count} dernières lignes",
+      "refresh": "Actualiser",
+      "empty": "Aucune sortie."
+    }
   },
 
   "errors": {
@@ -230,6 +300,27 @@
     "command_too_long": "Commande trop longue (maximum {max} octets).",
     "backpressure": "Trop de commandes en attente, réessayez dans quelques secondes.",
     "service_stopping": "Le panneau est en cours d'arrêt.",
-    "probe_failed": "Vérification RCON impossible."
+    "probe_failed": "Vérification RCON impossible.",
+
+    "control_disabled": "Le contrôle du serveur est désactivé sur ce panel.",
+    "control_config": "Jeton de l'agent de contrôle indisponible côté panel.",
+    "control_unreachable": "L'agent de contrôle est injoignable.",
+    "control_timeout": "L'agent de contrôle n'a pas répondu à temps.",
+    "control_rejected": "L'agent de contrôle a refusé le jeton du panel.",
+    "control_target_missing": "Le conteneur Factorio n'existe pas.",
+    "control_target_ambiguous": "Plusieurs conteneurs correspondent au service Factorio ; refus de choisir au hasard.",
+    "control_busy": "L'agent de contrôle exécute déjà une opération.",
+    "control_rate_limited": "Trop d'opérations sur le serveur. Réessayez dans une minute.",
+    "control_docker": "Docker a refusé ou échoué l'opération.",
+    "control_protocol": "Réponse inattendue de l'agent de contrôle.",
+    "operation_in_progress": "Une autre opération sur le serveur est en cours.",
+    "server_already_running": "Le serveur est déjà démarré.",
+    "server_not_running": "Le serveur n'est pas démarré.",
+    "players_online": "Joueurs connectés : {count}. Ils seront déconnectés.",
+    "rcon_unavailable_force_required": "RCON ne répond pas : la carte ne peut pas être sauvegardée avant, et Factorio ne sauvegardera de lui-même que s'il s'arrête dans le délai de grâce.",
+    "save_timeout": "La sauvegarde n'a pas abouti à temps ; le serveur a été laissé en marche.",
+    "rcon_not_back": "Le serveur a démarré mais RCON n'a pas répondu à temps.",
+    "invalid_body": "Corps de requête invalide.",
+    "invalid_tail": "Nombre de lignes invalide (1 à {max})."
   }
 }

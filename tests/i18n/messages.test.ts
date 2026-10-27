@@ -77,6 +77,27 @@ const API_ERROR_CODES = [
   "validation_control_char",
   "validation_comment",
   "unknown_placeholder",
+  // Server control (src/server/control).
+  "control_disabled",
+  "control_config",
+  "control_unreachable",
+  "control_timeout",
+  "control_rejected",
+  "control_target_missing",
+  "control_target_ambiguous",
+  "control_busy",
+  "control_rate_limited",
+  "control_docker",
+  "control_protocol",
+  "operation_in_progress",
+  "server_already_running",
+  "server_not_running",
+  "players_online",
+  "rcon_unavailable_force_required",
+  "save_timeout",
+  "rcon_not_back",
+  "invalid_body",
+  "invalid_tail",
 ];
 
 describe("dictionaries", () => {
