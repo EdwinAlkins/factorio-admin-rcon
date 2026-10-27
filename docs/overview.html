@@ -36,7 +36,7 @@
 <main id="content">
 <header>
   <h1>Overview</h1>
-  <p class="lede">A web interface that drives a headless Factorio server over RCON, with roles, an audit log and bounded commands.</p>
+  <p class="lede">A web interface that drives a headless Factorio server over RCON, with roles, an audit log, bounded commands and safe container controls.</p>
 </header>
 
 <p>This panel exposes a <em>headless</em> Factorio server through the RCON
@@ -58,27 +58,31 @@ server for whoever gets through it.</p>
   <li><a href="./security.html"><strong>Three roles</strong>
       <p>Viewer, moderator, administrator. The catalogue is filtered server-side, and execution re-checks.</p></a></li>
   <li><a href="./security.html#audit"><strong>Audit log</strong>
-      <p>Every action and every refusal, in SQLite, with the command actually sent.</p></a></li>
+      <p>Every action and refusal in SQLite: bounded commands in full, raw RCON as a prefix and fingerprint.</p></a></li>
   <li><a href="./configuration.html#metrics"><strong>Metrics</strong>
       <p>CPU, memory, players and UPS as time series &mdash; without mounting the Docker socket into the panel.</p></a></li>
+  <li><a href="./api.html#server-control"><strong>Server control</strong>
+      <p>Start, save and stop, restart, and read logs through a separate, closed control agent.</p></a></li>
   <li><a href="./api.html"><strong>RCON console</strong>
       <p>A full command line with history &mdash; restricted to the administrator role.</p></a></li>
-  <li><a href="./development.html#i18n"><strong>English and French</strong>
+  <li><a href="./development.html#i18n"><strong>English, French and Chinese</strong>
       <p>Language inferred from the browser, switchable, remembered. No interface text lives server-side.</p></a></li>
 </ul>
 <h2 id="quick-start">Quick start<a class="anchor" href="#quick-start" aria-label="Link to this section">#</a></h2>
 <p>Without cloning anything, paste
 <a href="./installation.html#quick-start">the ready-made <code>docker-compose.yml</code></a>: it
-pulls the published images and starts the game server and the panel together.</p>
+pulls the published images and starts the game server and the panel together.
+That minimal stack has no control agent, so it disables the Server tab and
+Docker CPU/memory metrics.</p>
 <p>From the repository, the <code>factorio-admin</code> service already lives in
 its <code>docker-compose.yml</code>, next to the game server.</p>
 <div class="snippet" data-lang="bash"><pre><code>git clone https://github.com/EdwinAlkins/factorio-admin-rcon.git
 cd factorio-admin-rcon
 
-# Writes ./.env: one password per role, plus the session signing key
+# Writes ./.env and the control-agent token under ./secrets/
 ./setup-admin.sh
 
-docker compose up -d --build factorio-admin
+docker compose up -d --build control-agent factorio-admin
 # → http://127.0.0.1:3010</code></pre></div>
 <div class="note">
   <strong>The panel is not published on the network</strong>

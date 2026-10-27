@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Development &mdash; Factorio Admin RCON</title>
-<meta name="description" content="Code layout, tests, English and French UI, and the Docker release chain for Factorio Admin RCON.">
+<meta name="description" content="Code layout, tests, internationalised UI, and the Docker release chain for Factorio Admin RCON.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/development.html">
 <link rel="stylesheet" href="./assets/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Development &mdash; Factorio Admin RCON">
-<meta property="og:description" content="Code layout, tests, English and French UI, and the Docker release chain for Factorio Admin RCON.">
+<meta property="og:description" content="Code layout, tests, internationalised UI, and the Docker release chain for Factorio Admin RCON.">
 <meta property="og:type" content="article">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://edwinalkins.github.io/factorio-admin-rcon/development.html">
 <meta property="og:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Development &mdash; Factorio Admin RCON">
-<meta name="twitter:description" content="Code layout, tests, English and French UI, and the Docker release chain for Factorio Admin RCON.">
+<meta name="twitter:description" content="Code layout, tests, internationalised UI, and the Docker release chain for Factorio Admin RCON.">
 <meta name="twitter:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Factorio Admin RCON","item":"https://edwinalkins.github.io/factorio-admin-rcon/"},{"@type":"ListItem","position":2,"name":"Development"}]}
@@ -55,8 +55,8 @@ npm run build</code></pre></div>
 </div>
 <h2 id="architecture">Architecture<a class="anchor" href="#architecture" aria-label="Link to this section">#</a></h2><div class="snippet" data-lang="text"><pre><code>src/
 ├── app/            pages + API routes (pages live under `[locale]/`)
-├── components/     interface (console, actions, audit, metrics, dialog)
-├── hooks/          server status, command execution, translations
+├── components/     interface (console, actions, audit, metrics, server control)
+├── hooks/          polling, command execution, server control, translations
 ├── i18n/           routing, dictionary loading, locale-aware navigation
 ├── lib/            shared client/server code (types, permissions, Lua templates)
 └── server/         server-only code
@@ -64,11 +64,14 @@ npm run build</code></pre></div>
     ├── audit/      SQLite log
     ├── auth/       accounts, sessions, rate limiters
     ├── config/     validated environment variables (zod)
+    ├── control/    control-agent client and start/stop/restart orchestration
     ├── http/       route wrapper (session, permission, origin, logs)
-    ├── metrics/    Docker client, collector, time series
+    ├── metrics/    control-agent/RCON collector and time series
     └── rcon/       service, queue, parsing, status cache
 
 messages/           dictionaries (en.json is the reference)
+services/
+└── agents/         Go module of the agents; control-agent holds the Docker socket
 docs/               this site</code></pre></div>
 <p>Two rules shape the server code:</p>
 <ul>
@@ -84,8 +87,9 @@ docs/               this site</code></pre></div>
       taken from the global symbol registry instead of being recognised by
       <code>instanceof</code>.</li>
 </ul>
-<h2 id="tests">Tests<a class="anchor" href="#tests" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Path</th><th>Covers</th></tr></thead><tbody><tr><td><code>tests/&lt;domain&gt;/</code></td><td>Pure logic: RCON queue and lifecycle, Lua escaping, catalogue validation, sessions, rate limiters, metrics, dictionaries</td></tr><tr><td><code>tests/api/</code></td><td>The route handlers, called with a real <code>Request</code>: authentication, roles, validation, error codes, audit trail</td></tr><tr><td><code>tests/security/</code></td><td>What must not regress: origin checking on every mutating route, <code>X-Forwarded-For</code> ignored without <code>TRUST_PROXY</code>, cookie flags, CSP nonce</td></tr><tr><td><code>tests/proxy/</code></td><td>The session guard: no combination of cookie state may produce a redirect cycle</td></tr></tbody></table></div><h2 id="i18n">Internationalisation<a class="anchor" href="#i18n" aria-label="Link to this section">#</a></h2>
-<p>English (default, unprefixed) and French (<code>/fr</code>). The language is
+<h2 id="tests">Tests<a class="anchor" href="#tests" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Path</th><th>Covers</th></tr></thead><tbody><tr><td><code>tests/&lt;domain&gt;/</code></td><td>Pure logic: RCON queue and lifecycle, Lua escaping, catalogue validation, sessions, rate limiters, metrics, server operations, dictionaries</td></tr><tr><td><code>tests/api/</code></td><td>The route handlers, called with a real <code>Request</code>: authentication, roles, validation, error codes, audit trail and server control</td></tr><tr><td><code>tests/security/</code></td><td>What must not regress: origin checking on every mutating route, <code>X-Forwarded-For</code> ignored without <code>TRUST_PROXY</code>, cookie flags, CSP nonce</td></tr><tr><td><code>tests/proxy/</code></td><td>The session guard: no combination of cookie state may produce a redirect cycle</td></tr><tr><td><code>services/agents/</code></td><td>Go tests for target discovery, Docker API calls, log decoding, authentication and rate limits</td></tr></tbody></table></div><h2 id="i18n">Internationalisation<a class="anchor" href="#i18n" aria-label="Link to this section">#</a></h2>
+<p>English (default, unprefixed), French (<code>/fr</code>) and Chinese
+(<code>/zh</code>). The language is
 inferred from <code>Accept-Language</code> on the first visit, switchable from
 the status bar, and remembered in a cookie.</p>
 
@@ -109,9 +113,9 @@ minor, <code>chore:</code> releases nothing. The released version is tagged,
 <code>CHANGELOG.md</code> is updated, and the Docker images are pushed.</p>
 <h3 id="dependabot">Dependabot<a class="anchor" href="#dependabot" aria-label="Link to this section">#</a></h3>
 <p><code>.github/dependabot.yml</code> drives dependency updates. Dependabot is
-native to GitHub: there is no app to install, the file is enough. Three
-ecosystems are tracked &mdash; <code>npm</code>, <code>docker</code> (base
-images) and <code>github-actions</code>.</p>
+native to GitHub: there is no app to install, the file is enough. Four
+ecosystems are tracked &mdash; <code>npm</code>, <code>docker</code> (panel and
+control-agent base images), <code>gomod</code> and <code>github-actions</code>.</p>
 
 <p>The choice that matters is the commit prefix, because semantic-release reads
 it:</p>

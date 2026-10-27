@@ -147,7 +147,8 @@ tailscale serve status</code></pre></div>
 
 <h2 id="checking">Checking it worked<a class="anchor" href="#checking" aria-label="Link to this section">#</a></h2>
 
-<div class="snippet" data-lang="bash"><pre><code># Readiness: config, command catalogue, database and RCON, one object each.
+<div class="snippet" data-lang="bash"><pre><code># Readiness: config, catalogue, database and RCON; plus the control agent when
+# server control or Docker metrics are enabled. One object per check.
 curl -s https://factorio.example.com/api/ready | python3 -m json.tool
 
 # The cookie must come back Secure over HTTPS.

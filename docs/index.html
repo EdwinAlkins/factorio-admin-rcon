@@ -26,7 +26,7 @@
   {"@type":"SoftwareApplication","name":"Factorio Admin RCON","description":"A hardened web console for Factorio servers: roles, bounded commands and an audit log, without handing out full RCON.","url":"https://edwinalkins.github.io/factorio-admin-rcon/","applicationCategory":"DeveloperApplication","operatingSystem":"Linux","license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/EdwinAlkins/factorio-admin-rcon","image":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
   {"@type":"VideoObject","name":"Factorio Admin RCON panel walkthrough","description":"Signing in, running quick actions, typing a command, the Lua guard, and reading the audit log.","thumbnailUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","contentUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/demo.mp4","uploadDate":"2026-08-28","duration":"PT48S"},
   {"@type":"FAQPage","mainEntity":[
-    {"@type":"Question","name":"Does it replace Factorio Server Manager?","acceptedAnswer":{"@type":"Answer","text":"No. That one drives the server binary; this one talks RCON to a server that is already running."}},
+    {"@type":"Question","name":"Does it replace Factorio Server Manager?","acceptedAnswer":{"@type":"Answer","text":"No. That one manages the server binary, mods and saves. This panel focuses on RCON administration and can start or stop the existing Factorio container through a constrained control agent."}},
     {"@type":"Question","name":"Does it start my server, or manage mods and saves?","acceptedAnswer":{"@type":"Answer","text":"It starts, stops and restarts the server container, through a separate agent that alone holds the Docker socket. It does not manage mods or saves."}},
     {"@type":"Question","name":"Do I have to expose RCON to the internet?","acceptedAnswer":{"@type":"Answer","text":"No, and you should not. The panel reaches RCON over the compose network; the quickstart publishes no RCON port at all."}},
     {"@type":"Question","name":"Does it run on ARM64?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every release publishes linux/amd64 and linux/arm64 under the same tag."}},
@@ -74,7 +74,7 @@ else to be able to kick a griefer while you are asleep.</p>
 other answer: the moderator gets a <em>Kick</em> button, and nothing else.</p>
 
 <img class="shot" src="./assets/media/roles.svg"
-     alt="Permission matrix: the viewer reads server state, the moderator adds kick, ban, mute and messages, and only the administrator gets save, promote, the audit log and the raw RCON console.">
+     alt="Permission matrix: every role reads server state, the moderator adds bounded moderation actions, and only the administrator gets lifecycle controls, logs, audit and raw RCON.">
 <p class="shot-caption">Permissions are filtered <em>and</em> re-checked server-side &mdash; the
 interface hiding a button is not what stops the request.</p>
 
@@ -85,11 +85,13 @@ interface hiding a button is not what stops the request.</p>
   <li><a href="./commands.html"><strong>Bounded actions</strong>
       <p>The server builds the command from validated fields. A value cannot break out of the Lua string it lands in.</p></a></li>
   <li><a href="./security.html#audit"><strong>Audit log</strong>
-      <p>Every action and every refusal, in SQLite, with the command actually sent.</p></a></li>
+      <p>Every action and refusal in SQLite: bounded commands in full, raw RCON as a prefix and fingerprint.</p></a></li>
   <li><a href="./api.html"><strong>RCON console</strong>
       <p>A full command line with history &mdash; restricted to the administrator role.</p></a></li>
   <li><a href="./configuration.html#metrics"><strong>Metrics</strong>
       <p>CPU, memory, players and UPS as time series, without mounting the Docker socket into the panel.</p></a></li>
+  <li><a href="./api.html#server-control"><strong>Server control</strong>
+      <p>Start, save and stop, restart, and read logs through a separate, closed control agent.</p></a></li>
   <li><a href="./installation.html"><strong>Docker, amd64 and arm64</strong>
       <p>A distroless variant, an SBOM and build provenance on every release.</p></a></li>
 </ul>
@@ -145,7 +147,7 @@ into the panel. The <a href="./security.html">security model</a> spells out the
 assumptions &mdash; including the ones that are <em>not</em> covered.</p>
 
 <img class="shot" src="./assets/media/audit.png"
-     alt="Audit log: timestamp, role, action, the command actually sent, and the result for each entry.">
+     alt="Audit log: timestamp, role, action, audited command detail, and the result for each entry.">
 <p class="shot-caption">The audit log records refusals too &mdash; a moderator hitting a permission
 wall leaves a trace, which is usually the entry you want.</p>
 
@@ -161,7 +163,8 @@ wall leaves a trace, which is usually the entry you want.</p>
     <tr><td>Run your own Lua one-liners as bounded buttons</td><td>Yes</td><td><a href="./commands.html">Custom commands</a></td></tr>
     <tr><td>Install, enable or update mods</td><td>No</td><td><a href="https://github.com/factoriotools/factorio-docker">factoriotools/factorio</a></td></tr>
     <tr><td>Upload, download or roll back saves</td><td>No</td><td>The <code>./data</code> volume</td></tr>
-    <tr><td>Start, stop or update the server binary</td><td>No</td><td>Your compose file</td></tr>
+    <tr><td>Start, stop or restart the server container</td><td>Yes</td><td>&mdash;</td></tr>
+    <tr><td>Update the server binary</td><td>No</td><td>The image tag in your compose file</td></tr>
     <tr><td>Drive the server from scripts</td><td>No</td><td><a href="https://github.com/nekomeowww/factorio-rcon-api">factorio-rcon-api</a></td></tr>
   </tbody>
 </table>
@@ -187,6 +190,10 @@ docker compose up -d
 cat .env            # the password to log in with
                     # &rarr; http://127.0.0.1:3010</code></pre></div>
 
+<p>This no-clone stack is deliberately minimal: it disables server control and
+Docker CPU/memory metrics because it has no control agent. Clone the repository
+and use its full Compose file to enable those features.</p>
+
 <div class="note">
   <strong>The panel is not published on the network</strong>
   By default it listens on <code>127.0.0.1</code> only. That is deliberate: it
@@ -199,7 +206,9 @@ cat .env            # the password to log in with
 
 <dl class="faq">
   <dt>Does it replace Factorio Server Manager?</dt>
-  <dd>No. That one drives the server binary; this one talks RCON to a server that is already running.</dd>
+  <dd>No. That one manages the server binary, mods and saves. This panel focuses
+  on RCON administration and can start or stop the existing Factorio container
+  through its constrained control agent.</dd>
 
   <dt>Does it start my server, or manage mods and saves?</dt>
   <dd>It starts, stops (after saving) and restarts the server container, through a

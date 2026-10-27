@@ -16,9 +16,9 @@ need without handing them full RCON.
 - **audit log** of every action, refusals included, in SQLite;
 - **raw RCON console**, restricted to the administrator;
 - **metrics** (CPU, memory, players, UPS) without mounting the Docker socket into the panel;
-- **English and French**, inferred from the browser.
+- **English, French and Chinese**, inferred from the browser.
 
-![Permission matrix: only the administrator gets the raw RCON console](https://edwinalkins.github.io/factorio-admin-rcon/assets/media/roles.png)
+![Permission matrix: every role reads server state; only the administrator gets lifecycle controls, logs and raw RCON](https://edwinalkins.github.io/factorio-admin-rcon/assets/media/roles.png)
 
 ## Quick start
 
@@ -44,7 +44,7 @@ services:
     container_name: factorio-admin-panel
     # A minor tag: patches arrive, a major never lands on you by surprise.
     # In production, pin the exact version instead.
-    image: williamnauroy/factorio-admin-rcon:1.4-distroless
+    image: williamnauroy/factorio-admin-rcon:1.5-distroless
     restart: unless-stopped
     depends_on:
       - factorio

@@ -57,3 +57,6 @@ private/
 /dev-tools/media/out/
 /dev-tools/media/node_modules/
 /dev-tools/media/package-lock.json
+
+# Local Graphify knowledge graph and generated reports
+/graphify-out/

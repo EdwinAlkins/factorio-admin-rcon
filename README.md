@@ -27,7 +27,7 @@ need without handing them full RCON.
 - **server control** — start, stop (after a confirmed save), restart and logs — through a separate
   agent with a closed API, the only component that holds the Docker socket;
 - **Docker**, `amd64` and `arm64`, with a distroless variant, SBOM and provenance;
-- **English and French**, inferred from the browser.
+- **English, French and Chinese**, inferred from the browser.
 
 ## What it is, and what it is not
 
@@ -96,7 +96,7 @@ services:
     # `latest` moves under you on the next release; in production, pin the exact
     # version instead. `-distroless` is the hardened variant (no shell, no
     # package manager) — the full tag list is on Docker Hub.
-    image: williamnauroy/factorio-admin-rcon:1.4-distroless
+    image: williamnauroy/factorio-admin-rcon:1.5-distroless
     restart: unless-stopped
     depends_on:
       - factorio
@@ -312,13 +312,13 @@ docker run --rm -it \
 
 One password per role; the role is determined by the password used to sign in.
 
-![Permission matrix: only the administrator gets the raw RCON console](docs/assets/media/roles.png)
+![Permission matrix: every role reads server state; only the administrator gets lifecycle controls, logs and raw RCON](docs/assets/media/roles.png)
 
 | Role | Variable | Can do |
 | --- | --- | --- |
-| `viewer` | `VIEWER_PASSWORD` | Status, players, version, seed, evolution, admins, ban list |
+| `viewer` | `VIEWER_PASSWORD` | Status, players, version, seed, evolution, admins, ban list, container/game state and recent operations |
 | `moderator` | `MODERATOR_PASSWORD` | + kick, ban/unban, mute/unmute, server message, private message |
-| `admin` | `ADMIN_PASSWORD` | + save, promote/demote, custom commands, **raw RCON console**, audit log |
+| `admin` | `ADMIN_PASSWORD` | + save, promote/demote, custom commands, **raw RCON console**, audit log, server logs, start/stop/restart |
 
 Permissions are enforced **server-side**: the action catalogue is filtered by role, and
 `/api/actions` re-checks the permission before executing anything.
@@ -413,9 +413,10 @@ reports `commands: false`).
 
 ## Languages
 
-The panel ships in English (default) and French. The language is inferred from the
+The panel ships in English (default), French and Chinese. The language is inferred from the
 `Accept-Language` header on first visit, can be changed from the switcher in the status bar, and is
-remembered in a cookie. It shows up in the URL: `/` for English, `/fr` for French.
+remembered in a cookie. It shows up in the URL: `/` for English, `/fr` for French and `/zh` for
+Chinese.
 
 To add a language:
 
