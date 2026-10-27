@@ -44,6 +44,12 @@ Some of this panel's most alarming-looking behaviour is deliberate. Before repor
 - **The control agent can stop and start the Factorio container.** That is its job, for whoever
   holds the shared token — the panel. The boundary is that it cannot do anything *else*, nor do it
   to anything else.
+- **An administrator can install any mod from the official portal.** A mod is Lua the server runs,
+  and the portal does not review it. The panel checks that what it installs is the release the
+  portal published (SHA-1, archive structure, `info.json`), not that the release is harmless.
+- **The mod portal token sits in a file on the host** (`secrets/factorio-portal`), readable by the
+  data agent. It is the player's own credential, with the reach the portal gives it; keep the
+  `secrets/` directory to its owner, as `./setup-admin.sh` does.
 - **Rate limiting is bypassable behind a load balancer.** Documented: limiters and the status cache
   live in process memory, so the panel assumes a single instance.
 - **`style-src` keeps `'unsafe-inline'`.** The charts set style attributes on SVG elements. CSS
@@ -63,7 +69,11 @@ Some of this panel's most alarming-looking behaviour is deliberate. Before repor
   permission;
 - making the data agent read or write outside the saves, mods and backups folders, restore an
   archive that does not match its recorded checksum, or serve an archive to a role without
-  `saves:download`.
+  `saves:download`;
+- making the data agent reach any host other than the mod portal and its download host, install an
+  archive whose checksum or `info.json` does not match the release, or write the portal token to
+  a log or an answer;
+- installing, removing, enabling or disabling a mod without `mods:manage`.
 
 ## Hardening the deployment
 

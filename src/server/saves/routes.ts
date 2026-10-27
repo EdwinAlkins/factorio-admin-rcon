@@ -1,7 +1,7 @@
 import { ApiFailure } from "@/server/http/errors";
 import { limiters } from "@/server/auth/limiters";
 import { recordAudit } from "@/server/audit/service";
-import { BACKUP_ID } from "@/server/saves/service";
+import { BACKUP_ID, UPLOAD_ID } from "@/server/saves/service";
 import type { Session } from "@/server/auth/session";
 
 /**
@@ -12,6 +12,20 @@ import type { Session } from "@/server/auth/session";
 export function backupIdFrom(request: Request): string {
   const id = new URL(request.url).pathname.split("/")[3] ?? "";
   if (!BACKUP_ID.test(id)) throw ApiFailure.notFound("backup_not_found");
+  return id;
+}
+
+/**
+ * Largest chunk the panel passes on, the data agent's own bound: small enough
+ * for a reverse proxy's default body limit once raised a little
+ * (`client_max_body_size 10m`), large enough to keep requests few.
+ */
+export const UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024;
+
+/** The upload id from `/api/saves/uploads/<id>/…`, validated the same way. */
+export function uploadIdFrom(request: Request): string {
+  const id = new URL(request.url).pathname.split("/")[4] ?? "";
+  if (!UPLOAD_ID.test(id)) throw ApiFailure.notFound("upload_not_found");
   return id;
 }
 

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"regexp"
-	"strings"
+
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/files"
 )
 
 // ErrInvalidArchive covers every way a file can fail to be a Factorio save.
@@ -42,7 +42,7 @@ func VerifySave(f *os.File, size int64) error {
 	hasLevel := false
 	for _, entry := range reader.File {
 		name := entry.Name
-		if path.IsAbs(name) || strings.Contains(name, "\\") || hasDotDot(name) {
+		if !files.SafeEntryName(name) {
 			return fmt.Errorf("%w: unsafe entry name %q", ErrInvalidArchive, name)
 		}
 		total += entry.UncompressedSize64
@@ -78,13 +78,4 @@ func drain(entry *zip.File) error {
 	limit := int64(min(entry.UncompressedSize64, maxUncompressed)) + 1
 	_, err = io.Copy(io.Discard, io.LimitReader(rc, limit))
 	return err
-}
-
-func hasDotDot(name string) bool {
-	for part := range strings.SplitSeq(name, "/") {
-		if part == ".." {
-			return true
-		}
-	}
-	return false
 }

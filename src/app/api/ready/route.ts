@@ -64,7 +64,7 @@ export async function GET() {
     if (!control) logger.warn("readiness: control agent unavailable", { url: config.CONTROL_AGENT_URL });
     checks.push({ name: "control", ok: control });
   }
-  if (config.SAVES_ENABLED) {
+  if (config.SAVES_ENABLED || config.MODS_ENABLED) {
     const data = await dataHealthy();
     if (!data) logger.warn("readiness: data agent unavailable", { url: config.DATA_AGENT_URL });
     checks.push({ name: "data", ok: data });

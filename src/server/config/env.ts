@@ -108,6 +108,11 @@ const EnvSchema = z.object({
   // Deadline of a listing. Archiving and restoring get their own, much
   // longer one: they copy and verify whole saves.
   DATA_AGENT_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+  // Mods: installed list, updates, search and install from the official
+  // portal, through the same data agent. MODS_ENABLED=false removes the Mods
+  // tab and its endpoints. With both this and SAVES_ENABLED off, the data
+  // agent is not used at all.
+  MODS_ENABLED: booleanish.default(true),
 
   // Metrics, in three levels: one master switch and two sources.
   //

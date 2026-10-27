@@ -143,7 +143,8 @@ describe("stop", () => {
 
 describe("start and restart", () => {
   it("starts, then waits for RCON", async () => {
-    fakes.agent.status.mockImplementation(async () => container("exited"));
+    // Stopped until the agent starts it.
+    fakes.agent.status.mockImplementation(async () => container(fakes.agent.start.mock.calls.length ? "running" : "exited"));
     let probes = 0;
     fakes.rcon.healthCheck.mockImplementation(async () => ({ ok: ++probes >= 3 }));
 
@@ -154,11 +155,29 @@ describe("start and restart", () => {
   });
 
   it("reports a server whose RCON never comes back", async () => {
-    fakes.agent.status.mockImplementation(async () => container("exited"));
+    fakes.agent.status.mockImplementation(async () => container(fakes.agent.start.mock.calls.length ? "running" : "exited"));
     fakes.rcon.healthCheck.mockImplementation(async () => ({ ok: false }));
 
     const done = await runToEnd("start");
     expect(done).toMatchObject({ status: "error", errorCode: "rcon_not_back" });
+  });
+
+  it("reports a server that crashes while loading without waiting it out", async () => {
+    Object.assign(timing, { rconWaitMs: 60_000 });
+    let started = false;
+    fakes.agent.start.mockImplementation(async () => {
+      started = true;
+      return { changed: true, container: container("running") };
+    });
+    // Docker's restart policy brings it back up: only the counter tells.
+    let polls = 0;
+    fakes.agent.status.mockImplementation(async () =>
+      started ? container("running", { restartCount: ++polls > 1 ? 1 : 0 }) : container("exited"),
+    );
+    fakes.rcon.healthCheck.mockImplementation(async () => ({ ok: false }));
+
+    const done = await runToEnd("start");
+    expect(done).toMatchObject({ status: "error", errorCode: "server_crashed" });
   });
 
   it("refuses to start a running server", async () => {

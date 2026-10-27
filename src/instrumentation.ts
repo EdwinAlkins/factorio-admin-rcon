@@ -56,6 +56,7 @@ export async function register() {
       metrics: config.METRICS_ENABLED,
       control: config.CONTROL_ENABLED ? config.CONTROL_AGENT_URL : "disabled",
       saves: config.SAVES_ENABLED ? config.DATA_AGENT_URL : "disabled",
+      mods: config.MODS_ENABLED ? config.DATA_AGENT_URL : "disabled",
       operationsInterrupted: interrupted,
       commands: commands.actions.length,
       commandsRejected: commands.rejected,

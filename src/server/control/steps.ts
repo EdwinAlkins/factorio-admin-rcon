@@ -2,7 +2,7 @@ import { env } from "@/server/config/env";
 import { ApiFailure } from "@/server/http/errors";
 import { getRcon } from "@/server/rcon";
 import { getServerStatus } from "@/server/rcon/status";
-import { agentLogs, agentRestart, agentStart, agentStop } from "@/server/control/client";
+import { agentLogs, agentRestart, agentStart, agentStatus, agentStop } from "@/server/control/client";
 
 /**
  * The building blocks of every operation that touches the server process:
@@ -103,12 +103,31 @@ export async function startServer() {
   await agentStart();
 }
 
-/** Waits until the freshly started server answers RCON. */
+/**
+ * Waits until the freshly started server answers RCON.
+ *
+ * A server that crashes while loading — a broken mod, a map from another mod
+ * set — never will: that is noticed at once rather than after the whole wait,
+ * so a rollback starts in seconds, not minutes. Docker's restart policy may
+ * bring the container straight back up, so a restart counts as a crash too.
+ */
 export async function waitForRcon() {
   const deadline = Date.now() + timing.rconWaitMs;
+  // Taken at the first failed probe: a server that answers at once costs no
+  // extra call.
+  let restartsBefore: number | null = null;
   while (Date.now() < deadline) {
     const probe = await getRcon().healthCheck();
     if (probe.ok) return;
+
+    const container = await agentStatus().catch(() => null);
+    if (container) {
+      restartsBefore ??= container.restartCount;
+      const down = container.state === "exited" || container.state === "dead";
+      if (down || container.restartCount > restartsBefore) {
+        throw new ApiFailure(502, "server_crashed", { exitCode: container.exitCode });
+      }
+    }
     await sleep(timing.rconPollMs);
   }
   throw new ApiFailure(504, "rcon_not_back");

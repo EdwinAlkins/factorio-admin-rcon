@@ -32,11 +32,11 @@
 </div>
 
 <div class="shell">
-<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html" aria-current="page">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html" aria-current="page">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./services.html">Services</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
 <main id="content">
 <header>
   <h1>Overview</h1>
-  <p class="lede">A web interface that drives a headless Factorio server over RCON, with roles, an audit log, bounded commands and safe container controls.</p>
+  <p class="lede">A web interface that drives a headless Factorio server over RCON, with roles, an audit log, bounded commands, and server control, saves and mods through two narrow agents.</p>
 </header>
 
 <p>This panel exposes a <em>headless</em> Factorio server through the RCON
@@ -51,6 +51,10 @@ server for whoever gets through it.</p>
   <li><strong>bounded commands</strong>, built by the server from validated fields
       rather than a free-form command line.</li>
 </ul>
+<p>Around the server itself &mdash; starting and stopping it, its saves, its
+mods &mdash; the panel works through two small agents rather than holding the
+Docker socket or the game's files: the control agent holds the socket, the data
+agent holds the files. See <a href="./services.html">Services</a>.</p>
 <h2 id="features">What it does<a class="anchor" href="#features" aria-label="Link to this section">#</a></h2>
 <ul class="cards">
   <li><a href="./commands.html"><strong>Custom commands</strong>
@@ -61,8 +65,12 @@ server for whoever gets through it.</p>
       <p>Every action and refusal in SQLite: bounded commands in full, raw RCON as a prefix and fingerprint.</p></a></li>
   <li><a href="./configuration.html#metrics"><strong>Metrics</strong>
       <p>CPU, memory, players and UPS as time series &mdash; without mounting the Docker socket into the panel.</p></a></li>
-  <li><a href="./api.html#server-control"><strong>Server control</strong>
+  <li><a href="./services.html#server"><strong>Server control</strong>
       <p>Start, save and stop, restart, and read logs through a separate, closed control agent.</p></a></li>
+  <li><a href="./services.html#saves"><strong>Saves</strong>
+      <p>Archives on demand or on a schedule, download, and restore with a safety copy and automatic rollback.</p></a></li>
+  <li><a href="./services.html#mods"><strong>Mods</strong>
+      <p>Search the official portal, install, update, enable, remove: one preview, one restart, rolled back if it fails.</p></a></li>
   <li><a href="./api.html"><strong>RCON console</strong>
       <p>A full command line with history &mdash; restricted to the administrator role.</p></a></li>
   <li><a href="./development.html#i18n"><strong>English, French and Chinese</strong>
@@ -71,18 +79,20 @@ server for whoever gets through it.</p>
 <h2 id="quick-start">Quick start<a class="anchor" href="#quick-start" aria-label="Link to this section">#</a></h2>
 <p>Without cloning anything, paste
 <a href="./installation.html#quick-start">the ready-made <code>docker-compose.yml</code></a>: it
-pulls the published images and starts the game server and the panel together.
-That minimal stack has no control agent, so it disables the Server tab and
-Docker CPU/memory metrics.</p>
-<p>From the repository, the <code>factorio-admin</code> service already lives in
-its <code>docker-compose.yml</code>, next to the game server.</p>
+pulls the published image and starts the game server and the panel together.
+That minimal stack runs no agent, so it has no Server, Saves or Mods tab and no
+CPU/memory graphs.</p>
+<p>For every feature, <a href="./installation.html#full">clone the repository</a>:
+its <code>docker-compose.yml</code> runs the game server, the panel and both
+agents.</p>
 <div class="snippet" data-lang="bash"><pre><code>git clone https://github.com/EdwinAlkins/factorio-admin-rcon.git
 cd factorio-admin-rcon
 
-# Writes ./.env and the control-agent token under ./secrets/
+# Writes ./.env, the agents' tokens and an empty mod portal secret under
+# ./secrets/, and creates ./backups
 ./setup-admin.sh
 
-docker compose up -d --build control-agent factorio-admin
+docker compose up -d --build control-agent data-agent factorio-admin
 # → http://127.0.0.1:3010</code></pre></div>
 <div class="note">
   <strong>The panel is not published on the network</strong>
@@ -93,7 +103,11 @@ docker compose up -d --build control-agent factorio-admin
 <h2 id="map">How to read this documentation<a class="anchor" href="#map" aria-label="Link to this section">#</a></h2>
 <ul class="cards">
   <li><a href="./installation.html"><strong>Installation</strong>
-      <p>Production setup, hardened image, updating, health probes.</p></a></li>
+      <p>Minimal or full stack, what gets mounted, upgrading from 1.x, health probes.</p></a></li>
+  <li><a href="./services.html"><strong>Services</strong>
+      <p>The stack and its agents, and the Server, Saves and Mods tabs.</p></a></li>
+  <li><a href="./deployment.html"><strong>Deployment</strong>
+      <p>Reverse proxy recipes, outbound access, backups off the host.</p></a></li>
   <li><a href="./configuration.html"><strong>Configuration</strong>
       <p>The complete environment variable reference.</p></a></li>
   <li><a href="./commands.html"><strong>Custom commands</strong>

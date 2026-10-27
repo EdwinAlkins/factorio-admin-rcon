@@ -14,20 +14,23 @@ import (
 	"testing"
 
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/data/api"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/fakeportal"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/fakesave"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/mods"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/saves"
 )
 
 const token = "0123456789abcdef0123456789abcdef-data"
 
 type harness struct {
-	server               *httptest.Server
-	savesDir, backupsDir string
+	server                        *httptest.Server
+	savesDir, backupsDir, modsDir string
+	portal                        *fakeportal.Portal
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
-	h := &harness{savesDir: t.TempDir(), backupsDir: t.TempDir()}
+	h := &harness{savesDir: t.TempDir(), backupsDir: t.TempDir(), modsDir: t.TempDir(), portal: fakeportal.New(t)}
 	savesRoot, err := os.OpenRoot(h.savesDir)
 	if err != nil {
 		t.Fatal(err)
@@ -36,8 +39,17 @@ func newHarness(t *testing.T) *harness {
 	if err != nil {
 		t.Fatal(err)
 	}
+	workRoot, err := os.OpenRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := saves.NewStore(savesRoot, backupsRoot, nil)
+	if err := store.EnableUploads(1 << 20); err != nil {
+		t.Fatal(err)
+	}
 	agent := api.New(api.Options{
-		Store:              saves.NewStore(savesRoot, backupsRoot, nil),
+		Store:              store,
+		Mods:               mods.NewManager(h.modsDir, workRoot, h.portal.NewClient(t, true), 1<<20),
 		Token:              []byte(token),
 		MutationsPerMinute: 100,
 		Logger:             slog.New(slog.DiscardHandler),

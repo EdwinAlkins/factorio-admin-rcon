@@ -43,6 +43,8 @@ export type Recipe<Prepared> = {
   run: (prepared: Prepared, step: (step: ServerOperationStep) => void) => Promise<void>;
   /** Called whatever the outcome, once the lock is released: cache resets. */
   onSettled?: () => void;
+  /** What a successful run produced, for the audit log. */
+  describe?: () => string | null;
 };
 
 type Running = { operation: ServerOperationDto; done: Promise<void> };
@@ -119,7 +121,8 @@ export async function launch<Prepared>(
     .then(
       () => {
         finishOperation(operation.id, { status: "success" });
-        audit("success", recipe.forced ? "forced" : null, Date.now() - startedAt);
+        const detail = [recipe.forced ? "forced" : null, recipe.describe?.() ?? null].filter(Boolean).join(" ");
+        audit("success", detail || null, Date.now() - startedAt);
         logger.info("operation done", { id: operation.id, type: operation.type });
       },
       (error: unknown) => {

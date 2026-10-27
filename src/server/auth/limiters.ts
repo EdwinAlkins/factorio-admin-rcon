@@ -18,11 +18,15 @@ type Limiters = {
   loginGlobal: FixedWindowLimiter;
   rconPerSession: FixedWindowLimiter;
   serverPerSession: FixedWindowLimiter;
+  uploadChunksPerSession: FixedWindowLimiter;
 };
 
 const globalRef = globalThis as typeof globalThis & { __factorioLimiters?: Limiters };
 
 export const SERVER_OPERATIONS_PER_MINUTE = 6;
+
+/** 8 MB each: 80 MB/s, past any uplink, and still a bound on disk writes. */
+export const UPLOAD_CHUNKS_PER_MINUTE = 600;
 
 export function limiters(): Limiters {
   if (globalRef.__factorioLimiters) return globalRef.__factorioLimiters;
@@ -37,6 +41,7 @@ export function limiters(): Limiters {
     // Start/stop/restart: a handful per minute is already more than a human
     // needs, and each one disconnects every player.
     serverPerSession: new FixedWindowLimiter(SERVER_OPERATIONS_PER_MINUTE, 60 * 1000),
+    uploadChunksPerSession: new FixedWindowLimiter(UPLOAD_CHUNKS_PER_MINUTE, 60 * 1000),
   };
 
   return globalRef.__factorioLimiters;

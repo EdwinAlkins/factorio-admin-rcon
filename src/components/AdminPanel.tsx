@@ -9,6 +9,7 @@ import Console from "@/components/Console";
 import MetricsPanel from "@/components/MetricsPanel";
 import QuickActions from "@/components/QuickActions";
 import SavesPanel from "@/components/SavesPanel";
+import ModsPanel from "@/components/ModsPanel";
 import ServerPanel from "@/components/ServerPanel";
 import ServerStatusBar from "@/components/ServerStatusBar";
 import { useActionText } from "@/hooks/useActionText";
@@ -29,7 +30,7 @@ type Pending = {
   run: () => void;
 };
 
-type Tab = "console" | "metrics" | "server" | "saves";
+type Tab = "console" | "metrics" | "server" | "saves" | "mods";
 
 /**
  * The command as it will be sent, shown before confirming. Purely informative:
@@ -56,9 +57,18 @@ type Props = {
   controlEnabled: boolean;
   /** Same, for the Saves tab (SAVES_ENABLED). */
   savesEnabled: boolean;
+  /** Same, for the Mods tab (MODS_ENABLED). */
+  modsEnabled: boolean;
 };
 
-export default function AdminPanel({ session, actions, metricsEnabled, controlEnabled, savesEnabled }: Props) {
+export default function AdminPanel({
+  session,
+  actions,
+  metricsEnabled,
+  controlEnabled,
+  savesEnabled,
+  modsEnabled,
+}: Props) {
   const t = useTranslations();
   const text = useActionText();
   const router = useRouter();
@@ -81,11 +91,13 @@ export default function AdminPanel({ session, actions, metricsEnabled, controlEn
 
   const showServer = controlEnabled && can(session.role, "server:read");
   const showSaves = savesEnabled && can(session.role, "saves:read");
+  const showMods = modsEnabled && can(session.role, "mods:read");
   const tabs: Tab[] = [
     "console",
     ...(metricsEnabled ? (["metrics"] as const) : []),
     ...(showServer ? (["server"] as const) : []),
     ...(showSaves ? (["saves"] as const) : []),
+    ...(showMods ? (["mods"] as const) : []),
   ];
 
   // Mounted with the panel rather than the tab: the status bar uses its state
@@ -235,6 +247,15 @@ export default function AdminPanel({ session, actions, metricsEnabled, controlEn
                 active={tab === "saves"}
                 onUnauthorized={onUnauthorized}
                 className={tab === "saves" ? "flex-1" : "hidden"}
+              />
+            )}
+
+            {showMods && (
+              <ModsPanel
+                session={session}
+                active={tab === "mods"}
+                onUnauthorized={onUnauthorized}
+                className={tab === "mods" ? "flex-1" : "hidden"}
               />
             )}
           </div>

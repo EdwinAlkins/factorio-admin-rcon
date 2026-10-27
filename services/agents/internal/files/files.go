@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -25,6 +26,22 @@ var zipName = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._-]{0,99}\.zip$`)
 // save, which factoriotools deletes at startup: never a valid source.
 func ValidZipName(name string) bool {
 	return zipName.MatchString(name) && !strings.HasSuffix(strings.ToLower(name), ".tmp.zip")
+}
+
+// SafeEntryName accepts a zip entry name that stays inside wherever the
+// archive would be unpacked: relative, forward slashes only, no `..` part.
+// Nothing here unpacks archives, but a save or a mod carrying such a name is
+// crafted, not damaged.
+func SafeEntryName(name string) bool {
+	if path.IsAbs(name) || strings.Contains(name, "\\") {
+		return false
+	}
+	for part := range strings.SplitSeq(name, "/") {
+		if part == ".." {
+			return false
+		}
+	}
+	return true
 }
 
 // Copied describes a completed copy.

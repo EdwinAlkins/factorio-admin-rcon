@@ -27,7 +27,29 @@ export type AgentErrorKey =
   | "backup_not_found"
   | "no_save"
   | "invalid_archive"
-  | "checksum_mismatch";
+  | "checksum_mismatch"
+  // Data agent, uploads.
+  | "upload_not_found"
+  | "upload_busy"
+  | "upload_offset"
+  | "upload_too_large"
+  | "upload_incomplete"
+  | "uploads_disabled"
+  | "chunk_too_large"
+  // Data agent, mods.
+  | "mods_conflict"
+  | "plan_changed"
+  | "mods_nothing_to_do"
+  | "tx_not_found"
+  | "tx_already_committed"
+  | "mods_unavailable"
+  | "invalid_mod_archive"
+  | "mod_not_found"
+  | "portal_credentials_missing"
+  | "portal_rejected"
+  | "portal_unreachable"
+  | "download_too_large"
+  | "download_checksum";
 
 const TRANSPORT_STATUS: Record<TransportKey, number> = {
   disabled: 404,
@@ -50,7 +72,51 @@ const SPECIFIC_STATUS: Partial<Record<AgentErrorKey, number>> = {
   no_save: 409,
   invalid_archive: 422,
   checksum_mismatch: 422,
+  upload_not_found: 404,
+  upload_busy: 409,
+  upload_offset: 409,
+  upload_too_large: 413,
+  upload_incomplete: 409,
+  uploads_disabled: 404,
+  chunk_too_large: 413,
+  mods_conflict: 409,
+  plan_changed: 409,
+  mods_nothing_to_do: 409,
+  tx_not_found: 404,
+  tx_already_committed: 409,
+  mods_unavailable: 409,
+  invalid_mod_archive: 422,
+  mod_not_found: 404,
+  portal_credentials_missing: 409,
+  portal_rejected: 502,
+  portal_unreachable: 502,
+  download_too_large: 422,
+  download_checksum: 422,
 };
+
+/** Codes the data agent answers for uploads and mods, passed through as they are. */
+const PASSTHROUGH_CODES = new Set<AgentErrorKey>([
+  "upload_not_found",
+  "upload_busy",
+  "upload_offset",
+  "upload_too_large",
+  "upload_incomplete",
+  "uploads_disabled",
+  "chunk_too_large",
+  "mods_conflict",
+  "plan_changed",
+  "mods_nothing_to_do",
+  "tx_not_found",
+  "tx_already_committed",
+  "mods_unavailable",
+  "invalid_mod_archive",
+  "mod_not_found",
+  "portal_credentials_missing",
+  "portal_rejected",
+  "portal_unreachable",
+  "download_too_large",
+  "download_checksum",
+]);
 
 export function agentHttpStatus(key: AgentErrorKey): number {
   const specific = SPECIFIC_STATUS[key];
@@ -117,5 +183,6 @@ export function fromAgentCode(agent: AgentName, code: string | undefined, status
     case "io_error":
       return "data_io";
   }
+  if (code && PASSTHROUGH_CODES.has(code as AgentErrorKey)) return code as AgentErrorKey;
   return status >= 500 ? "data_io" : "data_protocol";
 }

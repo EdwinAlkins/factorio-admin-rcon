@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/files"
@@ -39,12 +40,15 @@ const (
 	SourceScheduled  = "scheduled"
 	SourcePreRestore = "pre-restore"
 	SourcePreMods    = "pre-mods"
+	// Sent from the operator's computer: see uploads.go. Never archived from
+	// the saves folder.
+	SourceUpload = "upload"
 )
 
-var sources = []string{SourceManual, SourceScheduled, SourcePreRestore, SourcePreMods}
+var sources = []string{SourceManual, SourceScheduled, SourcePreRestore, SourcePreMods, SourceUpload}
 
 // IDs are generated here, never taken from a caller as-is: `20261027-143000-manual`.
-var idPattern = regexp.MustCompile(`^[0-9]{8}-[0-9]{6}-(manual|scheduled|pre-restore|pre-mods)(-[0-9]{1,3})?$`)
+var idPattern = regexp.MustCompile(`^[0-9]{8}-[0-9]{6}-(manual|scheduled|pre-restore|pre-mods|upload)(-[0-9]{1,3})?$`)
 
 // ValidID reports whether id has the shape of an archive id.
 func ValidID(id string) bool { return idPattern.MatchString(id) }
@@ -93,6 +97,11 @@ type Store struct {
 	now  func() time.Time
 	// Between two attempts at archiving a save that was being written.
 	retryDelay time.Duration
+
+	// Zero until EnableUploads: no upload is accepted.
+	maxUpload int64
+	uploadMu  sync.Mutex
+	upload    *upload
 }
 
 func NewStore(saves, backups, mods *os.Root) *Store {
@@ -197,6 +206,9 @@ type CreateRequest struct {
 // copied: the copy is verified before being published, and retried a few
 // times if it does not check out.
 func (s *Store) Create(request CreateRequest) (Meta, error) {
+	if request.Source == SourceUpload {
+		return Meta{}, fmt.Errorf("source %q is not archived from the saves folder", request.Source)
+	}
 	saves, err := s.ListSaves()
 	if err != nil {
 		return Meta{}, err

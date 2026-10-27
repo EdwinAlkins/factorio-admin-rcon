@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Factorio Admin RCON &mdash; kick and ban without sharing the RCON password</title>
-<meta name="description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, amd64 and arm64.">
+<meta name="description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, server control, saves and mods, amd64 and arm64.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/">
 <link rel="stylesheet" href="./assets/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Factorio Admin RCON &mdash; kick and ban without sharing the RCON password">
-<meta property="og:description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, amd64 and arm64.">
+<meta property="og:description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, server control, saves and mods, amd64 and arm64.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://edwinalkins.github.io/factorio-admin-rcon/">
@@ -18,7 +18,7 @@
 <meta property="og:image:alt" content="The panel: quick actions, RCON console and audit log.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Factorio Admin RCON &mdash; kick and ban without sharing the RCON password">
-<meta name="twitter:description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, amd64 and arm64.">
+<meta name="twitter:description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, server control, saves and mods, amd64 and arm64.">
 <meta name="twitter:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
 <meta name="google-site-verification" content="P8_q5m3CQFlDe184FcNYOAyA1Mddt9Jkh3AhzLzw1QU">
 <script type="application/ld+json">
@@ -26,8 +26,10 @@
   {"@type":"SoftwareApplication","name":"Factorio Admin RCON","description":"A hardened web console for Factorio servers: roles, bounded commands and an audit log, without handing out full RCON.","url":"https://edwinalkins.github.io/factorio-admin-rcon/","applicationCategory":"DeveloperApplication","operatingSystem":"Linux","license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/EdwinAlkins/factorio-admin-rcon","image":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
   {"@type":"VideoObject","name":"Factorio Admin RCON panel walkthrough","description":"Signing in, running quick actions, typing a command, the Lua guard, and reading the audit log.","thumbnailUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","contentUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/demo.mp4","uploadDate":"2026-08-28","duration":"PT48S"},
   {"@type":"FAQPage","mainEntity":[
-    {"@type":"Question","name":"Does it replace Factorio Server Manager?","acceptedAnswer":{"@type":"Answer","text":"No. That one manages the server binary, mods and saves. This panel focuses on RCON administration and can start or stop the existing Factorio container through a constrained control agent."}},
-    {"@type":"Question","name":"Does it start my server, or manage mods and saves?","acceptedAnswer":{"@type":"Answer","text":"It starts, stops and restarts the server container, through a separate agent that alone holds the Docker socket. It does not manage mods or saves."}},
+    {"@type":"Question","name":"Does it replace Factorio Server Manager?","acceptedAnswer":{"@type":"Answer","text":"Mostly, for a Docker server. It starts, stops and restarts the server, archives and restores saves, and installs mods from the official portal, each through a narrow agent. It does not update the server binary: that stays the image tag in your compose file."}},
+    {"@type":"Question","name":"Does it start my server, or manage mods and saves?","acceptedAnswer":{"@type":"Answer","text":"Yes, all three, in the full stack. A control agent alone holds the Docker socket; a data agent alone holds the game's files and reaches the mod portal. The minimal stack, pasted without cloning, has neither."}},
+    {"@type":"Question","name":"What happens if a mod breaks the server?","acceptedAnswer":{"@type":"Answer","text":"Mod changes are applied as one operation with a single restart, after an archive of the map. If the server does not come back, the previous mods are put back and the server restarted as it was."}},
+    {"@type":"Question","name":"Do I need a factorio.com account?","acceptedAnswer":{"@type":"Answer","text":"Only to search the portal and download mods, as the game itself does. Without one, the Mods tab still lists, enables, disables and removes mods."}},
     {"@type":"Question","name":"Do I have to expose RCON to the internet?","acceptedAnswer":{"@type":"Answer","text":"No, and you should not. The panel reaches RCON over the compose network; the quickstart publishes no RCON port at all."}},
     {"@type":"Question","name":"Does it run on ARM64?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every release publishes linux/amd64 and linux/arm64 under the same tag."}},
     {"@type":"Question","name":"How do I set up five moderators?","acceptedAnswer":{"@type":"Answer","text":"They share MODERATOR_PASSWORD. There is one password per role, not individual accounts — a deliberate fit for a small self-hosted server."}},
@@ -90,8 +92,12 @@ interface hiding a button is not what stops the request.</p>
       <p>A full command line with history &mdash; restricted to the administrator role.</p></a></li>
   <li><a href="./configuration.html#metrics"><strong>Metrics</strong>
       <p>CPU, memory, players and UPS as time series, without mounting the Docker socket into the panel.</p></a></li>
-  <li><a href="./api.html#server-control"><strong>Server control</strong>
+  <li><a href="./services.html#server"><strong>Server control</strong>
       <p>Start, save and stop, restart, and read logs through a separate, closed control agent.</p></a></li>
+  <li><a href="./services.html#saves"><strong>Saves</strong>
+      <p>Archives on demand or on a schedule, download, and restore with a safety copy and automatic rollback.</p></a></li>
+  <li><a href="./services.html#mods"><strong>Mods</strong>
+      <p>Search the official portal, install, update, enable, remove &mdash; dependencies resolved, one restart, rolled back if it fails.</p></a></li>
   <li><a href="./installation.html"><strong>Docker, amd64 and arm64</strong>
       <p>A distroless variant, an SBOM and build provenance on every release.</p></a></li>
 </ul>
@@ -161,9 +167,11 @@ wall leaves a trace, which is usually the entry you want.</p>
     <tr><td>Delegate moderation without handing out RCON</td><td>Yes</td><td>&mdash;</td></tr>
     <tr><td>Know who ran what, and what was refused</td><td>Yes</td><td>&mdash;</td></tr>
     <tr><td>Run your own Lua one-liners as bounded buttons</td><td>Yes</td><td><a href="./commands.html">Custom commands</a></td></tr>
-    <tr><td>Install, enable or update mods</td><td>No</td><td><a href="https://github.com/factoriotools/factorio-docker">factoriotools/factorio</a></td></tr>
-    <tr><td>Upload, download or roll back saves</td><td>No</td><td>The <code>./data</code> volume</td></tr>
-    <tr><td>Start, stop or restart the server container</td><td>Yes</td><td>&mdash;</td></tr>
+    <tr><td>Install, enable or update mods from the official portal</td><td>Yes</td><td><a href="./services.html#mods">Mods</a></td></tr>
+    <tr><td>Archive, download or roll back saves, on a schedule too</td><td>Yes</td><td><a href="./services.html#saves">Saves</a></td></tr>
+    <tr><td>Upload a save from your computer</td><td>Yes</td><td><a href="./services.html#import">Import a save</a></td></tr>
+    <tr><td>Edit mod settings</td><td>No</td><td><code>mod-settings.dat</code>, from the game</td></tr>
+    <tr><td>Start, stop or restart the server container</td><td>Yes</td><td><a href="./services.html#server">Server</a></td></tr>
     <tr><td>Update the server binary</td><td>No</td><td>The image tag in your compose file</td></tr>
     <tr><td>Drive the server from scripts</td><td>No</td><td><a href="https://github.com/nekomeowww/factorio-rcon-api">factorio-rcon-api</a></td></tr>
   </tbody>
@@ -171,9 +179,10 @@ wall leaves a trace, which is usually the entry you want.</p>
 </div>
 
 <p><em>Factorio Server Manager</em> drives the binary and covers mods and saves,
-but it has had no release since March 2021 and has never seen Factorio 2.0. It
-solves a different problem; where the two overlap, this panel is the narrower,
-harder-edged tool.</p>
+but it has had no release since March 2021 and has never seen Factorio 2.0.
+Where the two overlap, this panel is the narrower, harder-edged tool: it never
+holds the Docker socket or the game's files itself, and splits them between two
+agents that cannot do each other's job.</p>
 
 <h2 id="quick-start">Quick start<a class="anchor" href="#quick-start" aria-label="Link to this section">#</a></h2>
 
@@ -190,9 +199,14 @@ docker compose up -d
 cat .env            # the password to log in with
                     # &rarr; http://127.0.0.1:3010</code></pre></div>
 
-<p>This no-clone stack is deliberately minimal: it disables server control and
-Docker CPU/memory metrics because it has no control agent. Clone the repository
-and use its full Compose file to enable those features.</p>
+<p>This no-clone stack is deliberately minimal: it runs no agent, so it has no
+Server, Saves or Mods tab and no CPU/memory graphs. For those, the
+<a href="./installation.html#full">full install</a> is a clone and two commands:</p>
+
+<div class="snippet" data-lang="bash"><pre><code>git clone https://github.com/EdwinAlkins/factorio-admin-rcon.git
+cd factorio-admin-rcon
+./setup-admin.sh
+docker compose up -d --build control-agent data-agent factorio-admin</code></pre></div>
 
 <div class="note">
   <strong>The panel is not published on the network</strong>
@@ -206,14 +220,31 @@ and use its full Compose file to enable those features.</p>
 
 <dl class="faq">
   <dt>Does it replace Factorio Server Manager?</dt>
-  <dd>No. That one manages the server binary, mods and saves. This panel focuses
-  on RCON administration and can start or stop the existing Factorio container
-  through its constrained control agent.</dd>
+  <dd>Mostly, for a server running in Docker. It starts, stops and restarts the
+  server, archives and restores saves, and installs mods from the official
+  portal, each through a narrow <a href="./services.html">agent</a>. It does not
+  update the server binary: that stays the image tag in your compose file.</dd>
 
   <dt>Does it start my server, or manage mods and saves?</dt>
-  <dd>It starts, stops (after saving) and restarts the server container, through a
-  separate agent that alone holds the Docker socket. It does not manage mods or
-  saves.</dd>
+  <dd>Yes, all three, in the <a href="./installation.html#full">full stack</a>.
+  A stop saves the map first. The control agent alone holds the Docker socket;
+  the data agent alone holds the game's files and reaches the mod portal. The
+  minimal stack, pasted without cloning, has neither.</dd>
+
+  <dt>What happens if a mod breaks the server?</dt>
+  <dd>Mod changes are applied as one operation, with a single restart, after an
+  archive of the map. If the server does not come back, the previous mods are put
+  back and the server restarted as it was. See <a href="./services.html#mods-apply">Applying</a>.</dd>
+
+  <dt>Do I need a factorio.com account?</dt>
+  <dd>Only to search the portal and download mods, as the game itself does: put
+  your username and token in <code>secrets/factorio-portal</code>. Without them,
+  the Mods tab still lists, enables, disables and removes mods.</dd>
+
+  <dt>Where do my backups go?</dt>
+  <dd>In <code>./backups</code> on the host, next to <code>./data</code> rather than
+  inside it: a zip and a JSON sidecar per archive, ready to be copied elsewhere
+  with the tool you already use.</dd>
 
   <dt>Do I have to expose RCON to the internet?</dt>
   <dd>No, and you should not. The panel reaches RCON over the compose network; the quickstart publishes no RCON port at all.</dd>
@@ -226,6 +257,13 @@ and use its full Compose file to enable those features.</p>
 
   <dt>Can I add my own commands?</dt>
   <dd>Yes, in a <a href="./commands.html">JSON catalogue</a> you provide. A custom command is bounded: your moderator gets the button without getting arbitrary Lua.</dd>
+
+  <dt>Can I leave out the agents?</dt>
+  <dd>Yes. Each feature that needs one has a switch, and once nothing uses an
+  agent you delete its service: <code>CONTROL_ENABLED=false</code> with
+  <code>METRICS_DOCKER=false</code> for the control agent,
+  <code>SAVES_ENABLED=false</code> with <code>MODS_ENABLED=false</code> for the data
+  agent. See <a href="./services.html#switches">Turning features off</a>.</dd>
 </dl>
 
 <div class="closing">

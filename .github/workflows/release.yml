@@ -245,7 +245,7 @@ jobs:
           flavor: latest=auto
           labels: |
             org.opencontainers.image.title=Factorio data agent
-            org.opencontainers.image.description=Closed API over Factorio saves for the admin panel — archive, verify, download, restore
+            org.opencontainers.image.description=Closed API over Factorio saves and mods for the admin panel — archive, verify, download, restore, install from the mod portal
 
       # Go cross-compiles from the build platform (see its Dockerfile), so the
       # arm64 build needs no emulation.

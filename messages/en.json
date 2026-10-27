@@ -82,7 +82,11 @@
       "restore": "Restore",
       "delete": "Archive deleted",
       "download": "Archive downloaded",
-      "settings": "Backup schedule changed"
+      "settings": "Backup schedule changed",
+      "mods_apply": "Mod changes",
+      "upload": "Save upload started",
+      "upload_abort": "Save upload cancelled",
+      "import": "Save imported"
     }
   },
   "confirm": {
@@ -168,7 +172,8 @@
     "console": "Console",
     "metrics": "Statistics",
     "server": "Server",
-    "saves": "Saves"
+    "saves": "Saves",
+    "mods": "Mods"
   },
 
   "metrics": {
@@ -233,7 +238,10 @@
       "waiting_rcon": "Waiting for the map to load",
       "archiving": "Archiving the save",
       "restoring": "Restoring the archive",
-      "rolling_back": "Rolling back to the previous state"
+      "downloading": "Downloading and checking the mods",
+      "installing": "Installing the mods",
+      "rolling_back": "Rolling back to the previous state",
+      "verifying": "Verifying the save"
     },
     "operationBy": "requested by {username}",
     "history": "Recent operations",
@@ -243,7 +251,9 @@
       "stop": "Stop",
       "restart": "Restart",
       "backup": "Backup",
-      "restore": "Restore"
+      "restore": "Restore",
+      "mods_apply": "Mods",
+      "import": "Import"
     },
     "status": {
       "running": "in progress",
@@ -284,7 +294,8 @@
       "manual": "manual",
       "scheduled": "scheduled",
       "pre-restore": "before restore",
-      "pre-mods": "before mod change"
+      "pre-mods": "before mod change",
+      "upload": "imported"
     },
     "modsCount": "{count, plural, =0 {no mod} one {# mod} other {# mods}}",
     "download": "Download",
@@ -296,7 +307,8 @@
       "deleteTitle": "Delete this archive?",
       "deleteMessage": "{id} will be deleted for good.",
       "forceTitle": "Restore anyway?",
-      "forceLabel": "Restore anyway"
+      "forceLabel": "Restore anyway",
+      "restoreUnknown": "This save was imported from a computer: its Factorio version and mods are unknown. If they differ from the server's, the map may fail to load, or be migrated for good."
     },
     "schedule": {
       "title": "Scheduled backups",
@@ -310,6 +322,117 @@
       "saved": "Schedule saved.",
       "lastRun": "Last run: {date}",
       "never": "Never run yet."
+    },
+    "import": {
+      "title": "Import a save",
+      "hint": "A .zip save from your computer, up to {max}. It becomes an archive: restore it to play it.",
+      "file": "Save file",
+      "start": "Import",
+      "cancel": "Cancel",
+      "progress": "Sending: {percent} % ({sent} of {total})",
+      "resuming": "Connection lost, resuming…",
+      "notZip": "Choose a .zip file.",
+      "tooLarge": "This file is larger than the limit ({max}).",
+      "done": "Sent. The archive is listed once the server has verified it."
+    }
+  },
+
+  "mods": {
+    "title": "Mods",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "operation": "In progress: {step}",
+    "game": "Factorio {version}",
+    "versionUnknown": "The game version is not known yet: start the server once so mods can be matched to it.",
+    "installed": "Installed",
+    "installedEmpty": "No mod list yet: the server has not started.",
+    "updatesUnavailable": "The mod portal could not be reached: available updates are not shown.",
+    "columns": {
+      "name": "Mod",
+      "version": "Version",
+      "state": "State"
+    },
+    "enabled": "enabled",
+    "disabled": "disabled",
+    "builtin": "part of the game",
+    "unpacked": "folder",
+    "dlc": "set by DLC_SPACE_AGE",
+    "updateAvailable": "update {version}",
+    "enable": "Enable",
+    "disable": "Disable",
+    "update": "Update",
+    "remove": "Remove",
+    "search": {
+      "title": "Find a mod",
+      "placeholder": "Search the mod portal",
+      "submit": "Search",
+      "empty": "No result.",
+      "noCredentials": "Searching and installing need a factorio.com account. Write your username and token to secrets/factorio-portal, next to docker-compose.yml (the token is on your factorio.com profile), then recreate the data agent:",
+      "installed": "installed",
+      "add": "Add",
+      "details": "Details",
+      "by": "by {owner}",
+      "downloads": "{count, plural, one {# download} other {# downloads}}",
+      "more": "More results"
+    },
+    "details": {
+      "releases": "Releases",
+      "compatible": "for this game",
+      "otherGame": "Factorio {version}",
+      "dependencies": "Needs: {list}",
+      "addVersion": "Add this version",
+      "close": "Close"
+    },
+    "basket": {
+      "title": "Pending changes",
+      "empty": "Nothing pending: add changes from the lists above.",
+      "remove": "Remove from the list",
+      "clear": "Clear",
+      "preview": "Preview",
+      "apply": "Apply (restart required)",
+      "change": {
+        "install": "Install {name}",
+        "update": "Update {name}",
+        "enable": "Enable {name}",
+        "disable": "Disable {name}",
+        "remove": "Remove {name}"
+      },
+      "version": "version {version}"
+    },
+    "plan": {
+      "title": "What will happen",
+      "nothing": "These changes change nothing.",
+      "step": {
+        "install": "Install {name} {to}",
+        "update": "Update {name} {from} → {to}",
+        "enable": "Enable {name}",
+        "disable": "Disable {name}",
+        "remove": "Remove {name} {from}"
+      },
+      "requiredBy": "needed by {mod}",
+      "conflicts": "To settle before applying",
+      "optional": "Optional, not installed: {mod} can use {optional}",
+      "unchecked": "Needs not checked (unreadable info.json): {list}",
+      "conflict": {
+        "not_found": "not on the mod portal",
+        "not_installed": "not installed",
+        "no_release": "no release fits this game",
+        "incompatible": "incompatible with another enabled mod",
+        "missing": "a required mod would be missing",
+        "version": "a required mod has the wrong version",
+        "builtin": "part of the game",
+        "unpacked": "installed as a folder, managed by hand",
+        "base": "the base game cannot be disabled",
+        "dlc": "set by the Factorio image (DLC_SPACE_AGE)",
+        "unresolvable": "the dependencies do not settle",
+        "unknown_action": "unknown change"
+      }
+    },
+    "confirm": {
+      "applyTitle": "Apply these mod changes?",
+      "applyMessage": "The mods are downloaded and checked first, with the server still running. Then the map is saved and archived, the server stops, the mods are swapped in and the server restarts. Players will be disconnected.",
+      "forceTitle": "Apply anyway?",
+      "forceLabel": "Apply anyway"
     }
   },
 
@@ -384,6 +507,7 @@
     "rcon_unavailable_force_required": "RCON does not answer: the map cannot be saved first, and Factorio will only save on its own if it quits within the grace period.",
     "save_timeout": "The save did not finish in time; the server was left running.",
     "rcon_not_back": "The server started but RCON did not answer in time.",
+    "server_crashed": "The server stopped while loading (exit code {exitCode}): see its logs.",
     "invalid_body": "Invalid request body.",
     "invalid_tail": "Invalid line count (1 to {max}).",
 
@@ -402,6 +526,30 @@
     "checksum_mismatch": "This archive changed since it was made; it will not be restored.",
     "restore_incompatible": "This archive comes from a different game: {gaps}.",
     "restore_rolled_back": "The restore failed ({reason}); the previous state was put back.",
-    "restore_rollback_failed": "The restore failed ({reason}) and the previous state could not be put back: check the saves folder and the latest “before restore” archive."
+    "restore_rollback_failed": "The restore failed ({reason}) and the previous state could not be put back: check the saves folder and the latest “before restore” archive.",
+    "mods_disabled": "Mods are disabled on this panel.",
+    "mods_conflict": "These changes have conflicts: preview them to see which.",
+    "plan_changed": "Something changed since the preview (a new release on the portal?): preview again.",
+    "mods_nothing_to_do": "These changes change nothing.",
+    "tx_not_found": "This mod change is no longer available.",
+    "tx_already_committed": "This mod change was already applied.",
+    "mods_unavailable": "The mods folder does not exist yet: start the server once.",
+    "invalid_mod_archive": "A downloaded mod is not a valid archive of the expected release.",
+    "mod_not_found": "This mod is not on the mod portal.",
+    "portal_credentials_missing": "No mod portal credentials are configured (secrets/factorio-portal).",
+    "portal_rejected": "The mod portal refused the credentials: check secrets/factorio-portal.",
+    "portal_unreachable": "The mod portal could not be reached.",
+    "download_too_large": "A mod is larger than allowed (MODS_MAX_DOWNLOAD_MB).",
+    "download_checksum": "A downloaded mod does not match the portal's checksum.",
+    "factorio_version_unknown": "The game version is not known yet: start the server once.",
+    "mods_rolled_back": "The mod change failed ({reason}); the previous mods were put back.",
+    "mods_rollback_failed": "The mod change failed ({reason}) and the previous mods could not be put back: check the mods folder and the latest “before mod change” archive.",
+    "upload_not_found": "This upload no longer exists: start it again.",
+    "upload_busy": "Another upload is in progress.",
+    "upload_offset": "The upload is out of step with the server; it resumes where the server stands.",
+    "upload_too_large": "This save is larger than allowed (SAVES_MAX_UPLOAD_MB).",
+    "upload_incomplete": "The upload is not complete yet.",
+    "uploads_disabled": "Uploads are disabled.",
+    "chunk_too_large": "A piece of the upload is larger than allowed."
   }
 }

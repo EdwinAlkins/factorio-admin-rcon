@@ -1,7 +1,8 @@
 // Command data-agent is the only component of the stack that writes the
-// game's files: it archives saves, restores them and (phase 4) manages mods.
-// It never sees the Docker socket — stopping the server around a restore is
-// the panel's job, through the control agent.
+// game's files: it archives saves, restores them and manages mods. It never
+// sees the Docker socket — stopping the server around a restore or a mod
+// change is the panel's job, through the control agent. It is also the only
+// one that reaches the Internet, and only the official mod portal.
 //
 // Run with `-healthcheck` to probe a running agent (see agentkit.Probe).
 package main
@@ -20,6 +21,8 @@ import (
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/data/api"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/data/config"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/files"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/mods"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/portal"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/saves"
 )
 
@@ -75,8 +78,40 @@ func run() error {
 		modsRoot = nil
 	}
 
+	// Mod transactions (downloads, files set aside) live next to the
+	// archives, out of Factorio's sight.
+	if err := backupsRoot.MkdirAll(".mods", 0o750); err != nil {
+		return fmt.Errorf("mods work directory: %w", err)
+	}
+	workRoot, err := backupsRoot.OpenRoot(".mods")
+	if err != nil {
+		return fmt.Errorf("mods work directory: %w", err)
+	}
+	credentials, err := portal.ReadCredentials(cfg.PortalCredentialsFile)
+	if err != nil {
+		return err
+	}
+	portalClient, err := portal.New(portal.Options{
+		BaseURL:      portal.DefaultBaseURL,
+		AllowedHosts: portal.DefaultHosts,
+		Credentials:  credentials,
+	})
+	if err != nil {
+		return err
+	}
+	if !portalClient.HasCredentials() {
+		logger.Info("no mod portal credentials: searching and installing mods are off")
+	}
+
+	store := saves.NewStore(savesRoot, backupsRoot, modsRoot)
+	// Also drops the chunks of an upload the previous run left unfinished.
+	if err := store.EnableUploads(cfg.SavesMaxUploadBytes); err != nil {
+		return fmt.Errorf("uploads work directory: %w", err)
+	}
+
 	handler := api.New(api.Options{
-		Store:              saves.NewStore(savesRoot, backupsRoot, modsRoot),
+		Store:              store,
+		Mods:               mods.NewManager(cfg.ModsDir, workRoot, portalClient, cfg.ModsMaxDownloadBytes),
 		Token:              cfg.Token,
 		TargetSaveName:     cfg.TargetSaveName,
 		MutationsPerMinute: cfg.MutationsPerMinute,

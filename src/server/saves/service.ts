@@ -7,11 +7,27 @@ import { getServerStatus } from "@/server/rcon/status";
 import { agentStatus } from "@/server/control/client";
 import { afterServerOperation } from "@/server/control/service";
 import { checkPlayers, saveGame, startServer, stopServer, waitForRcon } from "@/server/control/steps";
-import { dataBackups, dataCreateBackup, dataRestore, dataSaves, dataVerify } from "@/server/data/client";
+import {
+  dataBackups,
+  dataCreateBackup,
+  dataRestore,
+  dataSaves,
+  dataUploadComplete,
+  dataUploadOffset,
+  dataVerify,
+} from "@/server/data/client";
 import { currentOperation, errorCodeOf, launch, type OperationActor } from "@/server/operations/engine";
 import { getOperation } from "@/server/operations/store";
 import { readSetting, writeSetting } from "@/server/settings";
-import type { BackupDto, BackupSettingsDto, BackupSource, ModDto, SavesResult, ServerOperationDto } from "@/lib/api-types";
+import type {
+  BackupDto,
+  BackupSettingsDto,
+  BackupSource,
+  ModDto,
+  SavesResult,
+  ServerOperationDto,
+  UploadStateDto,
+} from "@/lib/api-types";
 
 /**
  * Saves: archives taken on demand or on a schedule, downloads, and restores.
@@ -24,7 +40,10 @@ import type { BackupDto, BackupSettingsDto, BackupSource, ModDto, SavesResult, S
  */
 
 /** Archive ids as the data agent generates them; anything else is refused before any call. */
-export const BACKUP_ID = /^[0-9]{8}-[0-9]{6}-(manual|scheduled|pre-restore|pre-mods)(-[0-9]{1,3})?$/;
+export const BACKUP_ID = /^[0-9]{8}-[0-9]{6}-(manual|scheduled|pre-restore|pre-mods|upload)(-[0-9]{1,3})?$/;
+
+/** Upload ids as the data agent generates them. */
+export const UPLOAD_ID = /^[0-9a-f]{32}$/;
 
 /** SAVES_ENABLED=false: the endpoints answer as if they did not exist. */
 export function requireSaves() {
@@ -80,7 +99,7 @@ export function markScheduledRun(at: number) {
 // --- Listing --------------------------------------------------------------
 
 export async function listSaves(): Promise<Omit<SavesResult, "ok">> {
-  const [{ saves, mods }, backups] = await Promise.all([dataSaves(), dataBackups()]);
+  const [{ saves, mods, maxUploadBytes }, backups] = await Promise.all([dataSaves(), dataBackups()]);
   const running = currentOperation();
   return {
     saves,
@@ -88,6 +107,7 @@ export async function listSaves(): Promise<Omit<SavesResult, "ok">> {
     mods,
     settings: backupSettings(),
     operation: running ? getOperation(running.operation.id) : null,
+    maxUploadBytes: maxUploadBytes ?? 0,
   };
 }
 
@@ -141,6 +161,53 @@ export function requestBackup(request: BackupRequest): Promise<ServerOperationDt
           factorioVersion: server.version,
         });
       },
+    },
+    request,
+  );
+}
+
+// --- Import -----------------------------------------------------------------
+
+export type ImportRequest = OperationActor & { uploadId: string; label?: string };
+
+/**
+ * Publishes a fully received upload as an archive. An operation of the
+ * engine, like a backup: the agent reads the whole file back to verify it,
+ * which on a large map takes a while, and must not interleave with a
+ * restore. Putting the map in play is then an ordinary restore.
+ */
+export function requestImport(request: ImportRequest): Promise<ServerOperationDto> {
+  let published: BackupDto | null = null;
+  return launch(
+    {
+      type: "import",
+      auditKind: "saves",
+      forced: false,
+
+      async prepare(deny) {
+        let upload: UploadStateDto;
+        try {
+          ({ upload } = await dataUploadOffset(request.uploadId));
+        } catch (error) {
+          if (isAgentError(error)) deny(error.key);
+          throw error;
+        }
+        if (upload.offset !== upload.size) {
+          deny("upload_incomplete");
+          throw new AgentError("upload_incomplete");
+        }
+      },
+
+      async run(_, step) {
+        step("verifying");
+        published = await dataUploadComplete(request.uploadId, {
+          label: request.label,
+          createdBy: request.username,
+        });
+      },
+
+      describe: () =>
+        published && `${published.id} ${published.saveName} ${published.size} B sha256:${published.sha256.slice(0, 12)}`,
     },
     request,
   );

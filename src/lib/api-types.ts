@@ -226,7 +226,7 @@ export type ServerLogLineDto = {
 
 /** The three operations of the Server tab's buttons. */
 export type ServerLifecycleType = "start" | "stop" | "restart";
-export type ServerOperationType = ServerLifecycleType | "backup" | "restore";
+export type ServerOperationType = ServerLifecycleType | "backup" | "restore" | "mods_apply" | "import";
 export type ServerOperationStatus = "running" | "success" | "error" | "interrupted";
 /** Where a running operation stands, for the progress display. */
 export type ServerOperationStep =
@@ -235,7 +235,10 @@ export type ServerOperationStep =
   | "starting"
   | "waiting_rcon"
   | "archiving"
+  | "verifying"
   | "restoring"
+  | "downloading"
+  | "installing"
   | "rolling_back";
 
 export type ServerOperationDto = {
@@ -305,7 +308,8 @@ export type SaveFileDto = {
   latest: boolean;
 };
 
-export type BackupSource = "manual" | "scheduled" | "pre-restore" | "pre-mods";
+/** `upload`: sent from the operator's computer; its version and mod set are unknown. */
+export type BackupSource = "manual" | "scheduled" | "pre-restore" | "pre-mods" | "upload";
 
 /** One archive kept by the panel, as described by its sidecar. */
 export type BackupDto = {
@@ -346,12 +350,126 @@ export type SavesResult = {
   settings: BackupSettingsDto;
   /** Any operation in progress — a backup or restore, or a server one. */
   operation: ServerOperationDto | null;
+  /** Largest save the data agent accepts from an upload; 0: uploads are off. */
+  maxUploadBytes: number;
+};
+
+/** Where an upload stands: the next chunk starts at `offset`. */
+export type UploadStateDto = {
+  id: string;
+  offset: number;
+  size: number;
+};
+
+export type UploadResult = {
+  ok: true;
+  upload: UploadStateDto;
+  /** Size of every chunk but the last. */
+  chunkBytes: number;
 };
 
 export type BackupSettingsResult = {
   ok: true;
   settings: BackupSettingsDto;
 };
+
+export type ModAction = "install" | "update" | "enable" | "disable" | "remove";
+
+/** One line of the Mods tab's basket. */
+export type ModChangeDto = {
+  action: ModAction;
+  name: string;
+  /** install/update only: a precise release; absent, the newest that fits. */
+  version?: string;
+};
+
+/** A mod of the server, with what the portal knows of it. */
+export type InstalledModDto = ModDto & {
+  /** Installed as a folder by hand: enabled or disabled, never replaced. */
+  unpacked: boolean;
+  /** An expansion mod the Factorio image toggles from DLC_SPACE_AGE at every start. */
+  dlc: boolean;
+  /** Newer release for this game version, when there is one. */
+  update?: string;
+};
+
+export type ModsResult = {
+  ok: true;
+  mods: InstalledModDto[];
+  /** Portal credentials configured: searching and installing are possible. */
+  credentials: boolean;
+  /** Translation key under `errors.*` when the update check failed. */
+  portalError: string | null;
+  /** null until the panel has seen the server run once. */
+  factorioVersion: string | null;
+  operation: ServerOperationDto | null;
+};
+
+export type ModPlanStepDto = {
+  action: ModAction;
+  name: string;
+  from?: string;
+  to?: string;
+  /** Absent when asked for; otherwise the mod that needs it. */
+  requiredBy?: string;
+  enabled?: boolean;
+  download?: { fileName: string; url: string; sha1: string };
+  replaces?: string[];
+};
+
+export type ModConflictDto = {
+  mod: string;
+  /** Translated under `mods.conflict.*`. */
+  code: string;
+  /** English detail from the data agent (versions, constraint). */
+  detail: string;
+};
+
+export type ModPlanDto = {
+  factorioVersion: string;
+  steps: ModPlanStepDto[];
+  conflicts: ModConflictDto[];
+  optional: { mod: string; optional: string }[];
+  /** Mods whose info.json could not be read: their needs are not checked. */
+  unchecked: string[];
+  /** Sent back with the basket to apply exactly this plan. */
+  hash: string;
+};
+
+export type ModPlanResult = { ok: true; plan: ModPlanDto };
+
+export type ModSearchHitDto = {
+  name: string;
+  title: string;
+  summary: string;
+  owner: string;
+  category: string;
+  downloads_count: number;
+  installed: boolean;
+};
+
+export type ModSearchResult = { ok: true; hits: ModSearchHitDto[]; page: number; pageCount: number };
+
+export type ModReleaseDto = {
+  version: string;
+  factorioVersion: string;
+  releasedAt: string;
+  dependencies: string[];
+  /** Runs on this game version. */
+  compatible: boolean;
+};
+
+export type ModDetailsDto = {
+  name: string;
+  title: string;
+  summary: string;
+  owner: string;
+  category: string;
+  downloadsCount: number;
+  releases: ModReleaseDto[];
+};
+
+export type ModDetailsResult = { ok: true; mod: ModDetailsDto };
 
 export type SessionInfo = {
   username: string;

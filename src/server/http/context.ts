@@ -22,6 +22,8 @@ export type ApiContext = {
    * Throws a 413 before allocating anything if the body exceeds the limit.
    */
   json: () => Promise<unknown>;
+  /** Raw body, bounded the same way; empty when absent. */
+  bytes: () => Promise<Buffer<ArrayBuffer>>;
 };
 
 /**
@@ -129,14 +131,14 @@ type RouteOptions = {
  * `Transfer-Encoding: chunked` and does not bind the sender anyway. Counting
  * while reading is the only authoritative check.
  */
-async function readBoundedJson(request: Request, maxBytes: number): Promise<unknown> {
+async function readBoundedBytes(request: Request, maxBytes: number): Promise<Buffer<ArrayBuffer>> {
   const declared = Number(request.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > maxBytes) {
     throw new ApiFailure(413, "body_too_large", { max: maxBytes });
   }
 
   const body = request.body;
-  if (!body) return null;
+  if (!body) return Buffer.alloc(0);
 
   const chunks: Uint8Array[] = [];
   let size = 0;
@@ -158,9 +160,14 @@ async function readBoundedJson(request: Request, maxBytes: number): Promise<unkn
     // Cut the stream: without this, a refused sender would keep sending.
     await reader.cancel().catch(() => undefined);
   }
+  return Buffer.concat(chunks, size);
+}
 
+async function readBoundedJson(request: Request, maxBytes: number): Promise<unknown> {
+  const raw = await readBoundedBytes(request, maxBytes);
+  if (raw.length === 0) return null;
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    return JSON.parse(raw.toString("utf8"));
   } catch {
     return null;
   }
@@ -194,6 +201,7 @@ export function route(options: RouteOptions, handler: (ctx: ApiContext) => Promi
             ip: clientIp(request),
             session,
             json: () => readBoundedJson(request, maxBodyBytes),
+            bytes: () => readBoundedBytes(request, maxBodyBytes),
           });
         }
       }

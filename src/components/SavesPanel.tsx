@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useErrorMessage } from "@/hooks/useErrorMessage";
-import { useSaves, type SavesOutcome } from "@/hooks/useSaves";
+import { useSaves, type SavesOutcome, type UploadProgress } from "@/hooks/useSaves";
 import { can } from "@/lib/permissions";
 import type { BackupDto, BackupSettingsDto, SessionInfo } from "@/lib/api-types";
 
@@ -38,7 +38,7 @@ export default function SavesPanel({ session, active, onUnauthorized, className 
   const t = useTranslations("saves");
   const tStep = useTranslations("server.step");
   const errorMessage = useErrorMessage();
-  const { data, failure, submitting, refresh, backup, restore, remove, saveSettings } = useSaves({
+  const { data, failure, submitting, refresh, backup, restore, remove, upload, saveSettings } = useSaves({
     enabled: active,
     onUnauthorized,
   });
@@ -49,6 +49,7 @@ export default function SavesPanel({ session, active, onUnauthorized, className 
   const allowed = {
     create: can(session.role, "saves:create"),
     download: can(session.role, "saves:download"),
+    upload: can(session.role, "saves:upload"),
     restore: can(session.role, "saves:restore"),
     remove: can(session.role, "saves:delete"),
     configure: can(session.role, "saves:configure"),
@@ -67,6 +68,8 @@ export default function SavesPanel({ session, active, onUnauthorized, className 
     setPending({
       title: t("confirm.restoreTitle"),
       message: t("confirm.restoreMessage", { id: archive.id }),
+      // Nothing to compare an imported save with: the operator is told so.
+      details: archive.source === "upload" ? t("confirm.restoreUnknown") : undefined,
       confirmLabel: t("restore"),
       run: () =>
         void restore(archive.id).then((outcome) => {
@@ -146,6 +149,10 @@ export default function SavesPanel({ session, active, onUnauthorized, className 
               <p role="alert" className="text-xs text-danger">
                 {actionError}
               </p>
+            )}
+
+            {allowed.upload && data.maxUploadBytes > 0 && (
+              <ImportSave maxBytes={data.maxUploadBytes} busy={busy} onUpload={upload} />
             )}
 
             <div>
@@ -263,6 +270,118 @@ export default function SavesPanel({ session, active, onUnauthorized, className 
         />
       )}
     </section>
+  );
+}
+
+type ImportProps = {
+  maxBytes: number;
+  busy: boolean;
+  onUpload: (
+    file: File,
+    label: string,
+    onProgress: (progress: UploadProgress) => void,
+    signal: AbortSignal,
+  ) => Promise<SavesOutcome>;
+};
+
+/**
+ * Sends a save from the operator's computer. It lands as an archive of
+ * source `upload`; playing it is an ordinary restore, from the list.
+ */
+function ImportSave({ maxBytes, busy, onUpload }: ImportProps) {
+  const t = useTranslations("saves.import");
+  const tSaves = useTranslations("saves");
+  const errorMessage = useErrorMessage();
+  const [file, setFile] = useState<File | null>(null);
+  const [label, setLabel] = useState("");
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
+  const abort = useRef<AbortController | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+
+  const start = () => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".zip")) return setNotice({ error: true, text: t("notZip") });
+    if (file.size > maxBytes) return setNotice({ error: true, text: t("tooLarge", { max: formatSize(maxBytes) }) });
+
+    const controller = new AbortController();
+    abort.current = controller;
+    setNotice(null);
+    setProgress({ sent: 0, resuming: false });
+    void onUpload(file, label.trim(), setProgress, controller.signal).then((outcome) => {
+      abort.current = null;
+      setProgress(null);
+      if (controller.signal.aborted) return;
+      if (outcome.kind === "failed") return setNotice({ error: true, text: errorMessage(outcome.failure) });
+      setNotice({ error: false, text: t("done") });
+      setFile(null);
+      setLabel("");
+      if (input.current) input.current.value = "";
+    });
+  };
+
+  const sending = progress !== null;
+  return (
+    <form
+      className="flex flex-col gap-2 text-xs"
+      onSubmit={(event) => {
+        event.preventDefault();
+        start();
+      }}
+    >
+      <h3 className="font-medium">{t("title")}</h3>
+      <p className="text-muted">{t("hint", { max: formatSize(maxBytes) })}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          ref={input}
+          type="file"
+          accept=".zip,application/zip"
+          aria-label={t("file")}
+          className="max-w-xs text-xs"
+          disabled={sending}
+          onChange={(event) => {
+            setNotice(null);
+            setFile(event.target.files?.[0] ?? null);
+          }}
+        />
+        <input
+          className="field max-w-xs py-1 text-xs"
+          value={label}
+          maxLength={100}
+          placeholder={tSaves("labelPlaceholder")}
+          disabled={sending}
+          onChange={(event) => setLabel(event.target.value)}
+        />
+        {sending ? (
+          <button type="button" className="btn text-xs" onClick={() => abort.current?.abort()}>
+            {t("cancel")}
+          </button>
+        ) : (
+          <button type="submit" className="btn-primary text-xs" disabled={!file || busy}>
+            {t("start")}
+          </button>
+        )}
+      </div>
+      {progress && file && (
+        <div className="flex flex-col gap-1" aria-live="polite">
+          <progress className="w-full max-w-md" max={file.size} value={progress.sent} />
+          <span className="text-muted">
+            {progress.resuming
+              ? t("resuming")
+              : t("progress", {
+                  percent: Math.floor((progress.sent / file.size) * 100),
+                  sent: formatSize(progress.sent),
+                  total: formatSize(file.size),
+                })}
+          </span>
+        </div>
+      )}
+      {notice && (
+        <p role={notice.error ? "alert" : "status"} className={notice.error ? "text-danger" : "text-ok"}>
+          {notice.text}
+        </p>
+      )}
+    </form>
   );
 }
 

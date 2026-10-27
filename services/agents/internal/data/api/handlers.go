@@ -14,6 +14,8 @@ type savesResponse struct {
 	OK    bool             `json:"ok"`
 	Saves []saves.SaveFile `json:"saves"`
 	Mods  []mods.Mod       `json:"mods"`
+	// Zero: uploads are off.
+	MaxUploadBytes int64 `json:"maxUploadBytes"`
 }
 
 type backupsResponse struct {
@@ -37,7 +39,7 @@ func (s *Server) listSaves(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	agentkit.WriteJSON(w, http.StatusOK, savesResponse{OK: true, Saves: list, Mods: modSet})
+	agentkit.WriteJSON(w, http.StatusOK, savesResponse{OK: true, Saves: list, Mods: modSet, MaxUploadBytes: s.store.MaxUpload()})
 }
 
 func (s *Server) listBackups(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +88,8 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 		agentkit.WriteError(w, http.StatusBadRequest, "bad_body", err.Error())
 		return
 	}
-	if !saves.ValidSource(body.Source) {
+	// An upload is published by its own route, never archived from the saves folder.
+	if !saves.ValidSource(body.Source) || body.Source == saves.SourceUpload {
 		agentkit.WriteError(w, http.StatusBadRequest, "bad_body", "source: unknown")
 		return
 	}

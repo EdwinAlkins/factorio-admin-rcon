@@ -24,7 +24,14 @@ type Config struct {
 	TargetSaveName string
 	// Mutations accepted per minute, all callers together.
 	MutationsPerMinute int
-	LogLevel           string
+	// JSON {username, token} for the mod portal. Missing or empty: no
+	// search, no install; the rest of the mods tab still works.
+	PortalCredentialsFile string
+	// Bound on one mod download.
+	ModsMaxDownloadBytes int64
+	// Bound on a save uploaded from the operator's computer.
+	SavesMaxUploadBytes int64
+	LogLevel            string
 }
 
 func Load(lookup func(string) (string, bool)) (Config, error) {
@@ -37,6 +44,8 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 		BackupsDir:     get("BACKUPS_DIR", "/backups"),
 		TargetSaveName: get("TARGET_SAVE_NAME", ""),
 		LogLevel:       get("LOG_LEVEL", "info"),
+
+		PortalCredentialsFile: get("PORTAL_CREDENTIALS_FILE", ""),
 	}
 
 	var errs []error
@@ -54,6 +63,18 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 	if err != nil || cfg.MutationsPerMinute < 1 {
 		errs = append(errs, errors.New("MUTATIONS_PER_MINUTE: must be a positive integer"))
 	}
+
+	maxMB, err := strconv.Atoi(get("MODS_MAX_DOWNLOAD_MB", "200"))
+	if err != nil || maxMB < 1 || maxMB > 4096 {
+		errs = append(errs, errors.New("MODS_MAX_DOWNLOAD_MB: must be an integer between 1 and 4096"))
+	}
+	cfg.ModsMaxDownloadBytes = int64(maxMB) << 20
+
+	uploadMB, err := strconv.Atoi(get("SAVES_MAX_UPLOAD_MB", "2048"))
+	if err != nil || uploadMB < 1 || uploadMB > 65536 {
+		errs = append(errs, errors.New("SAVES_MAX_UPLOAD_MB: must be an integer between 1 and 65536"))
+	}
+	cfg.SavesMaxUploadBytes = int64(uploadMB) << 20
 
 	if err := errors.Join(errs...); err != nil {
 		return Config{}, fmt.Errorf("invalid configuration: %w", err)

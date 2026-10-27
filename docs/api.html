@@ -32,7 +32,7 @@
 </div>
 
 <div class="shell">
-<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html" aria-current="page">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./services.html">Services</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html" aria-current="page">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
 <main id="content">
 <header>
   <h1>HTTP API</h1>
@@ -44,7 +44,7 @@ with the session cookie; sign-in and the liveness/readiness probes are public,
 as shown below. The routes are usable from <code>curl</code>: a request with no
 <code>Origin</code> header is accepted, since it did not come from a browser and
 therefore cannot be a CSRF attack.</p>
-<h2 id="routes">Routes<a class="anchor" href="#routes" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Route</th><th>Access</th><th>Purpose</th></tr></thead><tbody><tr><td><span class='pill pill-post'>POST</span> <code>/api/login</code></td><td>Public</td><td>Opens a session, sets the cookie</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/logout</code></td><td>Session</td><td>Revokes the session in the database and clears the cookie</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/status</code></td><td><code>status:read</code></td><td>Server status, cached</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/actions</code></td><td>Session</td><td>Catalogue filtered by role. <code>?locale=fr</code> for custom command text</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/actions</code></td><td>Per action</td><td>Runs a catalogue action</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/rcon</code></td><td><code>rcon:raw</code></td><td>Raw console</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/audit</code></td><td><code>audit:read</code></td><td>Latest audit entries, <code>?limit=</code></td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/metrics</code></td><td><code>status:read</code></td><td>Time series, <code>?range=1h|6h|24h|7d</code>. <code>404</code> when metrics are off</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/server</code></td><td><code>server:read</code></td><td>Container and RCON state, current operation and recent operations</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/server/logs</code></td><td><code>server:logs</code></td><td>Last container lines, <code>?tail=1..1000</code></td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/server/start</code></td><td><code>server:start</code></td><td>Starts Factorio and waits for RCON</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/server/stop</code></td><td><code>server:stop</code></td><td>Saves, then stops Factorio</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/server/restart</code></td><td><code>server:restart</code></td><td>Saves, stops and starts Factorio</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/health</code></td><td>Public</td><td>Liveness: the process is alive</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/ready</code></td><td>Public</td><td>Readiness: config, catalogue, database, RCON and, when required, control agent</td></tr></tbody></table></div><h2 id="sign-in">Signing in<a class="anchor" href="#sign-in" aria-label="Link to this section">#</a></h2><div class="snippet" data-lang="bash"><pre><code>curl -sc cookies.txt \
+<h2 id="routes">Routes<a class="anchor" href="#routes" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Route</th><th>Access</th><th>Purpose</th></tr></thead><tbody><tr><td><span class='pill pill-post'>POST</span> <code>/api/login</code></td><td>Public</td><td>Opens a session, sets the cookie</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/logout</code></td><td>Session</td><td>Revokes the session in the database and clears the cookie</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/status</code></td><td><code>status:read</code></td><td>Server status, cached</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/actions</code></td><td>Session</td><td>Catalogue filtered by role. <code>?locale=fr</code> for custom command text</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/actions</code></td><td>Per action</td><td>Runs a catalogue action</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/rcon</code></td><td><code>rcon:raw</code></td><td>Raw console</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/audit</code></td><td><code>audit:read</code></td><td>Latest audit entries, <code>?limit=</code></td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/metrics</code></td><td><code>status:read</code></td><td>Time series, <code>?range=1h|6h|24h|7d</code>. <code>404</code> when metrics are off</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/server</code></td><td><code>server:read</code></td><td>Container and RCON state, current operation and recent operations</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/server/logs</code></td><td><code>server:logs</code></td><td>Last container lines, <code>?tail=1..1000</code></td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/server/start</code></td><td><code>server:start</code></td><td>Starts Factorio and waits for RCON</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/server/stop</code></td><td><code>server:stop</code></td><td>Saves, then stops Factorio</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/server/restart</code></td><td><code>server:restart</code></td><td>Saves, stops and starts Factorio</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/saves</code></td><td><code>saves:read</code></td><td>Saves folder, archives, schedule, current operation</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/saves</code></td><td><code>saves:create</code></td><td>Archive now, saving first. Optional <code>{ "label" }</code>, 100 characters</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/saves/{id}/download</code></td><td><code>saves:download</code></td><td>The archive, streamed. Audited</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/saves/{id}/restore</code></td><td><code>saves:restore</code></td><td>Restores an archive, with a safety archive first</td></tr><tr><td><span class='pill pill-danger'>DELETE</span> <code>/api/saves/{id}</code></td><td><code>saves:delete</code></td><td>Deletes an archive and its sidecar</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/saves/uploads</code></td><td><code>saves:upload</code></td><td>Opens an upload, <code>{ "size", "name" }</code>. Answers its <code>id</code> and <code>chunkBytes</code></td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/saves/uploads/{uploadId}</code></td><td><code>saves:upload</code></td><td>Where the upload stands, to resume</td></tr><tr><td><span class='pill pill-post'>PUT</span> <code>/api/saves/uploads/{uploadId}?offset=</code></td><td><code>saves:upload</code></td><td>One chunk, raw bytes, 8&nbsp;MB at most</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/saves/uploads/{uploadId}/complete</code></td><td><code>saves:upload</code></td><td>Verifies the upload and keeps it as an archive. <code>202</code> + operation</td></tr><tr><td><span class='pill pill-danger'>DELETE</span> <code>/api/saves/uploads/{uploadId}</code></td><td><code>saves:upload</code></td><td>Abandons the upload</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/saves/settings</code></td><td><code>saves:read</code></td><td>Backup schedule and retention</td></tr><tr><td><span class='pill pill-post'>PUT</span> <code>/api/saves/settings</code></td><td><code>saves:configure</code></td><td>Changes them</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/mods</code></td><td><code>mods:read</code></td><td>Installed mods, updates available, game version, whether portal credentials are set, current operation</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/mods/search</code></td><td><code>mods:manage</code></td><td>Portal search, <code>?q=&amp;page=</code>. Needs credentials</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/mods/portal/{name}</code></td><td><code>mods:manage</code></td><td>A mod's releases and dependencies</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/mods/plan</code></td><td><code>mods:manage</code></td><td>What a basket would do. Writes nothing</td></tr><tr><td><span class='pill pill-post'>POST</span> <code>/api/mods/apply</code></td><td><code>mods:manage</code></td><td>Applies a previewed basket, with a single restart</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/health</code></td><td>Public</td><td>Liveness: the process is alive</td></tr><tr><td><span class='pill pill-get'>GET</span> <code>/api/ready</code></td><td>Public</td><td>Readiness: config, catalogue, database, RCON and, when required, each agent</td></tr></tbody></table></div><h2 id="sign-in">Signing in<a class="anchor" href="#sign-in" aria-label="Link to this section">#</a></h2><div class="snippet" data-lang="bash"><pre><code>curl -sc cookies.txt \
   -H 'Content-Type: application/json' \
   -d '{"password":"your-admin-password"}' \
   http://127.0.0.1:3010/api/login
@@ -85,7 +85,73 @@ curl -sb cookies.txt -X POST \
   It allows stop or restart while players are connected, or while RCON is down
   and the panel cannot request a save first. It does not bypass permissions,
   the operation lock or the control agent.
-</div><h2 id="errors">Error format<a class="anchor" href="#errors" aria-label="Link to this section">#</a></h2>
+</div><h2 id="saves">Saves<a class="anchor" href="#saves" aria-label="Link to this section">#</a></h2>
+<p>Moderators read the list; everything else is for the administrator. Creating
+and restoring are operations, like a start or a stop: <code>202</code>, then
+progress through <code>GET /api/saves</code> or <code>GET /api/server</code>.
+Archive ids come from the listing (<code>20261027-143000-manual</code>); no route
+takes a path.</p>
+<div class="snippet" data-lang="bash"><pre><code># Saves folder, archives, schedule
+curl -sb cookies.txt http://127.0.0.1:3010/api/saves
+
+# Archive now, with a label
+curl -sb cookies.txt -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"label":"before the train rework"}' \
+  http://127.0.0.1:3010/api/saves
+
+# Download
+curl -sb cookies.txt -OJ \
+  http://127.0.0.1:3010/api/saves/20261027-143000-manual/download
+
+# Restore. 409 restore_incompatible or players_online first; repeat with
+# force only after confirmation.
+curl -sb cookies.txt -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"force":true}' \
+  http://127.0.0.1:3010/api/saves/20261027-143000-manual/restore
+
+# Schedule: every 2 hours, keep 24 and at most 7 days, archive the autosave
+curl -sb cookies.txt -X PUT \
+  -H 'Content-Type: application/json' \
+  -d '{"enabled":true,"intervalMinutes":120,"keepLast":24,"maxAgeDays":7,"triggerSave":false}' \
+  http://127.0.0.1:3010/api/saves/settings</code></pre></div>
+<p><code>force</code> on a restore overrides the game version or mod set
+mismatch, and players online or RCON down. It never overrides the checksum: a
+damaged archive is refused (<code>422</code>) before the server is touched.</p>
+<h2 id="mods">Mods<a class="anchor" href="#mods" aria-label="Link to this section">#</a></h2>
+<p>Every role reads the list; the rest is <code>mods:manage</code>, the
+administrator's. A change is a basket of up to 50 entries, each an
+<code>action</code> (<code>install</code>, <code>update</code>, <code>enable</code>,
+<code>disable</code>, <code>remove</code>), a mod <code>name</code> and, for an
+install or an update, an optional <code>version</code>. Without one, the newest
+release that fits is chosen.</p>
+<div class="snippet" data-lang="bash"><pre><code># Installed mods, updates, game version
+curl -sb cookies.txt http://127.0.0.1:3010/api/mods
+
+# Search the portal (needs credentials)
+curl -sb cookies.txt 'http://127.0.0.1:3010/api/mods/search?q=squeak&amp;page=1'
+
+# Preview: steps, dependencies pulled in, conflicts, and a hash
+curl -sb cookies.txt -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"changes":[{"action":"install","name":"Squeak Through"}]}' \
+  http://127.0.0.1:3010/api/mods/plan
+
+# Apply exactly that plan: the same changes, and its hash
+curl -sb cookies.txt -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"changes":[{"action":"install","name":"Squeak Through"}],"planHash":"&lt;hash from the plan&gt;"}' \
+  http://127.0.0.1:3010/api/mods/apply</code></pre></div>
+<p>The plan answers <code>steps</code> (each with <code>action</code>,
+<code>name</code>, <code>from</code>/<code>to</code> versions, and
+<code>requiredBy</code> when a dependency pulled it in), <code>conflicts</code>,
+<code>optional</code> dependencies not installed, mods whose
+<code>info.json</code> could not be read (<code>unchecked</code>), and the
+<code>hash</code>. An apply is refused if the plan has conflicts, nothing to do,
+or a different hash than the one sent: preview again. <code>force</code> on an
+apply overrides players online and RCON down, nothing else.</p>
+<h2 id="errors">Error format<a class="anchor" href="#errors" aria-label="Link to this section">#</a></h2>
 <p>An error always carries the same envelope. <code>code</code> is the
 translation key and is authoritative for the interface; <code>error</code> is
 only an <strong>English</strong> fallback, readable for whoever calls the API
@@ -95,7 +161,19 @@ from a shell.</p>
   "error": "player: invalid player name (no spaces or quotes, 60 max).",
   "code": "validation_player",
   "params": { "field": "player" }
-}</code></pre></div><h3 id="statuses">HTTP statuses<a class="anchor" href="#statuses" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Status</th><th>When</th></tr></thead><tbody><tr><td><code>400</code></td><td>Malformed body, or input rejected by validation</td></tr><tr><td><code>401</code></td><td>No session, expired, revoked, or invalid signature</td></tr><tr><td><code>403</code></td><td>Insufficient permission, or foreign origin on a mutating request</td></tr><tr><td><code>404</code></td><td>Unknown action, or feature turned off (metrics or server control)</td></tr><tr><td><code>409</code></td><td>Server operation already running, invalid container state, players online, or RCON unavailable before a save</td></tr><tr><td><code>413</code></td><td>Request body beyond the route limit</td></tr><tr><td><code>429</code></td><td>Rate limit reached; the <code>Retry-After</code> header is set</td></tr><tr><td><code>500</code></td><td>Invalid configuration, rejected control-agent token, or internal error</td></tr><tr><td><code>502</code> / <code>504</code></td><td>Factorio or the control agent is unreachable, refuses an operation, or times out</td></tr><tr><td><code>503</code></td><td>RCON queue full, panel shutting down, or control-agent target unavailable or ambiguous</td></tr></tbody></table></div><h3 id="validation">Validation codes<a class="anchor" href="#validation" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody><tr><td><code>validation_required</code></td><td>Required field left empty</td></tr><tr><td><code>validation_player</code></td><td>Invalid player name</td></tr><tr><td><code>validation_identifier</code></td><td>Invalid prototype name</td></tr><tr><td><code>validation_number</code></td><td>A number was expected</td></tr><tr><td><code>validation_min</code> / <code>validation_max</code></td><td>Outside the declared bounds</td></tr><tr><td><code>validation_enum</code></td><td>Value outside the list</td></tr><tr><td><code>validation_bool</code></td><td>A yes/no value was expected</td></tr><tr><td><code>validation_too_long</code></td><td>Maximum length exceeded</td></tr><tr><td><code>validation_newline</code></td><td>Line breaks are not allowed</td></tr><tr><td><code>validation_control_char</code></td><td>Control characters are not allowed</td></tr><tr><td><code>validation_comment</code></td><td><code>--</code> is not allowed in a value</td></tr></tbody></table></div>
+}</code></pre></div><h3 id="statuses">HTTP statuses<a class="anchor" href="#statuses" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Status</th><th>When</th></tr></thead><tbody><tr><td><code>400</code></td><td>Malformed body, or input rejected by validation</td></tr><tr><td><code>401</code></td><td>No session, expired, revoked, or invalid signature</td></tr><tr><td><code>403</code></td><td>Insufficient permission, or foreign origin on a mutating request</td></tr><tr><td><code>404</code></td><td>Unknown action or archive, mod not on the portal, or feature turned off (<code>metrics_disabled</code>, <code>control_disabled</code>, <code>data_disabled</code>, <code>mods_disabled</code>)</td></tr><tr><td><code>409</code></td><td>Operation already running, invalid container state, players online, RCON unavailable before a save, archive from a different game, mod conflict, plan changed since the preview, no portal credentials, game version not known yet</td></tr><tr><td><code>413</code></td><td>Request body beyond the route limit</td></tr><tr><td><code>422</code></td><td>Archive or mod download that fails verification: checksum, structure, <code>info.json</code>, size</td></tr><tr><td><code>429</code></td><td>Rate limit reached; the <code>Retry-After</code> header is set</td></tr><tr><td><code>500</code></td><td>Invalid configuration, rejected agent token, or internal error</td></tr><tr><td><code>502</code> / <code>504</code></td><td>Factorio, an agent or the mod portal is unreachable, refuses an operation, or times out</td></tr><tr><td><code>503</code></td><td>RCON queue full, panel shutting down, or control-agent target unavailable or ambiguous</td></tr></tbody></table></div><h3 id="mods-codes">Mods codes<a class="anchor" href="#mods-codes" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Code</th><th>Status</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>mods_conflict</code></td><td>409</td><td>The plan has conflicts: resolve them in the basket</td></tr>
+<tr><td><code>plan_changed</code></td><td>409</td><td>The plan differs from the previewed one: preview again</td></tr>
+<tr><td><code>mods_nothing_to_do</code></td><td>409</td><td>The basket changes nothing</td></tr>
+<tr><td><code>mods_unavailable</code></td><td>409</td><td>No mods folder yet: start the server once</td></tr>
+<tr><td><code>factorio_version_unknown</code></td><td>409</td><td>The game version has never been seen: start the server once</td></tr>
+<tr><td><code>portal_credentials_missing</code></td><td>409</td><td><code>secrets/factorio-portal</code> is empty</td></tr>
+<tr><td><code>mod_not_found</code></td><td>404</td><td>No such mod on the portal</td></tr>
+<tr><td><code>invalid_mod_archive</code>, <code>download_checksum</code>, <code>download_too_large</code></td><td>422</td><td>A download failed verification; nothing was installed</td></tr>
+<tr><td><code>portal_unreachable</code>, <code>portal_rejected</code></td><td>502</td><td>The portal did not answer, or refused the credentials or the request</td></tr>
+<tr><td><code>mods_rolled_back</code></td><td>operation</td><td>The apply's operation ended in error (<code>reason</code> in its params); the previous mods were put back</td></tr>
+<tr><td><code>mods_rollback_failed</code></td><td>operation</td><td>The apply failed and the previous mods could not be put back: check the mods folder and the latest <code>pre-mods</code> archive</td></tr>
+</tbody></table></div><h3 id="validation">Validation codes<a class="anchor" href="#validation" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody><tr><td><code>validation_required</code></td><td>Required field left empty</td></tr><tr><td><code>validation_player</code></td><td>Invalid player name</td></tr><tr><td><code>validation_identifier</code></td><td>Invalid prototype name</td></tr><tr><td><code>validation_number</code></td><td>A number was expected</td></tr><tr><td><code>validation_min</code> / <code>validation_max</code></td><td>Outside the declared bounds</td></tr><tr><td><code>validation_enum</code></td><td>Value outside the list</td></tr><tr><td><code>validation_bool</code></td><td>A yes/no value was expected</td></tr><tr><td><code>validation_too_long</code></td><td>Maximum length exceeded</td></tr><tr><td><code>validation_newline</code></td><td>Line breaks are not allowed</td></tr><tr><td><code>validation_control_char</code></td><td>Control characters are not allowed</td></tr><tr><td><code>validation_comment</code></td><td><code>--</code> is not allowed in a value</td></tr></tbody></table></div>
 <nav class="pager"><a href="./security.html">&larr; Security model</a><a href="./development.html">Development &rarr;</a></nav>
 </main>
 </div>

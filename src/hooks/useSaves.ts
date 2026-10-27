@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchJson, type FetchFailure } from "@/lib/fetch-json";
 import { usePolling } from "@/hooks/usePolling";
-import type { BackupSettingsDto, BackupSettingsResult, SavesResult, ServerOperationResult } from "@/lib/api-types";
+import type {
+  BackupSettingsDto,
+  BackupSettingsResult,
+  SavesResult,
+  ServerOperationResult,
+  UploadResult,
+} from "@/lib/api-types";
 
 /** Refusals the operator can override by confirming a second time. */
 const FORCEABLE = new Set(["players_online", "rcon_unavailable_force_required", "restore_incompatible"]);
@@ -12,6 +18,14 @@ export type SavesOutcome =
   | { kind: "done" }
   | { kind: "needs_force"; failure: FetchFailure }
   | { kind: "failed"; failure: FetchFailure };
+
+export type UploadProgress = { sent: number; resuming: boolean };
+
+/** Failures a chunk is retried after: the connection, or the server catching up. */
+const RETRIABLE = new Set(["network", "upload_offset", "data_timeout", "data_unreachable", "data_busy", "rate_limited_session"]);
+const MAX_RETRIES = 6;
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Saves tab data (`GET /api/saves`) and its actions. Polled only while the tab
@@ -97,6 +111,72 @@ export function useSaves(options: { enabled: boolean; onUnauthorized: () => void
     [send],
   );
 
+  /**
+   * Sends a save in chunks, then asks for it to be published as an archive.
+   * A failed chunk is retried from where the server stands, a few times with
+   * a growing pause: a laptop changing networks does not restart a 500 MB
+   * upload from zero. Aborting `signal` drops the upload on the server.
+   */
+  const upload = useCallback(
+    async (
+      file: File,
+      label: string,
+      onProgress: (progress: UploadProgress) => void,
+      signal: AbortSignal,
+    ): Promise<SavesOutcome> => {
+      const begun = await fetchJson<UploadResult>("/api/saves/uploads", {
+        method: "POST",
+        body: JSON.stringify({ size: file.size, name: file.name }),
+      });
+      if (begun.kind === "unauthorized") {
+        unauthorized.current();
+        return { kind: "done" };
+      }
+      if (begun.kind === "error") return { kind: "failed", failure: begun };
+
+      const path = `/api/saves/uploads/${encodeURIComponent(begun.data.upload.id)}`;
+      const { chunkBytes } = begun.data;
+      const abandon = () => void fetchJson(path, { method: "DELETE" });
+      let offset = 0;
+      let retries = 0;
+
+      while (offset < file.size) {
+        if (signal.aborted) {
+          abandon();
+          return { kind: "done" };
+        }
+        const sent = await fetchJson<UploadResult>(`${path}?offset=${offset}`, {
+          method: "PUT",
+          body: file.slice(offset, offset + chunkBytes),
+          headers: { "content-type": "application/octet-stream" },
+          signal,
+        });
+        if (sent.kind === "ok") {
+          offset = sent.data.upload.offset;
+          retries = 0;
+          onProgress({ sent: offset, resuming: false });
+          continue;
+        }
+        if (sent.kind === "unauthorized") {
+          unauthorized.current();
+          return { kind: "done" };
+        }
+        if (signal.aborted) continue;
+        if (!(RETRIABLE.has(sent.code) || sent.status >= 500) || ++retries > MAX_RETRIES) {
+          abandon();
+          return { kind: "failed", failure: sent };
+        }
+        onProgress({ sent: offset, resuming: true });
+        await pause(1000 * 2 ** (retries - 1));
+        const where = await fetchJson<UploadResult>(path);
+        if (where.kind === "ok") offset = where.data.upload.offset;
+      }
+
+      return send(`${path}/complete`, { method: "POST", body: JSON.stringify(label ? { label } : {}) });
+    },
+    [send],
+  );
+
   const saveSettings = useCallback(
     async (settings: Omit<BackupSettingsDto, "lastRunAt">): Promise<SavesOutcome> => {
       const outcome = await fetchJson<BackupSettingsResult>("/api/saves/settings", {
@@ -111,5 +191,5 @@ export function useSaves(options: { enabled: boolean; onUnauthorized: () => void
     [load],
   );
 
-  return { data, failure, submitting, refresh: load, backup, restore, remove, saveSettings };
+  return { data, failure, submitting, refresh: load, backup, restore, remove, upload, saveSettings };
 }

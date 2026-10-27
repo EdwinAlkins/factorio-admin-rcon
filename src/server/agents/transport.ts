@@ -16,9 +16,12 @@ export type AgentSettings = {
 };
 
 export type AgentRequest = {
-  method: "GET" | "POST" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "DELETE";
   path: string;
+  /** Sent as JSON. */
   body?: unknown;
+  /** Sent as it is, in place of `body`: an upload's chunk. */
+  raw?: Uint8Array<ArrayBuffer>;
   timeoutMs?: number;
 };
 
@@ -59,18 +62,19 @@ export function agentTransport(agent: AgentName, settings: () => AgentSettings) 
   }
 
   /** Sends a request; resolves with the raw response once it is a success. */
-  async function send({ method, path, body, timeoutMs }: AgentRequest): Promise<Response> {
+  async function send({ method, path, body, raw, timeoutMs }: AgentRequest): Promise<Response> {
     const config = settings();
     const url = `${config.url}${path}`;
     const headers: Record<string, string> = { authorization: `Bearer ${await token()}` };
-    if (body !== undefined) headers["content-type"] = "application/json";
+    if (raw !== undefined) headers["content-type"] = "application/octet-stream";
+    else if (body !== undefined) headers["content-type"] = "application/json";
 
     let response: Response;
     try {
       response = await fetch(url, {
         method,
         headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: raw ?? (body === undefined ? undefined : JSON.stringify(body)),
         signal: AbortSignal.timeout(timeoutMs ?? config.timeoutMs),
       });
     } catch (error) {

@@ -29,7 +29,11 @@ services:
     # host's RAM. Size it for your map:
     # mem_limit: 4g
     environment:
-      - UPDATE_MODS_ON_START=true
+      # Off: the panel's Mods tab chooses the versions. On, factoriotools
+      # would replace them with the newest at every start (and needs the
+      # USERNAME/TOKEN variables to do so). Set it back to true only if you
+      # manage mods outside the panel (MODS_ENABLED=false).
+      - UPDATE_MODS_ON_START=false
       # - DLC_SPACE_AGE=false
       # Uncomment to skip updating specific mods
       # - UPDATE_IGNORE=mod1,mod2,mod3
@@ -91,11 +95,16 @@ services:
     pids_limit: 32
 
   # The only container that writes the game's files: it archives saves,
-  # restores them, and lets the panel download them. It never sees the Docker
-  # socket — stopping the server around a restore goes through the control
-  # agent. It runs as the factoriotools uid (845) so the files it writes keep
-  # their owner. Unpublished, on the `control` network with the panel only.
-  # With SAVES_ENABLED=false, DELETE this service.
+  # restores them, lets the panel download them, and installs mods. It never
+  # sees the Docker socket — stopping the server around a restore or a mod
+  # change goes through the control agent. It runs as the factoriotools uid
+  # (845) so the files it writes keep their owner. Unpublished.
+  #
+  # Also the only container of the stack that reaches the Internet, and only
+  # the official mod portal (mods.factorio.com and its download host): the
+  # agent refuses any other host, redirects included. It is alone on the
+  # `egress` network for that.
+  # With SAVES_ENABLED=false and MODS_ENABLED=false, DELETE this service.
   data-agent:
     container_name: factorio-data-agent
     build:
@@ -108,21 +117,31 @@ services:
     user: "845:845"
     volumes:
       - ./data/saves:/factorio/saves
-      # Read-only: archives record the mod set they were taken with.
-      - ./data/mods:/factorio/mods:ro
+      # Read-write: the Mods tab installs, updates and removes mods here.
+      - ./data/mods:/factorio/mods
       # Archives, outside ./data so they can be replicated elsewhere. Must
       # belong to uid 845 (./setup-admin.sh takes care of it).
       - ./backups:/backups
     secrets:
       - data_agent_token
+      - factorio_portal
     environment:
       - DATA_AGENT_TOKEN_FILE=/run/secrets/data_agent_token
+      # factorio.com username and token, for searching and installing mods.
+      # Empty (the default ./setup-admin.sh writes): the Mods tab still lists,
+      # enables, disables and removes mods, and shows updates.
+      - PORTAL_CREDENTIALS_FILE=/run/secrets/factorio_portal
+      # Bound on one mod download.
+      - MODS_MAX_DOWNLOAD_MB=${MODS_MAX_DOWNLOAD_MB:-200}
+      # Bound on a save uploaded from the Saves tab.
+      - SAVES_MAX_UPLOAD_MB=${SAVES_MAX_UPLOAD_MB:-2048}
       # Only if the server loads a fixed SAVE_NAME (LOAD_LATEST_SAVE=false):
       # restores then write the save under that name, e.g. my-map.zip.
       - TARGET_SAVE_NAME=${TARGET_SAVE_NAME:-}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     networks:
       - control
+      - egress
     read_only: true
     cap_drop:
       - ALL
@@ -226,6 +245,9 @@ services:
       - DATA_AGENT_URL=http://data-agent:8080
       - DATA_AGENT_TOKEN_FILE=/run/secrets/data_agent_token
       - DATA_AGENT_TIMEOUT_MS=${DATA_AGENT_TIMEOUT_MS:-}
+      # Mods (installed list, updates, portal search, install), through the
+      # same data agent. MODS_ENABLED=false removes the Mods tab.
+      - MODS_ENABLED=${MODS_ENABLED:-}
       # Metrics, master switch first, then one flag per source.
       # METRICS_ENABLED=false turns the whole feature off: no collector, no
       # Statistics tab, no /api/metrics -- and the two source flags are ignored.
@@ -266,6 +288,9 @@ networks:
   # Panel <-> agents. `internal`: no route out, nothing published.
   control:
     internal: true
+  # The data agent's way out, to the mod portal. Nothing else is on it: the
+  # panel and the control agent keep no route to the Internet.
+  egress:
 
 secrets:
   # One per agent, each shared with the panel only. Kept outside ./data, which
@@ -274,3 +299,7 @@ secrets:
     file: ./secrets/control-agent-token
   data_agent_token:
     file: ./secrets/data-agent-token
+  # {"username": "...", "token": "..."} from factorio.com, or {} for none.
+  # Read by the data agent only.
+  factorio_portal:
+    file: ./secrets/factorio-portal

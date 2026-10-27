@@ -82,7 +82,11 @@
       "restore": "Restauration",
       "delete": "Archive supprimée",
       "download": "Archive téléchargée",
-      "settings": "Planification modifiée"
+      "settings": "Planification modifiée",
+      "mods_apply": "Changement de mods",
+      "upload": "Envoi de sauvegarde commencé",
+      "upload_abort": "Envoi de sauvegarde annulé",
+      "import": "Sauvegarde importée"
     }
   },
   "confirm": {
@@ -168,7 +172,8 @@
     "console": "Console",
     "metrics": "Statistiques",
     "server": "Serveur",
-    "saves": "Sauvegardes"
+    "saves": "Sauvegardes",
+    "mods": "Mods"
   },
 
   "metrics": {
@@ -233,7 +238,10 @@
       "waiting_rcon": "Chargement de la carte",
       "archiving": "Archivage de la sauvegarde",
       "restoring": "Restauration de l'archive",
-      "rolling_back": "Retour à l'état précédent"
+      "downloading": "Téléchargement et vérification des mods",
+      "installing": "Installation des mods",
+      "rolling_back": "Retour à l'état précédent",
+      "verifying": "Vérification de la sauvegarde"
     },
     "operationBy": "demandé par {username}",
     "history": "Opérations récentes",
@@ -243,7 +251,9 @@
       "stop": "Arrêt",
       "restart": "Redémarrage",
       "backup": "Sauvegarde",
-      "restore": "Restauration"
+      "restore": "Restauration",
+      "mods_apply": "Mods",
+      "import": "Import"
     },
     "status": {
       "running": "en cours",
@@ -284,7 +294,8 @@
       "manual": "manuelle",
       "scheduled": "planifiée",
       "pre-restore": "avant restauration",
-      "pre-mods": "avant changement de mods"
+      "pre-mods": "avant changement de mods",
+      "upload": "importée"
     },
     "modsCount": "{count, plural, =0 {aucun mod} one {# mod} other {# mods}}",
     "download": "Télécharger",
@@ -296,7 +307,8 @@
       "deleteTitle": "Supprimer cette archive ?",
       "deleteMessage": "{id} sera supprimée définitivement.",
       "forceTitle": "Restaurer quand même ?",
-      "forceLabel": "Restaurer quand même"
+      "forceLabel": "Restaurer quand même",
+      "restoreUnknown": "Cette sauvegarde a été importée depuis un ordinateur : sa version de Factorio et ses mods sont inconnus. S'ils diffèrent de ceux du serveur, la carte peut refuser de se charger, ou être migrée définitivement."
     },
     "schedule": {
       "title": "Sauvegardes planifiées",
@@ -310,6 +322,117 @@
       "saved": "Planification enregistrée.",
       "lastRun": "Dernière exécution : {date}",
       "never": "Jamais exécutée."
+    },
+    "import": {
+      "title": "Importer une sauvegarde",
+      "hint": "Une sauvegarde .zip depuis votre ordinateur, jusqu'à {max}. Elle devient une archive : restaurez-la pour la jouer.",
+      "file": "Fichier de sauvegarde",
+      "start": "Importer",
+      "cancel": "Annuler",
+      "progress": "Envoi : {percent} % ({sent} sur {total})",
+      "resuming": "Connexion perdue, reprise…",
+      "notZip": "Choisissez un fichier .zip.",
+      "tooLarge": "Ce fichier dépasse la limite ({max}).",
+      "done": "Envoyé. L'archive apparaît une fois vérifiée par le serveur."
+    }
+  },
+
+  "mods": {
+    "title": "Mods",
+    "refresh": "Rafraîchir",
+    "loading": "Chargement…",
+    "operation": "En cours : {step}",
+    "game": "Factorio {version}",
+    "versionUnknown": "La version du jeu n'est pas encore connue : démarrez le serveur une fois pour que les mods puissent lui correspondre.",
+    "installed": "Installés",
+    "installedEmpty": "Pas encore de liste de mods : le serveur n'a jamais démarré.",
+    "updatesUnavailable": "Le portail des mods est injoignable : les mises à jour disponibles ne sont pas affichées.",
+    "columns": {
+      "name": "Mod",
+      "version": "Version",
+      "state": "État"
+    },
+    "enabled": "activé",
+    "disabled": "désactivé",
+    "builtin": "fourni avec le jeu",
+    "unpacked": "dossier",
+    "dlc": "géré par DLC_SPACE_AGE",
+    "updateAvailable": "mise à jour {version}",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "update": "Mettre à jour",
+    "remove": "Supprimer",
+    "search": {
+      "title": "Trouver un mod",
+      "placeholder": "Rechercher sur le portail des mods",
+      "submit": "Rechercher",
+      "empty": "Aucun résultat.",
+      "noCredentials": "La recherche et l'installation demandent un compte factorio.com. Écrivez votre identifiant et votre token dans secrets/factorio-portal, à côté de docker-compose.yml (le token est sur votre profil factorio.com), puis recréez le data-agent :",
+      "installed": "installé",
+      "add": "Ajouter",
+      "details": "Détails",
+      "by": "par {owner}",
+      "downloads": "{count, plural, one {# téléchargement} other {# téléchargements}}",
+      "more": "Plus de résultats"
+    },
+    "details": {
+      "releases": "Versions",
+      "compatible": "pour ce jeu",
+      "otherGame": "Factorio {version}",
+      "dependencies": "Nécessite : {list}",
+      "addVersion": "Ajouter cette version",
+      "close": "Fermer"
+    },
+    "basket": {
+      "title": "Changements en attente",
+      "empty": "Rien en attente : ajoutez des changements depuis les listes ci-dessus.",
+      "remove": "Retirer de la liste",
+      "clear": "Vider",
+      "preview": "Prévisualiser",
+      "apply": "Appliquer (redémarrage nécessaire)",
+      "change": {
+        "install": "Installer {name}",
+        "update": "Mettre à jour {name}",
+        "enable": "Activer {name}",
+        "disable": "Désactiver {name}",
+        "remove": "Supprimer {name}"
+      },
+      "version": "version {version}"
+    },
+    "plan": {
+      "title": "Ce qui va se passer",
+      "nothing": "Ces changements ne changent rien.",
+      "step": {
+        "install": "Installer {name} {to}",
+        "update": "Mettre à jour {name} {from} → {to}",
+        "enable": "Activer {name}",
+        "disable": "Désactiver {name}",
+        "remove": "Supprimer {name} {from}"
+      },
+      "requiredBy": "nécessaire à {mod}",
+      "conflicts": "À régler avant d'appliquer",
+      "optional": "Optionnel, non installé : {mod} peut utiliser {optional}",
+      "unchecked": "Besoins non vérifiés (info.json illisible) : {list}",
+      "conflict": {
+        "not_found": "absent du portail des mods",
+        "not_installed": "non installé",
+        "no_release": "aucune version ne convient à ce jeu",
+        "incompatible": "incompatible avec un autre mod activé",
+        "missing": "un mod requis manquerait",
+        "version": "un mod requis n'a pas la bonne version",
+        "builtin": "fourni avec le jeu",
+        "unpacked": "installé en dossier, géré à la main",
+        "base": "le jeu de base ne peut pas être désactivé",
+        "dlc": "géré par l'image Factorio (DLC_SPACE_AGE)",
+        "unresolvable": "les dépendances ne se stabilisent pas",
+        "unknown_action": "changement inconnu"
+      }
+    },
+    "confirm": {
+      "applyTitle": "Appliquer ces changements de mods ?",
+      "applyMessage": "Les mods sont d'abord téléchargés et vérifiés, serveur en marche. Ensuite la carte est sauvegardée et archivée, le serveur s'arrête, les mods sont remplacés et le serveur redémarre. Les joueurs seront déconnectés.",
+      "forceTitle": "Appliquer quand même ?",
+      "forceLabel": "Appliquer quand même"
     }
   },
 
@@ -384,6 +507,7 @@
     "rcon_unavailable_force_required": "RCON ne répond pas : la carte ne peut pas être sauvegardée avant, et Factorio ne sauvegardera de lui-même que s'il s'arrête dans le délai de grâce.",
     "save_timeout": "La sauvegarde n'a pas abouti à temps ; le serveur a été laissé en marche.",
     "rcon_not_back": "Le serveur a démarré mais RCON n'a pas répondu à temps.",
+    "server_crashed": "Le serveur s'est arrêté pendant le chargement (code de sortie {exitCode}) : consultez ses logs.",
     "invalid_body": "Corps de requête invalide.",
     "invalid_tail": "Nombre de lignes invalide (1 à {max}).",
 
@@ -402,6 +526,30 @@
     "checksum_mismatch": "Cette archive a été modifiée depuis sa création ; elle ne sera pas restaurée.",
     "restore_incompatible": "Cette archive provient d'un jeu différent : {gaps}.",
     "restore_rolled_back": "La restauration a échoué ({reason}) ; l'état précédent a été remis en place.",
-    "restore_rollback_failed": "La restauration a échoué ({reason}) et l'état précédent n'a pas pu être remis en place : vérifiez le dossier des sauvegardes et la dernière archive « avant restauration »."
+    "restore_rollback_failed": "La restauration a échoué ({reason}) et l'état précédent n'a pas pu être remis en place : vérifiez le dossier des sauvegardes et la dernière archive « avant restauration ».",
+    "mods_disabled": "Les mods sont désactivés sur ce panel.",
+    "mods_conflict": "Ces changements ont des conflits : prévisualisez-les pour les voir.",
+    "plan_changed": "Quelque chose a changé depuis la prévisualisation (une nouvelle version sur le portail ?) : prévisualisez à nouveau.",
+    "mods_nothing_to_do": "Ces changements ne changent rien.",
+    "tx_not_found": "Ce changement de mods n'est plus disponible.",
+    "tx_already_committed": "Ce changement de mods a déjà été appliqué.",
+    "mods_unavailable": "Le dossier des mods n'existe pas encore : démarrez le serveur une fois.",
+    "invalid_mod_archive": "Un mod téléchargé n'est pas une archive valide de la version attendue.",
+    "mod_not_found": "Ce mod n'est pas sur le portail des mods.",
+    "portal_credentials_missing": "Aucun identifiant du portail des mods n'est configuré (secrets/factorio-portal).",
+    "portal_rejected": "Le portail des mods a refusé les identifiants : vérifiez secrets/factorio-portal.",
+    "portal_unreachable": "Le portail des mods est injoignable.",
+    "download_too_large": "Un mod dépasse la taille autorisée (MODS_MAX_DOWNLOAD_MB).",
+    "download_checksum": "Un mod téléchargé ne correspond pas à l'empreinte du portail.",
+    "factorio_version_unknown": "La version du jeu n'est pas encore connue : démarrez le serveur une fois.",
+    "mods_rolled_back": "Le changement de mods a échoué ({reason}) ; les mods précédents ont été remis en place.",
+    "mods_rollback_failed": "Le changement de mods a échoué ({reason}) et les mods précédents n'ont pas pu être remis en place : vérifiez le dossier des mods et la dernière archive « avant changement de mods ».",
+    "upload_not_found": "Cet envoi n'existe plus : recommencez-le.",
+    "upload_busy": "Un autre envoi est en cours.",
+    "upload_offset": "L'envoi est décalé par rapport au serveur ; il reprend là où le serveur en est.",
+    "upload_too_large": "Cette sauvegarde dépasse la taille autorisée (SAVES_MAX_UPLOAD_MB).",
+    "upload_incomplete": "L'envoi n'est pas encore terminé.",
+    "uploads_disabled": "Les envois sont désactivés.",
+    "chunk_too_large": "Un morceau de l'envoi dépasse la taille autorisée."
   }
 }

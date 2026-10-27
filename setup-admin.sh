@@ -1,8 +1,9 @@
 #!/bin/bash
 # Prepares the .env file used by the factorio-admin service:
 # generates the role passwords and the session signing key, the tokens shared
-# with the two agents (./secrets/*-agent-token), creates the archives folder
-# (./backups) and records the group owning the Docker socket (DOCKER_GID).
+# with the two agents (./secrets/*-agent-token), an empty mod portal secret
+# (./secrets/factorio-portal), creates the archives folder (./backups) and
+# records the group owning the Docker socket (DOCKER_GID).
 #
 # Values already present are kept by default; use --force to regenerate them
 # (which invalidates every open session).
@@ -46,7 +47,8 @@ Examples:
   ./setup-admin.sh --force --yes   # full rotation, no questions asked
 
 Also creates ./secrets/control-agent-token and ./secrets/data-agent-token (the
-panel <-> agent tokens), the ./backups folder for archives, and writes
+panel <-> agent tokens), an empty ./secrets/factorio-portal (fill it in to
+search and install mods), the ./backups folder for archives, and writes
 DOCKER_GID, the group owning the Docker socket, to the .env file.
 EOF
 }
@@ -248,6 +250,21 @@ ensure_agent_token() {
 ensure_agent_token control-agent
 ensure_agent_token data-agent
 
+# factorio.com credentials, for searching and installing mods from the panel.
+# Never generated nor overwritten, even with --force: they are the operator's
+# own account. `{}` keeps Compose happy (it refuses a missing secret file) and
+# leaves those two features off. Writable by its owner, who fills it in; the
+# directory keeps other host users out.
+PORTAL_FILE="$SECRETS_DIR/factorio-portal"
+PORTAL_EMPTY=false
+if [[ ! -e "$PORTAL_FILE" ]]; then
+    echo "→ creating secrets/factorio-portal (empty: mod search and install stay off)"
+    (umask 022 && echo '{}' >"$PORTAL_FILE")
+fi
+if ! grep -q '"token"' "$PORTAL_FILE"; then
+    PORTAL_EMPTY=true
+fi
+
 # The data agent writes archives here as the Factorio uid. A directory Docker
 # creates on its own would belong to root, and the agent would refuse to start.
 mkdir -p "$BACKUPS_DIR"
@@ -297,6 +314,16 @@ fi
 if [[ ${#GENERATED[@]} -gt 0 ]] && grep -qE '^(MODERATOR|VIEWER)_PASSWORD=' "$ENV_FILE"; then
     echo
     echo "Reminder: the role is determined by the password used to sign in."
+fi
+
+if [[ "$PORTAL_EMPTY" == true ]]; then
+    echo
+    echo "Mods: to search and install mods from the panel, write your factorio.com"
+    echo "credentials to secrets/factorio-portal, then recreate the data agent (a plain"
+    echo "restart may keep the old file: editors replace it rather than rewrite it):"
+    echo '  {"username": "your-name", "token": "..."}'
+    echo "  (token: https://factorio.com/profile, or player-data.json in the game's folder)"
+    echo "  docker compose up -d --force-recreate data-agent"
 fi
 
 echo
