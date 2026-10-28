@@ -109,7 +109,7 @@ write a file of its choosing.</p>
 <tr><td><code>factorio</code></td><td>The game: <code>./data</code> mounted on <code>/factorio</code>. Left unconfined on purpose: it writes its saves, mods and config.</td><td><code>game</code></td><td>Everything</td></tr>
 <tr><td><code>factorio-admin</code></td><td>Sessions, audit log, metric series and the operation history, in the <code>factorio-admin-data</code> volume. Read-only access to <code>./data/config</code> for the RCON password.</td><td><code>game</code>, <code>control</code></td><td>Everything</td></tr>
 <tr><td><code>control-agent</code></td><td>The Docker socket, and nothing else.</td><td><code>control</code></td><td>Server tab, CPU and memory graphs, applying mods</td></tr>
-<tr><td><code>data-agent</code></td><td><code>./data/saves</code>, <code>./data/mods</code>, <code>./backups</code>, and the factorio.com credentials.</td><td><code>control</code>, <code>egress</code></td><td>Saves tab, Mods tab</td></tr>
+<tr><td><code>data-agent</code></td><td><code>./data/saves</code>, <code>./data/mods</code>, <code>./data/config</code> (for <code>server-settings.json</code>), <code>./backups</code>, and the factorio.com credentials.</td><td><code>control</code>, <code>egress</code></td><td>Saves tab, Mods tab</td></tr>
 </tbody></table></div>
 
 <h3 id="networks">Networks<a class="anchor" href="#networks" aria-label="Link to this section">#</a></h3>
@@ -170,9 +170,10 @@ through the control agent.</p>
 <ul>
   <li>It runs as <strong>uid 845</strong>, the <code>factoriotools/factorio</code>
       image's, so the files it writes keep the owner the game expects.</li>
-  <li>It only reads and writes three folders: saves, mods and backups. A restore
-      or an install verifies every archive entry by entry before writing
-      anything.</li>
+  <li>It only reads and writes three folders &mdash; saves, mods and backups
+      &mdash; and one file of a fourth, <code>config/server-settings.json</code>.
+      A restore or an install verifies every archive entry by entry before
+      writing anything.</li>
   <li>It is also the only component that reaches the Internet, and only
       <code>mods.factorio.com</code> and its download host
       <code>dl-mod.factorio.com</code>, over HTTPS. No request carries a URL:
@@ -186,7 +187,7 @@ That pair is what tells a server stopped on purpose from one whose RCON is
 down.</p>
 <div class="table-wrap"><table><thead><tr><th>Role</th><th>Sees</th><th>Can</th></tr></thead><tbody>
 <tr><td><code>viewer</code>, <code>moderator</code></td><td>State, players, version, uptime, recent operations</td><td>&mdash;</td></tr>
-<tr><td><code>admin</code></td><td>The same, plus the last 200 log lines</td><td>Start, stop, restart</td></tr>
+<tr><td><code>admin</code></td><td>The same, plus the last 200 log lines</td><td>Start, stop, restart; edit the server settings</td></tr>
 </tbody></table></div>
 <p>A <strong>stop</strong>, or a restart, runs in order:</p>
 <ol>
@@ -200,8 +201,36 @@ down.</p>
 </ol>
 <p>A <strong>start</strong> returns once RCON answers.</p>
 
+<h3 id="server-settings">Server settings<a class="anchor" href="#server-settings" aria-label="Link to this section">#</a></h3>
+<p>The tab edits <code>server-settings.json</code>: the name, description and
+tags of the listing, its visibility, the player limit, autosaves, pause and
+network settings, and the passwords. Factorio reads the file when it starts,
+so a change is either <strong>saved for the next start</strong> &mdash; the
+server keeps running, Factorio never writes the file back &mdash; or
+<strong>saved and applied</strong>: written, then the map saved and the server
+restarted, with the same players-online check as a restart. If the server does
+not come back, the previous file is put back and the server started again.</p>
+<ul>
+  <li>Only the keys the tab shows are rewritten. Comments, keys of a newer
+      Factorio and anything added by hand are kept, in their order; blank
+      lines between groups are not.</li>
+  <li>The game password and the factorio.com token and password are never
+      sent to the browser: the tab only says whether each is set, and can
+      replace or clear it. The audit log names the keys changed, never a
+      value of theirs.</li>
+  <li>A public game needs a factorio.com username and a token or password:
+      a change that would publish without them is refused.</li>
+  <li>The five previous versions are kept in <code>./backups/.server-settings/</code>.</li>
+</ul>
+<p>This needs <code>./data/config</code> mounted in the data agent, as the
+compose file does. A stack set up before this feature does not: the tab then
+says so, and the rest works as before. The folder also holds
+<code>rconpw</code>; the agent opens nothing else there, and could not use it
+anyway &mdash; it is not on the game network.</p>
+
 <h3 id="operations">One operation at a time<a class="anchor" href="#operations" aria-label="Link to this section">#</a></h3>
-<p>Start, stop, restart, a backup, a restore and a mod change share a single
+<p>Start, stop, restart, a backup, a restore, an import, a mod change and
+applying server settings share a single
 lock: a second request gets <code>409 operation_in_progress</code> instead of
 racing the first. Each operation runs in the background (the route answers
 <code>202</code>), reports its steps as it goes, and lands in the audit log and in

@@ -16,6 +16,9 @@ type Config struct {
 	// Factorio's folders, as mounted in the agent's container.
 	SavesDir string
 	ModsDir  string
+	// Factorio's config folder, for server-settings.json. Optional: a stack
+	// that does not mount it has no settings editing.
+	ConfigDir string
 	// The panel's archives: a host directory distinct from the game's data,
 	// so the operator can replicate it elsewhere.
 	BackupsDir string
@@ -41,6 +44,7 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 		ListenAddr:     get("LISTEN_ADDR", ":8080"),
 		SavesDir:       get("SAVES_DIR", "/factorio/saves"),
 		ModsDir:        get("MODS_DIR", "/factorio/mods"),
+		ConfigDir:      get("CONFIG_DIR", "/factorio/config"),
 		BackupsDir:     get("BACKUPS_DIR", "/backups"),
 		TargetSaveName: get("TARGET_SAVE_NAME", ""),
 		LogLevel:       get("LOG_LEVEL", "info"),

@@ -49,6 +49,16 @@ export function plan(extra: Partial<ModPlanDto> = {}): ModPlanDto {
   };
 }
 
+export const SETTINGS_HASH = "c".repeat(64);
+
+export function settingsView() {
+  return {
+    settings: { name: "My server", max_players: 0, visibility: { public: false, lan: true } },
+    secrets: { game_password: true, token: false, password: false },
+    hash: SETTINGS_HASH,
+  };
+}
+
 export function backup(id: string, extra: Partial<BackupDto> = {}): BackupDto {
   return {
     id,
@@ -103,6 +113,9 @@ export function createFakes() {
     // Uploads.
     uploadOffset: vi.fn(async (id: string) => ({ upload: { id, offset: 10, size: 10 }, chunkBytes: 8 << 20 })),
     uploadComplete: vi.fn(async (id: string) => backup(`20261027-120000-upload`, { source: "upload", saveName: `${id.slice(0, 4)}.zip` })),
+    // Server settings.
+    settingsUpdate: vi.fn(async (change: { hash: string }) => ({ ...settingsView(), tx: `tx-${change.hash.slice(0, 4)}` })),
+    settingsRollback: vi.fn(async (tx: string): Promise<void> => void tx),
     // Mods.
     installed: [] as InstalledModDto[],
     credentials: true,
@@ -136,6 +149,10 @@ export function createFakes() {
     data.uploadOffset.mockReset();
     data.uploadOffset.mockImplementation(async (id: string) => ({ upload: { id, offset: 10, size: 10 }, chunkBytes: 8 << 20 }));
     data.uploadComplete.mockClear();
+    data.settingsUpdate.mockReset();
+    data.settingsUpdate.mockImplementation(async (change: { hash: string }) => ({ ...settingsView(), tx: `tx-${change.hash.slice(0, 4)}` }));
+    data.settingsRollback.mockReset();
+    data.settingsRollback.mockImplementation(async () => undefined);
     for (const fn of [...Object.values(agent), rcon.execute, rcon.healthCheck, rcon.disconnect]) {
       fn.mockClear();
     }
@@ -189,6 +206,9 @@ export function createFakes() {
     })),
     dataUploadComplete: track("data.uploadComplete", (id: string) => data.uploadComplete(id)),
     dataUploadAbort: track("data.uploadAbort", async () => undefined),
+    dataServerSettings: track("data.settings", async () => settingsView()),
+    dataServerSettingsUpdate: track("data.settingsUpdate", (change: { hash: string }) => data.settingsUpdate(change)),
+    dataServerSettingsRollback: track("data.settingsRollback", (tx: string) => data.settingsRollback(tx)),
     dataMods: track("data.mods", async () => ({ mods: data.installed, credentials: data.credentials })),
     dataModSearch: track("data.modSearch", async () => ({ hits: [], page: 1, pageCount: 1 })),
     dataModDetails: track("data.modDetails", async (name: string) => ({

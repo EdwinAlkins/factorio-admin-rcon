@@ -71,7 +71,9 @@ export default function ServerLogs({ active, onUnauthorized }: Props) {
   }, [lines]);
 
   return (
-    <div className="flex min-h-0 flex-col">
+    // shrink-0: inside the panel's scrolling column, a long sibling (the
+    // settings form) would otherwise squash the box down to a single line.
+    <div className="flex shrink-0 flex-col">
       <div className="flex items-center justify-between pb-1">
         <h3 className="text-xs font-medium">
           {t("title")} <span className="text-muted">· {t("hint", { count: TAIL })}</span>

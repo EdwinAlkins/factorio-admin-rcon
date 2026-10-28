@@ -123,6 +123,14 @@ control agent's.
 | `POST /v1/uploads/{id}/complete` `{label?, createdBy?}` | Verifies the whole file as a save and publishes it as an archive of source `upload`. `201` with its sidecar. |
 | `DELETE /v1/uploads/{id}` | Abandons an upload and deletes what it received. |
 
+Server settings, when `CONFIG_DIR` is mounted (otherwise `404 server_settings_unavailable`):
+
+| Route | Answer |
+| --- | --- |
+| `GET /v1/server-settings` | The editable keys of `server-settings.json`, `secrets` (whether each of `game_password`, `token`, `password` is set — never a value) and the file's `hash`. |
+| `PUT /v1/server-settings` `{settings, secrets, hash}` | Changes the keys named, in place, keeping every other member in its order. `secrets` take `{set}` or `{clear: true}`. Refused if the file changed since `hash`. Answers the new view and `tx`, the id of the previous version. |
+| `POST /v1/server-settings/rollback` `{tx}` | Puts that previous version back. |
+
 Mods, with `factorioVersion` (`2.1.23`, which the panel reads through RCON) wherever releases are
 chosen:
 
@@ -144,7 +152,9 @@ Errors use the same format as the control agent's, with `backup_not_found` (404)
 `invalid_archive` and `checksum_mismatch` (422), `io_error` (500), `busy` (409) and `rate_limited`
 (429). For uploads: `upload_busy`, `upload_offset` (the chunk does not start where the upload
 stands: ask, then resume) and `upload_incomplete` (409); `upload_not_found` and `uploads_disabled`
-(404); `upload_too_large` and `chunk_too_large` (413). For mods: `mods_conflict`, `plan_changed`, `mods_nothing_to_do`, `mods_unavailable` (no
+(404); `upload_too_large` and `chunk_too_large` (413). For server settings: `invalid_setting`
+(400), `server_settings_missing` and `settings_tx_not_found` (404), `settings_changed` (409),
+`server_settings_unreadable` and `public_needs_credentials` (422). For mods: `mods_conflict`, `plan_changed`, `mods_nothing_to_do`, `mods_unavailable` (no
 mods folder yet), `tx_already_committed` and `portal_credentials_missing` (409); `mod_not_found` and
 `tx_not_found` (404); `invalid_mod_archive`, `download_checksum` and `download_too_large` (422);
 `portal_unreachable` and `portal_rejected` (502).
@@ -215,6 +225,7 @@ them. A mod installed as a folder is listed and can be toggled, never replaced o
 | `DATA_AGENT_TOKEN_FILE` | — | Token file. `DATA_AGENT_TOKEN` takes it inline (tests). Required. |
 | `SAVES_DIR` | `/factorio/saves` | Factorio's saves folder. |
 | `MODS_DIR` | `/factorio/mods` | The mods folder; read and written per request, so it may appear after the agent starts (the server creates it on its first run). |
+| `CONFIG_DIR` | `/factorio/config` | Factorio's config folder, for `server-settings.json` only. Optional: missing or not writable turns server settings off, not the agent. |
 | `BACKUPS_DIR` | `/backups` | Archives. Must be writable by the agent's uid (845), checked at startup. |
 | `TARGET_SAVE_NAME` | — | Save name a restore writes, for a fixed `SAVE_NAME`. |
 | `PORTAL_CREDENTIALS_FILE` | — | JSON `{"username", "token"}` from factorio.com. Missing, empty or `{}`: no search, no install. |

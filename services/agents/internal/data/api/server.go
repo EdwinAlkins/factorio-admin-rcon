@@ -1,5 +1,6 @@
 // Package api is the data agent's HTTP surface: a fixed list of operations on
-// the server's saves, the panel's archives and the server's mods. No route
+// the server's saves, the panel's archives, the server's mods and its
+// server-settings.json. No route
 // takes a path or a URL: saves are named by the agent's listings, archives,
 // uploads and transactions by ids it generated, mods by validated names.
 package api
@@ -14,11 +15,14 @@ import (
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/files"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/mods"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/saves"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/serversettings"
 )
 
 type Options struct {
-	Store          *saves.Store
-	Mods           *mods.Manager
+	Store *saves.Store
+	Mods  *mods.Manager
+	// Optional: nil when the config folder is not mounted.
+	Settings       *serversettings.Store
 	Token          []byte
 	TargetSaveName string
 	// Mutations accepted per minute, all callers together.
@@ -29,6 +33,7 @@ type Options struct {
 type Server struct {
 	store          *saves.Store
 	mods           *mods.Manager
+	settings       *serversettings.Store
 	token          []byte
 	targetSaveName string
 	guard          *agentkit.Guard
@@ -47,6 +52,7 @@ func New(options Options) *Server {
 	return &Server{
 		store:          options.Store,
 		mods:           options.Mods,
+		settings:       options.Settings,
 		token:          options.Token,
 		targetSaveName: options.TargetSaveName,
 		guard:          agentkit.NewGuard(options.MutationsPerMinute),
@@ -86,6 +92,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/mods/stage", s.guard.Wrap(s.stageMods))
 	mux.HandleFunc("POST /v1/mods/commit", s.guard.Wrap(s.commitMods))
 	mux.HandleFunc("POST /v1/mods/rollback", s.guard.Wrap(s.rollbackMods))
+	mux.HandleFunc("GET /v1/server-settings", s.readSettings)
+	mux.HandleFunc("PUT /v1/server-settings", s.guard.Wrap(s.updateSettings))
+	mux.HandleFunc("POST /v1/server-settings/rollback", s.guard.Wrap(s.rollbackSettings))
 	mux.HandleFunc("/", agentkit.NotFound)
 
 	return agentkit.LogRequests(s.log, agentkit.Authenticate(s.token, mux))
@@ -94,6 +103,13 @@ func (s *Server) Handler() http.Handler {
 // fail maps an internal error to a response. Paths and system messages go to
 // the agent's log, not to the caller.
 func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
+	if failSettings(w, err) {
+		s.log.LogAttrs(r.Context(), slog.LevelWarn, "server settings refused",
+			slog.String("path", r.URL.Path),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
 	if failUpload(w, err) {
 		s.log.LogAttrs(r.Context(), slog.LevelWarn, "upload refused",
 			slog.String("path", r.URL.Path),

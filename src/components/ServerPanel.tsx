@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ServerLogs from "@/components/ServerLogs";
+import ServerSettingsPanel from "@/components/ServerSettingsPanel";
 import { useDynamicTranslations } from "@/hooks/useDynamicTranslations";
 import { useErrorMessage } from "@/hooks/useErrorMessage";
 import type { OperationOutcome } from "@/hooks/useServerControl";
@@ -55,7 +56,7 @@ function uptime(startedAt: string | undefined, now = Date.now()) {
 
 /**
  * Server tab: state, start/stop/restart, recent operations and, for
- * administrators, the container's logs.
+ * administrators, server-settings.json and the container's logs.
  *
  * The buttons follow the container's real state rather than the last click:
  * a server stopped from the command line shows "Start", not "Stop".
@@ -233,6 +234,15 @@ export default function ServerPanel({
 
             <OperationHistory operations={server.recent} />
           </>
+        )}
+
+        {can(session.role, "server:configure") && (
+          <ServerSettingsPanel
+            active={active}
+            busy={submitting || server?.operation != null}
+            onUnauthorized={onUnauthorized}
+            onLaunched={onRefresh}
+          />
         )}
 
         {can(session.role, "server:logs") && (

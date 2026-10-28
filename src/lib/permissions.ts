@@ -23,6 +23,8 @@ export const PERMISSIONS = [
   "server:start",
   "server:stop",
   "server:restart",
+  // server-settings.json: the game's name, password, visibility, autosaves.
+  "server:configure",
   // Saves. Moderators can see what archives exist; acting on them —
   // including downloading a copy of the whole map — is for administrators.
   // An uploaded save carries its own scenario scripts, which the server runs.
@@ -56,6 +58,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "server:start",
     "server:stop",
     "server:restart",
+    "server:configure",
     "saves:read",
     "saves:create",
     "saves:download",

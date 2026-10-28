@@ -10,6 +10,8 @@ import type {
   ModPlanDto,
   ModSearchHitDto,
   SaveFileDto,
+  SecretChangeDto,
+  ServerSettingsDto,
   UploadStateDto,
 } from "@/lib/api-types";
 
@@ -141,6 +143,25 @@ export async function dataUploadComplete(id: string, request: { label?: string; 
 
 export async function dataUploadAbort(id: string): Promise<void> {
   await transport.call({ method: "DELETE", path: `/v1/uploads/${encodeURIComponent(id)}` });
+}
+
+// --- Server settings --------------------------------------------------------
+
+export async function dataServerSettings(): Promise<ServerSettingsDto> {
+  return transport.call({ method: "GET", path: "/v1/server-settings" });
+}
+
+/** Writes a change; answers the id the previous file is kept under, for a rollback. */
+export async function dataServerSettingsUpdate(change: {
+  settings: Record<string, unknown>;
+  secrets: Record<string, SecretChangeDto>;
+  hash: string;
+}): Promise<ServerSettingsDto & { tx: string }> {
+  return transport.call({ method: "PUT", path: "/v1/server-settings", body: change });
+}
+
+export async function dataServerSettingsRollback(tx: string): Promise<void> {
+  await transport.call({ method: "POST", path: "/v1/server-settings/rollback", body: { tx } });
 }
 
 // --- Mods -----------------------------------------------------------------

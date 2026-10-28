@@ -119,6 +119,11 @@ services:
       - ./data/saves:/factorio/saves
       # Read-write: the Mods tab installs, updates and removes mods here.
       - ./data/mods:/factorio/mods
+      # Read-write, for server-settings.json only (Server tab): the agent opens
+      # no other file here. The folder also holds rconpw, which this agent
+      # cannot use — it is not on the game network. Remove the line to keep
+      # server-settings.json out of the panel's reach.
+      - ./data/config:/factorio/config
       # Archives, outside ./data so they can be replicated elsewhere. Must
       # belong to uid 845 (./setup-admin.sh takes care of it).
       - ./backups:/backups

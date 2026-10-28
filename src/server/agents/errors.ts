@@ -36,6 +36,14 @@ export type AgentErrorKey =
   | "upload_incomplete"
   | "uploads_disabled"
   | "chunk_too_large"
+  // Data agent, server settings.
+  | "server_settings_unavailable"
+  | "server_settings_missing"
+  | "server_settings_unreadable"
+  | "invalid_setting"
+  | "settings_changed"
+  | "settings_tx_not_found"
+  | "public_needs_credentials"
   // Data agent, mods.
   | "mods_conflict"
   | "plan_changed"
@@ -79,6 +87,13 @@ const SPECIFIC_STATUS: Partial<Record<AgentErrorKey, number>> = {
   upload_incomplete: 409,
   uploads_disabled: 404,
   chunk_too_large: 413,
+  server_settings_unavailable: 404,
+  server_settings_missing: 404,
+  server_settings_unreadable: 422,
+  invalid_setting: 400,
+  settings_changed: 409,
+  settings_tx_not_found: 404,
+  public_needs_credentials: 422,
   mods_conflict: 409,
   plan_changed: 409,
   mods_nothing_to_do: 409,
@@ -103,6 +118,13 @@ const PASSTHROUGH_CODES = new Set<AgentErrorKey>([
   "upload_incomplete",
   "uploads_disabled",
   "chunk_too_large",
+  "server_settings_unavailable",
+  "server_settings_missing",
+  "server_settings_unreadable",
+  "invalid_setting",
+  "settings_changed",
+  "settings_tx_not_found",
+  "public_needs_credentials",
   "mods_conflict",
   "plan_changed",
   "mods_nothing_to_do",

@@ -86,7 +86,9 @@
       "mods_apply": "模组变更",
       "upload": "开始上传存档",
       "upload_abort": "取消上传存档",
-      "import": "导入存档"
+      "import": "导入存档",
+      "server_settings": "修改服务器设置",
+      "server_settings_apply": "应用服务器设置"
     }
   },
   "confirm": {
@@ -241,7 +243,8 @@
       "downloading": "正在下载并校验模组",
       "installing": "正在安装模组",
       "rolling_back": "正在回退到之前的状态",
-      "verifying": "正在校验存档"
+      "verifying": "正在校验存档",
+      "writing": "正在写入设置"
     },
     "operationBy": "由 {username} 发起",
     "history": "最近的操作",
@@ -253,7 +256,8 @@
       "backup": "备份",
       "restore": "恢复",
       "mods_apply": "模组",
-      "import": "导入"
+      "import": "导入",
+      "server_settings_apply": "服务器设置"
     },
     "status": {
       "running": "进行中",
@@ -436,6 +440,77 @@
     }
   },
 
+  "serverSettings": {
+    "title": "服务器设置",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "hint": "server-settings.json。Factorio 在启动时读取它：保存后在下次启动时生效，或保存并重启立即生效。面板不认识的键会原样保留。",
+    "groups": {
+      "listing": "公开信息",
+      "access": "访问",
+      "saving": "自动存档",
+      "pause": "暂停",
+      "network": "网络"
+    },
+    "fields": {
+      "name": "服务器列表中的名称",
+      "description": "描述",
+      "tags": "标签",
+      "visibility": "可见性",
+      "username": "factorio.com 用户名",
+      "max_players": "最大玩家数（0 = 不限）",
+      "ignore_player_limit_for_returning_players": "老玩家不受人数限制",
+      "require_user_verification": "要求 factorio.com 账号",
+      "allow_commands": "控制台命令",
+      "afk_autokick_interval": "闲置多久后踢出（分钟，0 = 从不）",
+      "autosave_interval": "自动存档间隔（分钟）",
+      "autosave_slots": "自动存档槽位",
+      "autosave_only_on_server": "仅在服务器上自动存档",
+      "non_blocking_saving": "非阻塞存档（实验性）",
+      "auto_pause": "无人在线时暂停",
+      "auto_pause_when_players_connect": "玩家连接时暂停",
+      "only_admins_can_pause_the_game": "仅管理员可暂停",
+      "max_upload_in_kilobytes_per_second": "上传限速（kB/s，0 = 不限）",
+      "max_upload_slots": "上传槽位（0 = 不限）",
+      "minimum_latency_in_ticks": "最小延迟（tick）",
+      "max_heartbeats_per_second": "每秒心跳数（6 到 240）",
+      "minimum_segment_size": "最小分段大小",
+      "minimum_segment_size_peer_count": "最小分段大小的对等端数",
+      "maximum_segment_size": "最大分段大小",
+      "maximum_segment_size_peer_count": "最大分段大小的对等端数"
+    },
+    "visibility": {
+      "public": "公开（factorio.com 列表）",
+      "lan": "局域网"
+    },
+    "allowCommands": {
+      "true": "所有人",
+      "false": "无人",
+      "admins-only": "仅管理员"
+    },
+    "tagsHint": "用逗号分隔",
+    "secrets": {
+      "title": "密码",
+      "game_password": "游戏密码",
+      "token": "factorio.com 令牌",
+      "password": "factorio.com 密码",
+      "isSet": "已设置",
+      "notSet": "未设置",
+      "newValue": "新值",
+      "clear": "清除"
+    },
+    "save": "保存（下次启动生效）",
+    "saveRestart": "保存并重启",
+    "saved": "已保存。Factorio 会在下次启动时应用。",
+    "nothingChanged": "没有任何更改。",
+    "launched": "正在应用：服务器正在重启。",
+    "confirm": {
+      "restartTitle": "使用这些设置重启服务器？",
+      "restartMessage": "先写入设置并保存地图，然后重启服务器。玩家将被断开。如果服务器未能恢复，将还原之前的设置。",
+      "forceTitle": "仍要重启？",
+      "forceLabel": "仍要重启"
+    }
+  },
   "errors": {
     "metrics_disabled": "该面板的指标功能已禁用。",
     "unknown": "发生意外错误。",
@@ -550,6 +625,15 @@
     "upload_too_large": "该存档超过允许的大小（SAVES_MAX_UPLOAD_MB）。",
     "upload_incomplete": "上传尚未完成。",
     "uploads_disabled": "上传功能已关闭。",
-    "chunk_too_large": "上传的某个分块超过允许的大小。"
+    "chunk_too_large": "上传的某个分块超过允许的大小。",
+    "server_settings_unavailable": "数据代理未挂载 Factorio 的配置目录（./data/config）：请在 docker-compose.yml 中添加。",
+    "server_settings_missing": "服务器尚未创建 server-settings.json：请先启动一次。",
+    "server_settings_unreadable": "server-settings.json 不是有效的 JSON；请先手动修复。",
+    "invalid_setting": "某个设置的值无效。",
+    "settings_changed": "server-settings.json 在加载后已被修改：请刷新后重试。",
+    "settings_tx_not_found": "找不到之前的设置。",
+    "public_needs_credentials": "公开游戏需要 factorio.com 用户名以及令牌或密码。",
+    "settings_rolled_back": "服务器未能以这些设置重启（{reason}）；已还原之前的设置。",
+    "settings_rollback_failed": "服务器未能重启（{reason}），还原之前的设置也失败了：请检查服务器。"
   }
 }

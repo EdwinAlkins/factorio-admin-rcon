@@ -1,4 +1,5 @@
 import type { Permission, Role } from "@/lib/permissions";
+import type { ServerSecretKey, ServerSettingKey } from "@/lib/server-settings";
 
 /** Contract of the JSON responses, shared by the routes and the components. */
 
@@ -226,7 +227,13 @@ export type ServerLogLineDto = {
 
 /** The three operations of the Server tab's buttons. */
 export type ServerLifecycleType = "start" | "stop" | "restart";
-export type ServerOperationType = ServerLifecycleType | "backup" | "restore" | "mods_apply" | "import";
+export type ServerOperationType =
+  | ServerLifecycleType
+  | "backup"
+  | "restore"
+  | "mods_apply"
+  | "import"
+  | "server_settings_apply";
 export type ServerOperationStatus = "running" | "success" | "error" | "interrupted";
 /** Where a running operation stands, for the progress display. */
 export type ServerOperationStep =
@@ -236,6 +243,7 @@ export type ServerOperationStep =
   | "waiting_rcon"
   | "archiving"
   | "verifying"
+  | "writing"
   | "restoring"
   | "downloading"
   | "installing"
@@ -288,6 +296,34 @@ export type ServerOperationResult = {
 export type ServerLogsResult = {
   ok: true;
   lines: ServerLogLineDto[];
+};
+
+/**
+ * server-settings.json as the panel sees it: the editable keys the file
+ * holds (values as they are in the file, unchecked), and whether each secret
+ * is set.
+ */
+export type ServerSettingsDto = {
+  settings: Partial<Record<ServerSettingKey, unknown>>;
+  secrets: Record<ServerSecretKey, boolean>;
+  /** Names the version a change is made from: refused if the file changed since. */
+  hash: string;
+};
+
+export type ServerSettingsResult = ServerSettingsDto & {
+  ok: true;
+  operation: ServerOperationDto | null;
+};
+
+export type SecretChangeDto = { set: string } | { clear: true };
+
+/** A change: `restart` applies it now, otherwise at the server's next start. */
+export type ServerSettingsChangeDto = {
+  settings: Partial<Record<ServerSettingKey, unknown>>;
+  secrets: Partial<Record<ServerSecretKey, SecretChangeDto>>;
+  hash: string;
+  restart: boolean;
+  force?: boolean;
 };
 
 /** One mod of the server's set, as the data agent reads it. */

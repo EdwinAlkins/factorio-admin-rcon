@@ -24,6 +24,7 @@ import (
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/mods"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/portal"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/saves"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/serversettings"
 )
 
 func main() {
@@ -109,9 +110,15 @@ func run() error {
 		return fmt.Errorf("uploads work directory: %w", err)
 	}
 
+	settings, err := openSettings(cfg.ConfigDir, backupsRoot)
+	if err != nil {
+		logger.Warn("config folder unavailable; server settings cannot be edited", "error", err)
+	}
+
 	handler := api.New(api.Options{
 		Store:              store,
 		Mods:               mods.NewManager(cfg.ModsDir, workRoot, portalClient, cfg.ModsMaxDownloadBytes),
+		Settings:           settings,
 		Token:              cfg.Token,
 		TargetSaveName:     cfg.TargetSaveName,
 		MutationsPerMinute: cfg.MutationsPerMinute,
@@ -129,4 +136,26 @@ func run() error {
 
 	// A download streams a whole archive; large maps weigh hundreds of MB.
 	return agentkit.Serve(ctx, cfg.ListenAddr, handler, 30*time.Minute, logger)
+}
+
+// openSettings opens Factorio's config folder for server-settings.json, with
+// the previous versions kept next to the archives. A stack written before
+// this feature does not mount the folder: that turns the feature off, not
+// the agent.
+func openSettings(configDir string, backupsRoot *os.Root) (*serversettings.Store, error) {
+	configRoot, err := os.OpenRoot(configDir)
+	if err != nil {
+		return nil, err
+	}
+	if err := files.CheckWritable(configRoot); err != nil {
+		return nil, fmt.Errorf("%s is not writable by uid %d: %w", configDir, os.Getuid(), err)
+	}
+	if err := backupsRoot.MkdirAll(".server-settings", 0o750); err != nil {
+		return nil, err
+	}
+	historyRoot, err := backupsRoot.OpenRoot(".server-settings")
+	if err != nil {
+		return nil, err
+	}
+	return serversettings.New(configRoot, historyRoot), nil
 }

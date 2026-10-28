@@ -24,6 +24,7 @@ const { POST: savesRestore } = await import("@/app/api/saves/[id]/restore/route"
 const { POST: savesUpload } = await import("@/app/api/saves/uploads/route");
 const savesUploadChunk = await import("@/app/api/saves/uploads/[uploadId]/route");
 const { POST: savesUploadComplete } = await import("@/app/api/saves/uploads/[uploadId]/complete/route");
+const { PUT: serverSettings } = await import("@/app/api/server-settings/route");
 const { POST: modsPlan } = await import("@/app/api/mods/plan/route");
 const { POST: modsApply } = await import("@/app/api/mods/apply/route");
 const { resetEnvCache, useMemoryDatabase, withEnv } = await import("../helpers");
@@ -58,6 +59,7 @@ const MUTATIONS: Mutation[] = [
   { name: "saves/uploads/[uploadId]", handler: savesUploadChunk.PUT, path: `/api/saves/uploads/${"a".repeat(32)}?offset=0`, body: {}, method: "PUT" },
   { name: "saves/uploads/[uploadId] (abort)", handler: savesUploadChunk.DELETE, path: `/api/saves/uploads/${"a".repeat(32)}`, body: undefined, method: "DELETE" },
   { name: "saves/uploads/[uploadId]/complete", handler: savesUploadComplete, path: `/api/saves/uploads/${"a".repeat(32)}/complete`, body: {} },
+  { name: "server-settings", handler: serverSettings, path: "/api/server-settings", body: {}, method: "PUT" },
   { name: "mods/plan", handler: modsPlan, path: "/api/mods/plan", body: {} },
   { name: "mods/apply", handler: modsApply, path: "/api/mods/apply", body: {} },
 ];

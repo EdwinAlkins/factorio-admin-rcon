@@ -123,6 +123,16 @@ const API_ERROR_CODES = [
   "upload_incomplete",
   "uploads_disabled",
   "chunk_too_large",
+  // Server settings (src/server/server-settings, data agent).
+  "server_settings_unavailable",
+  "server_settings_missing",
+  "server_settings_unreadable",
+  "invalid_setting",
+  "settings_changed",
+  "settings_tx_not_found",
+  "public_needs_credentials",
+  "settings_rolled_back",
+  "settings_rollback_failed",
   // Mods (src/server/mods, data agent).
   "mods_disabled",
   "mods_conflict",

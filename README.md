@@ -608,6 +608,17 @@ checksum, the Factorio version and the mod set. The **data agent** (`services/ag
 the Factorio image's uid, sees no Docker socket, and every archive it writes or restores is
 verified entry by entry. Details: [services/agents/README.md](services/agents/README.md).
 
+## Server settings
+
+The **Server** tab edits `server-settings.json` for administrators: the listing (name,
+description, tags, visibility), access, autosaves, pause and network settings, and the passwords.
+**Save for next start** writes the file while the server runs — Factorio reads it only at start
+and never writes it back. **Save and restart** writes it, saves the map and restarts, and puts the
+previous file back if the server does not come back. Only the keys the form shows are rewritten:
+comments and unknown keys are kept. The game password and the factorio.com token and password
+never reach the browser; the form can replace or clear them. It needs `./data/config` mounted in
+the data agent, as the compose file does; the agent opens nothing else in that folder.
+
 ## Mods
 
 The **Mods** tab lists the server's mods — version, enabled or not, update available — for every
@@ -640,7 +651,7 @@ it, the tab still lists, enables, disables and removes mods, and shows available
 
 The **data agent** is the only component of the stack that reaches the Internet, alone on its own
 network, and only the portal and its download host — no URL ever comes from a request. Mod
-settings (`mod-settings.dat`) are not edited by the panel.
+settings (`mod-settings.dat`) are not edited by the panel yet.
 
 ## Endpoints
 
@@ -657,6 +668,7 @@ settings (`mod-settings.dat`) are not edited by the panel.
 | `GET /api/server/logs` | `server:logs` | Last lines of the Factorio container, `?tail=1..1000` |
 | `POST /api/server/start` · `stop` · `restart` | `server:start` · `stop` · `restart` | `202` + operation; `{ "force": true }` overrides the player / RCON checks |
 | `GET /api/health` | public | Liveness (Docker probe) |
+| `GET` · `PUT /api/server-settings` | `server:configure` | `server-settings.json`, never a secret · `{ settings, secrets, hash, restart }`, `202` + operation when `restart` |
 | `GET /api/saves` | `saves:read` | Saves folder, archives, schedule, operation in progress |
 | `POST /api/saves` | `saves:create` | `202` + operation: archive now (saves first) |
 | `GET /api/saves/{id}/download` | `saves:download` | The archive, streamed |

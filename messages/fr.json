@@ -86,7 +86,9 @@
       "mods_apply": "Changement de mods",
       "upload": "Envoi de sauvegarde commencé",
       "upload_abort": "Envoi de sauvegarde annulé",
-      "import": "Sauvegarde importée"
+      "import": "Sauvegarde importée",
+      "server_settings": "Paramètres du serveur modifiés",
+      "server_settings_apply": "Paramètres du serveur appliqués"
     }
   },
   "confirm": {
@@ -241,7 +243,8 @@
       "downloading": "Téléchargement et vérification des mods",
       "installing": "Installation des mods",
       "rolling_back": "Retour à l'état précédent",
-      "verifying": "Vérification de la sauvegarde"
+      "verifying": "Vérification de la sauvegarde",
+      "writing": "Écriture des paramètres"
     },
     "operationBy": "demandé par {username}",
     "history": "Opérations récentes",
@@ -253,7 +256,8 @@
       "backup": "Sauvegarde",
       "restore": "Restauration",
       "mods_apply": "Mods",
-      "import": "Import"
+      "import": "Import",
+      "server_settings_apply": "Paramètres du serveur"
     },
     "status": {
       "running": "en cours",
@@ -436,6 +440,77 @@
     }
   },
 
+  "serverSettings": {
+    "title": "Paramètres du serveur",
+    "refresh": "Rafraîchir",
+    "loading": "Chargement…",
+    "hint": "server-settings.json. Factorio le lit au démarrage : enregistrez pour le prochain démarrage, ou enregistrez et redémarrez pour l'appliquer tout de suite. Les clés que le panel ne connaît pas sont conservées telles quelles.",
+    "groups": {
+      "listing": "Annonce",
+      "access": "Accès",
+      "saving": "Sauvegardes auto",
+      "pause": "Pause",
+      "network": "Réseau"
+    },
+    "fields": {
+      "name": "Nom dans la liste des serveurs",
+      "description": "Description",
+      "tags": "Tags",
+      "visibility": "Visibilité",
+      "username": "Identifiant factorio.com",
+      "max_players": "Joueurs maximum (0 = sans limite)",
+      "ignore_player_limit_for_returning_players": "Les habitués ignorent la limite",
+      "require_user_verification": "Exiger un compte factorio.com",
+      "allow_commands": "Commandes de console",
+      "afk_autokick_interval": "Expulser les inactifs après (minutes, 0 = jamais)",
+      "autosave_interval": "Sauvegarde auto toutes les (minutes)",
+      "autosave_slots": "Emplacements de sauvegarde auto",
+      "autosave_only_on_server": "Sauvegarde auto sur le serveur seulement",
+      "non_blocking_saving": "Sauvegarde non bloquante (expérimental)",
+      "auto_pause": "Pause quand personne n'est connecté",
+      "auto_pause_when_players_connect": "Pause pendant la connexion d'un joueur",
+      "only_admins_can_pause_the_game": "Seuls les admins peuvent mettre en pause",
+      "max_upload_in_kilobytes_per_second": "Limite d'envoi (ko/s, 0 = aucune)",
+      "max_upload_slots": "Emplacements d'envoi (0 = sans limite)",
+      "minimum_latency_in_ticks": "Latence minimale (ticks)",
+      "max_heartbeats_per_second": "Battements par seconde (6 à 240)",
+      "minimum_segment_size": "Taille minimale des segments",
+      "minimum_segment_size_peer_count": "Taille minimale, à partir de pairs",
+      "maximum_segment_size": "Taille maximale des segments",
+      "maximum_segment_size_peer_count": "Taille maximale, à partir de pairs"
+    },
+    "visibility": {
+      "public": "Public (liste factorio.com)",
+      "lan": "Réseau local"
+    },
+    "allowCommands": {
+      "true": "Tout le monde",
+      "false": "Personne",
+      "admins-only": "Admins seulement"
+    },
+    "tagsHint": "séparés par des virgules",
+    "secrets": {
+      "title": "Mots de passe",
+      "game_password": "Mot de passe de la partie",
+      "token": "Jeton factorio.com",
+      "password": "Mot de passe factorio.com",
+      "isSet": "défini",
+      "notSet": "non défini",
+      "newValue": "Nouvelle valeur",
+      "clear": "Effacer"
+    },
+    "save": "Enregistrer pour le prochain démarrage",
+    "saveRestart": "Enregistrer et redémarrer",
+    "saved": "Enregistré. Factorio l'appliquera au prochain démarrage.",
+    "nothingChanged": "Rien n'a changé.",
+    "launched": "Application en cours : le serveur redémarre.",
+    "confirm": {
+      "restartTitle": "Redémarrer le serveur avec ces paramètres ?",
+      "restartMessage": "Les paramètres sont écrits, la carte est sauvegardée, puis le serveur redémarre. Les joueurs seront déconnectés. S'il ne revient pas, les paramètres précédents sont remis.",
+      "forceTitle": "Redémarrer quand même ?",
+      "forceLabel": "Redémarrer quand même"
+    }
+  },
   "errors": {
     "metrics_disabled": "Les métriques sont désactivées sur ce panneau.",
     "unknown": "Erreur inattendue.",
@@ -550,6 +625,15 @@
     "upload_too_large": "Cette sauvegarde dépasse la taille autorisée (SAVES_MAX_UPLOAD_MB).",
     "upload_incomplete": "L'envoi n'est pas encore terminé.",
     "uploads_disabled": "Les envois sont désactivés.",
-    "chunk_too_large": "Un morceau de l'envoi dépasse la taille autorisée."
+    "chunk_too_large": "Un morceau de l'envoi dépasse la taille autorisée.",
+    "server_settings_unavailable": "L'agent de données ne monte pas le dossier de configuration de Factorio (./data/config) : ajoutez-le à docker-compose.yml.",
+    "server_settings_missing": "Le serveur n'a pas encore créé server-settings.json : démarrez-le une première fois.",
+    "server_settings_unreadable": "server-settings.json n'est pas un JSON valide ; corrigez-le d'abord à la main.",
+    "invalid_setting": "Un paramètre a une valeur invalide.",
+    "settings_changed": "server-settings.json a changé depuis son chargement : rafraîchissez, puis réessayez.",
+    "settings_tx_not_found": "Les paramètres précédents sont introuvables.",
+    "public_needs_credentials": "Une partie publique demande un identifiant factorio.com et un jeton ou un mot de passe.",
+    "settings_rolled_back": "Le serveur n'a pas redémarré avec ces paramètres ({reason}) ; les précédents ont été remis.",
+    "settings_rollback_failed": "Le serveur n'a pas redémarré ({reason}), et la remise des paramètres précédents a échoué aussi : vérifiez le serveur."
   }
 }

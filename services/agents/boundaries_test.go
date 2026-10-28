@@ -16,12 +16,12 @@ const module = "github.com/EdwinAlkins/factorio-admin-rcon/services/agents/"
 
 // Packages each entry point must never link, directly or transitively.
 var forbidden = map[string][]string{
-	"./cmd/control-agent": {"internal/data/", "internal/files", "internal/saves", "internal/mods", "internal/portal"},
+	"./cmd/control-agent": {"internal/data/", "internal/files", "internal/saves", "internal/mods", "internal/portal", "internal/serversettings"},
 	"./cmd/data-agent":    {"internal/control/", "internal/docker", "internal/target"},
 	// The shared kit is linked into both: it may hold neither privilege.
 	"./internal/agentkit": {
 		"internal/control/", "internal/docker", "internal/target",
-		"internal/data/", "internal/files", "internal/saves", "internal/mods", "internal/portal",
+		"internal/data/", "internal/files", "internal/saves", "internal/mods", "internal/portal", "internal/serversettings",
 	},
 }
 

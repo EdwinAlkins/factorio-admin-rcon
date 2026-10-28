@@ -18,6 +18,7 @@ import (
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/fakesave"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/mods"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/saves"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/serversettings"
 )
 
 const token = "0123456789abcdef0123456789abcdef-data"
@@ -25,6 +26,7 @@ const token = "0123456789abcdef0123456789abcdef-data"
 type harness struct {
 	server                        *httptest.Server
 	savesDir, backupsDir, modsDir string
+	configDir                     string
 	portal                        *fakeportal.Portal
 }
 
@@ -47,8 +49,25 @@ func newHarness(t *testing.T) *harness {
 	if err := store.EnableUploads(1 << 20); err != nil {
 		t.Fatal(err)
 	}
+	h.configDir = t.TempDir()
+	example, err := os.ReadFile("../../serversettings/testdata/server-settings.example.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(h.configDir, "server-settings.json"), example, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	configRoot, err := os.OpenRoot(h.configDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	historyRoot, err := os.OpenRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	agent := api.New(api.Options{
 		Store:              store,
+		Settings:           serversettings.New(configRoot, historyRoot),
 		Mods:               mods.NewManager(h.modsDir, workRoot, h.portal.NewClient(t, true), 1<<20),
 		Token:              []byte(token),
 		MutationsPerMinute: 100,
