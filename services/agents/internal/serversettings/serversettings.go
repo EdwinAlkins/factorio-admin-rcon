@@ -477,7 +477,7 @@ func parseObject(raw []byte) (object, error) {
 	if _, err := dec.ReadToken(); err != nil {
 		return nil, ErrUnreadable
 	}
-	if _, err := dec.ReadToken(); err != io.EOF {
+	if _, err := dec.ReadToken(); !errors.Is(err, io.EOF) {
 		return nil, ErrUnreadable
 	}
 	return doc, nil

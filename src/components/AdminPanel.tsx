@@ -11,6 +11,7 @@ import QuickActions from "@/components/QuickActions";
 import SavesPanel from "@/components/SavesPanel";
 import ModsPanel from "@/components/ModsPanel";
 import ServerPanel from "@/components/ServerPanel";
+import WorldsPanel from "@/components/WorldsPanel";
 import ServerStatusBar from "@/components/ServerStatusBar";
 import { useActionText } from "@/hooks/useActionText";
 import { useCommandRunner } from "@/hooks/useCommandRunner";
@@ -30,7 +31,7 @@ type Pending = {
   run: () => void;
 };
 
-type Tab = "console" | "metrics" | "server" | "saves" | "mods";
+type Tab = "console" | "metrics" | "server" | "saves" | "mods" | "worlds";
 
 /**
  * The command as it will be sent, shown before confirming. Purely informative:
@@ -59,6 +60,8 @@ type Props = {
   savesEnabled: boolean;
   /** Same, for the Mods tab (MODS_ENABLED). */
   modsEnabled: boolean;
+  /** Same, for the Worlds tab (WORLDS_ENABLED). */
+  worldsEnabled: boolean;
 };
 
 export default function AdminPanel({
@@ -68,6 +71,7 @@ export default function AdminPanel({
   controlEnabled,
   savesEnabled,
   modsEnabled,
+  worldsEnabled,
 }: Props) {
   const t = useTranslations();
   const text = useActionText();
@@ -92,12 +96,14 @@ export default function AdminPanel({
   const showServer = controlEnabled && can(session.role, "server:read");
   const showSaves = savesEnabled && can(session.role, "saves:read");
   const showMods = modsEnabled && can(session.role, "mods:read");
+  const showWorlds = worldsEnabled && can(session.role, "worlds:read");
   const tabs: Tab[] = [
     "console",
     ...(metricsEnabled ? (["metrics"] as const) : []),
     ...(showServer ? (["server"] as const) : []),
     ...(showSaves ? (["saves"] as const) : []),
     ...(showMods ? (["mods"] as const) : []),
+    ...(showWorlds ? (["worlds"] as const) : []),
   ];
 
   // Mounted with the panel rather than the tab: the status bar uses its state
@@ -256,6 +262,15 @@ export default function AdminPanel({
                 active={tab === "mods"}
                 onUnauthorized={onUnauthorized}
                 className={tab === "mods" ? "flex-1" : "hidden"}
+              />
+            )}
+
+            {showWorlds && (
+              <WorldsPanel
+                session={session}
+                active={tab === "worlds"}
+                onUnauthorized={onUnauthorized}
+                className={tab === "worlds" ? "flex-1" : "hidden"}
               />
             )}
           </div>

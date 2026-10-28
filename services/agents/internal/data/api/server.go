@@ -1,8 +1,9 @@
 // Package api is the data agent's HTTP surface: a fixed list of operations on
-// the server's saves, the panel's archives, the server's mods and its
-// server-settings.json. No route
+// the server's saves, the panel's archives, the server's mods, its
+// server-settings.json and the world agent's library (read-only). No route
 // takes a path or a URL: saves are named by the agent's listings, archives,
-// uploads and transactions by ids it generated, mods by validated names.
+// uploads, transactions and worlds by ids an agent generated, mods by
+// validated names.
 package api
 
 import (
@@ -16,13 +17,16 @@ import (
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/mods"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/saves"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/serversettings"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/worlds"
 )
 
 type Options struct {
 	Store *saves.Store
 	Mods  *mods.Manager
 	// Optional: nil when the config folder is not mounted.
-	Settings       *serversettings.Store
+	Settings *serversettings.Store
+	// Optional, read-only: nil when the worlds folder is not mounted.
+	Worlds         *worlds.Store
 	Token          []byte
 	TargetSaveName string
 	// Mutations accepted per minute, all callers together.
@@ -34,6 +38,7 @@ type Server struct {
 	store          *saves.Store
 	mods           *mods.Manager
 	settings       *serversettings.Store
+	worlds         *worlds.Store
 	token          []byte
 	targetSaveName string
 	guard          *agentkit.Guard
@@ -53,6 +58,7 @@ func New(options Options) *Server {
 		store:          options.Store,
 		mods:           options.Mods,
 		settings:       options.Settings,
+		worlds:         options.Worlds,
 		token:          options.Token,
 		targetSaveName: options.TargetSaveName,
 		guard:          agentkit.NewGuard(options.MutationsPerMinute),
@@ -95,6 +101,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/server-settings", s.readSettings)
 	mux.HandleFunc("PUT /v1/server-settings", s.guard.Wrap(s.updateSettings))
 	mux.HandleFunc("POST /v1/server-settings/rollback", s.guard.Wrap(s.rollbackSettings))
+	mux.HandleFunc("POST /v1/worlds/{id}/archive", s.guard.Wrap(s.archiveWorld))
 	mux.HandleFunc("/", agentkit.NotFound)
 
 	return agentkit.LogRequests(s.log, agentkit.Authenticate(s.token, mux))
@@ -112,6 +119,13 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 	}
 	if failUpload(w, err) {
 		s.log.LogAttrs(r.Context(), slog.LevelWarn, "upload refused",
+			slog.String("path", r.URL.Path),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+	if failWorlds(w, err) {
+		s.log.LogAttrs(r.Context(), slog.LevelWarn, "world archive refused",
 			slog.String("path", r.URL.Path),
 			slog.String("error", err.Error()),
 		)

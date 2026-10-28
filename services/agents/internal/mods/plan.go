@@ -423,7 +423,7 @@ func (p *planner) satisfy(owner *target, d Dependency) error {
 	present := dep != nil && dep.present
 
 	switch d.Kind {
-	case Incompatible, Optional, Hidden:
+	case Incompatible, Optional, Hidden, Recommended:
 		return nil // checked in check(): never acted upon
 
 	default: // Required, Unordered
@@ -488,7 +488,7 @@ func (p *planner) check() {
 				if v, ok := dep.parsedVersion(); ok && !d.Accepts(v) {
 					p.conflict(name, ConflictVersion, "needs %s, %s is %s", d, d.Name, dep.version)
 				}
-			case d.Kind == Optional && !enabled:
+			case (d.Kind == Optional || d.Kind == Recommended) && !enabled:
 				p.optional = append(p.optional, Hint{Mod: name, Optional: d.String()})
 			}
 		}

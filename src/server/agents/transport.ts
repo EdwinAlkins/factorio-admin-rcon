@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { errorFields } from "@/server/log";
-import { AgentError, fromAgentCode, type AgentName } from "@/server/agents/errors";
+import { AgentError, agentErrorParams, fromAgentCode, type AgentName } from "@/server/agents/errors";
 
 /**
- * HTTP transport shared by the clients of both agents: bearer token read from
+ * HTTP transport shared by the clients of every agent: bearer token read from
  * a Compose secret, bounded deadline, and every failure — network, timeout,
  * refusal, unexpected body — turned into an `AgentError` with a stable key.
  */
@@ -88,9 +88,11 @@ export function agentTransport(agent: AgentName, settings: () => AgentSettings) 
     }
 
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { code?: string } | null;
-      throw new AgentError(fromAgentCode(agent, payload?.code, response.status), {
+      const payload = (await response.json().catch(() => null)) as { code?: string; error?: string } | null;
+      const key = fromAgentCode(agent, payload?.code, response.status);
+      throw new AgentError(key, {
         detail: `${method} ${url} → HTTP ${response.status} ${payload?.code ?? ""}`.trim(),
+        params: agentErrorParams(key, payload?.error),
       });
     }
     return response;

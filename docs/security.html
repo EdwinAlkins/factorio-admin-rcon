@@ -7,7 +7,7 @@
 <meta name="description" content="Server-side roles, origin checks, CSP, rate limits and an audit log. The administrator is full RCON; the panel does not pretend otherwise.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/security.html">
 <link rel="stylesheet" href="./assets/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<link rel="icon" type="image/png" href="./assets/brand/logo-64.png">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Security model &mdash; Factorio Admin RCON">
 <meta property="og:description" content="Server-side roles, origin checks, CSP, rate limits and an audit log. The administrator is full RCON; the panel does not pretend otherwise.">
@@ -27,7 +27,7 @@
 <a class="skip" href="#content">Skip to content</a>
 
 <div class="topbar">
-  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="brand" href="./index.html"><img src="./assets/brand/logo-64.png" alt="" width="28" height="28">Factorio <span>Admin RCON</span></a>
   <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
 </div>
 
@@ -137,10 +137,11 @@ which outcome and how long it took.</p>
       copy of the world.</li>
 </ul>
 <h2 id="container">Container isolation<a class="anchor" href="#container" aria-label="Link to this section">#</a></h2>
-<p>The panel and both agents run confined: read-only root,
+<p>The panel and the three agents run confined: read-only root,
 <code>cap_drop: [ALL]</code>, <code>no-new-privileges</code>, memory and PID
 caps, and a non-root uid. The control agent reaches the Docker socket through
-the group that owns it; the data agent runs as the game image's uid (845).
+the group that owns it; the data and world agents run as the game image's uid
+(845).
 Who holds what is laid out in <a href="./services.html">Services</a>.</p>
 
 <div class="note">
@@ -165,6 +166,19 @@ Who holds what is laid out in <a href="./services.html">Services</a>.</p>
   symbolic links leading outside are refused. Every archive it writes, restores
   or installs is verified entry by entry first. The agent that can stop the
   server is never the one that can rewrite its files.
+</div>
+
+<div class="note">
+  <strong>The game's binary runs apart</strong>
+  Previews and new maps run the game itself, in the world agent: no Docker
+  socket, no route out, the server's mods read-only, and only the worlds folder
+  and a tmpfs writable. It starts the game through <code>exec</code>, never a
+  shell, with options it chooses and arguments it builds &mdash; numbers, its
+  own file names, prototype names checked against a strict pattern &mdash; one
+  run at a time, under a deadline. Its image is the game server's, not
+  distroless, so it has a shell; the confinement above is what bounds it. A
+  world reaches the server only through the data agent, which re-checks its
+  checksum and restores it like any archive.
 </div>
 
 <h3 id="portal">The way out to the mod portal<a class="anchor" href="#portal" aria-label="Link to this section">#</a></h3>

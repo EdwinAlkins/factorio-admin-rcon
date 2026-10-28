@@ -51,9 +51,12 @@ func (v Version) Compare(other Version) int {
 type DependencyKind string
 
 const (
-	Required     DependencyKind = "required"
-	Optional     DependencyKind = "optional"     // `?`
-	Hidden       DependencyKind = "hidden"       // `(?)`: optional, not shown in game
+	Required DependencyKind = "required"
+	Optional DependencyKind = "optional" // `?`
+	Hidden   DependencyKind = "hidden"   // `(?)`: optional, not shown in game
+	// `+` (Factorio 2.1): optional but recommended — the game enables it by
+	// default, and it can be turned off. Never installed for the operator.
+	Recommended  DependencyKind = "recommended"
 	Incompatible DependencyKind = "incompatible" // `!`
 	// `~`: required, without affecting the load order. Same rules here.
 	Unordered DependencyKind = "unordered"
@@ -108,7 +111,7 @@ func (d Dependency) String() string {
 
 // `[prefix] name [op version]`. Mod names may contain spaces, so the name is
 // whatever stands between the prefix and the operator.
-var dependencyPattern = regexp.MustCompile(`^\s*(\(\?\)|\?|!|~)?\s*(.+?)\s*(?:(<=|>=|<|>|=)\s*([0-9]+(?:\.[0-9]+){1,2}))?\s*$`)
+var dependencyPattern = regexp.MustCompile(`^\s*(\(\?\)|\?|!|~|\+)?\s*(.+?)\s*(?:(<=|>=|<|>|=)\s*([0-9]+(?:\.[0-9]+){1,2}))?\s*$`)
 
 var errDependency = errors.New("unreadable dependency")
 
@@ -130,6 +133,8 @@ func ParseDependency(raw string) (Dependency, error) {
 		d.Kind = Incompatible
 	case "~":
 		d.Kind = Unordered
+	case "+":
+		d.Kind = Recommended
 	}
 	if d.Op != "" {
 		v, err := ParseVersion(match[4])

@@ -1,0 +1,641 @@
+{
+ "autoplace-control": {
+  "iron-ore": {
+   "type": "autoplace-control",
+   "name": "iron-ore",
+   "category": "resource",
+   "order": "a-a",
+   "richness": true
+  },
+  "copper-ore": {
+   "type": "autoplace-control",
+   "name": "copper-ore",
+   "category": "resource",
+   "order": "a-b",
+   "richness": true
+  },
+  "stone": {
+   "type": "autoplace-control",
+   "name": "stone",
+   "category": "resource",
+   "order": "a-c",
+   "richness": true
+  },
+  "coal": {
+   "type": "autoplace-control",
+   "name": "coal",
+   "category": "resource",
+   "order": "a-d",
+   "richness": true
+  },
+  "crude-oil": {
+   "type": "autoplace-control",
+   "name": "crude-oil",
+   "category": "resource",
+   "order": "a-e",
+   "richness": true
+  },
+  "uranium-ore": {
+   "type": "autoplace-control",
+   "name": "uranium-ore",
+   "category": "resource",
+   "order": "a-f",
+   "richness": true
+  },
+  "water": {
+   "type": "autoplace-control",
+   "name": "water",
+   "category": "terrain",
+   "order": "c-a"
+  },
+  "trees": {
+   "type": "autoplace-control",
+   "name": "trees",
+   "category": "terrain",
+   "order": "c-x"
+  },
+  "rocks": {
+   "type": "autoplace-control",
+   "name": "rocks",
+   "category": "terrain",
+   "order": "c-y"
+  },
+  "starting_area_moisture": {
+   "type": "autoplace-control",
+   "name": "starting_area_moisture",
+   "category": "terrain",
+   "order": "c-z"
+  },
+  "nauvis_cliff": {
+   "type": "autoplace-control",
+   "name": "nauvis_cliff",
+   "category": "cliff",
+   "order": "c-z"
+  },
+  "enemy-base": {
+   "type": "autoplace-control",
+   "name": "enemy-base",
+   "category": "enemy",
+   "order": "c-z",
+   "can_be_disabled": false
+  },
+  "vulcanus_coal": {
+   "type": "autoplace-control",
+   "name": "vulcanus_coal",
+   "category": "resource",
+   "order": "b-a",
+   "richness": true
+  },
+  "tungsten_ore": {
+   "type": "autoplace-control",
+   "name": "tungsten_ore",
+   "category": "resource",
+   "order": "b-d",
+   "richness": true
+  },
+  "calcite": {
+   "type": "autoplace-control",
+   "name": "calcite",
+   "category": "resource",
+   "order": "b-c",
+   "richness": true
+  },
+  "sulfuric_acid_geyser": {
+   "type": "autoplace-control",
+   "name": "sulfuric_acid_geyser",
+   "category": "resource",
+   "order": "b-c",
+   "richness": true
+  },
+  "gleba_stone": {
+   "type": "autoplace-control",
+   "name": "gleba_stone",
+   "category": "resource",
+   "order": "c-a",
+   "richness": true
+  },
+  "scrap": {
+   "type": "autoplace-control",
+   "name": "scrap",
+   "category": "resource",
+   "order": "d-a",
+   "richness": true
+  },
+  "aquilo_crude_oil": {
+   "type": "autoplace-control",
+   "name": "aquilo_crude_oil",
+   "category": "resource",
+   "order": "e-a",
+   "richness": true
+  },
+  "fluorine_vent": {
+   "type": "autoplace-control",
+   "name": "fluorine_vent",
+   "category": "resource",
+   "order": "e-c",
+   "richness": true
+  },
+  "lithium_brine": {
+   "type": "autoplace-control",
+   "name": "lithium_brine",
+   "category": "resource",
+   "order": "e-b",
+   "richness": true
+  },
+  "gleba_cliff": {
+   "type": "autoplace-control",
+   "name": "gleba_cliff",
+   "category": "cliff",
+   "order": "c-z-b"
+  },
+  "fulgora_cliff": {
+   "type": "autoplace-control",
+   "name": "fulgora_cliff",
+   "category": "cliff",
+   "order": "c-z-c"
+  },
+  "vulcanus_volcanism": {
+   "type": "autoplace-control",
+   "name": "vulcanus_volcanism",
+   "category": "terrain",
+   "order": "c-z-a",
+   "can_be_disabled": false
+  },
+  "gleba_water": {
+   "type": "autoplace-control",
+   "name": "gleba_water",
+   "category": "terrain",
+   "order": "c-z-b",
+   "can_be_disabled": false
+  },
+  "gleba_plants": {
+   "type": "autoplace-control",
+   "name": "gleba_plants",
+   "category": "terrain",
+   "order": "c-z-c",
+   "can_be_disabled": false
+  },
+  "fulgora_islands": {
+   "type": "autoplace-control",
+   "name": "fulgora_islands",
+   "category": "terrain",
+   "order": "c-z-d",
+   "can_be_disabled": false
+  },
+  "gleba_enemy_base": {
+   "type": "autoplace-control",
+   "name": "gleba_enemy_base",
+   "category": "enemy",
+   "order": "z",
+   "richness": false,
+   "can_be_disabled": false
+  }
+ },
+ "resource": {
+  "iron-ore": {
+   "type": "resource",
+   "name": "iron-ore"
+  },
+  "copper-ore": {
+   "type": "resource",
+   "name": "copper-ore"
+  },
+  "coal": {
+   "type": "resource",
+   "name": "coal"
+  },
+  "stone": {
+   "type": "resource",
+   "name": "stone"
+  },
+  "uranium-ore": {
+   "type": "resource",
+   "name": "uranium-ore"
+  },
+  "crude-oil": {
+   "type": "resource",
+   "name": "crude-oil"
+  },
+  "tungsten-ore": {
+   "type": "resource",
+   "name": "tungsten-ore"
+  },
+  "calcite": {
+   "type": "resource",
+   "name": "calcite"
+  },
+  "sulfuric-acid-geyser": {
+   "type": "resource",
+   "name": "sulfuric-acid-geyser"
+  },
+  "scrap": {
+   "type": "resource",
+   "name": "scrap"
+  },
+  "lithium-brine": {
+   "type": "resource",
+   "name": "lithium-brine"
+  },
+  "fluorine-vent": {
+   "type": "resource",
+   "name": "fluorine-vent"
+  }
+ },
+ "map-gen-presets": {
+  "default": {
+   "type": "map-gen-presets",
+   "name": "default",
+   "default": {
+    "default": true,
+    "order": "a"
+   },
+   "rich-resources": {
+    "order": "b",
+    "basic_settings": {
+     "property_expression_names": {},
+     "autoplace_controls": {
+      "iron-ore": {
+       "richness": "very-good"
+      },
+      "copper-ore": {
+       "richness": "very-good"
+      },
+      "stone": {
+       "richness": "very-good"
+      },
+      "coal": {
+       "richness": "very-good"
+      },
+      "uranium-ore": {
+       "richness": "very-good"
+      },
+      "crude-oil": {
+       "richness": "very-good"
+      }
+     }
+    }
+   },
+   "marathon": {
+    "order": "c",
+    "basic_settings": {
+     "property_expression_names": {}
+    },
+    "advanced_settings": {
+     "difficulty_settings": {
+      "technology_price_multiplier": 4
+     }
+    }
+   },
+   "death-world": {
+    "order": "d",
+    "basic_settings": {
+     "property_expression_names": {},
+     "autoplace_controls": {
+      "enemy-base": {
+       "frequency": "very-high",
+       "size": "very-big"
+      }
+     },
+     "starting_area": "small"
+    },
+    "advanced_settings": {
+     "enemy_evolution": {
+      "time_factor": 2e-05,
+      "pollution_factor": 1.2e-06
+     },
+     "pollution": {
+      "ageing": 0.5,
+      "enemy_attack_pollution_consumption_modifier": 0.5
+     },
+     "enemy_expansion": {
+      "build_base_unit_dispatch_cooldown": 600
+     }
+    }
+   },
+   "death-world-marathon": {
+    "order": "d",
+    "basic_settings": {
+     "property_expression_names": {},
+     "autoplace_controls": {
+      "enemy-base": {
+       "frequency": "very-high",
+       "size": "very-big"
+      }
+     },
+     "starting_area": "small"
+    },
+    "advanced_settings": {
+     "enemy_evolution": {
+      "time_factor": 1.5e-05,
+      "pollution_factor": 1e-06
+     },
+     "pollution": {
+      "ageing": 0.5,
+      "enemy_attack_pollution_consumption_modifier": 0.8
+     },
+     "enemy_expansion": {
+      "build_base_unit_dispatch_cooldown": 600
+     },
+     "difficulty_settings": {
+      "technology_price_multiplier": 4
+     }
+    }
+   },
+   "rail-world": {
+    "order": "e",
+    "basic_settings": {
+     "property_expression_names": {},
+     "autoplace_controls": {
+      "coal": {
+       "frequency": 0.33333333333,
+       "size": 3
+      },
+      "copper-ore": {
+       "frequency": 0.33333333333,
+       "size": 3
+      },
+      "crude-oil": {
+       "frequency": 0.33333333333,
+       "size": 3
+      },
+      "uranium-ore": {
+       "frequency": 0.33333333333,
+       "size": 3
+      },
+      "iron-ore": {
+       "frequency": 0.33333333333,
+       "size": 3
+      },
+      "stone": {
+       "frequency": 0.33333333333,
+       "size": 3
+      },
+      "enemy-base": {
+       "size": 1
+      },
+      "water": {
+       "frequency": 0.5,
+       "size": 1.5
+      }
+     }
+    },
+    "advanced_settings": {
+     "enemy_evolution": {
+      "time_factor": 2e-06
+     },
+     "enemy_expansion": {
+      "enabled": false
+     }
+    }
+   },
+   "ribbon-world": {
+    "order": "f",
+    "basic_settings": {
+     "property_expression_names": {
+      "elevation": "elevation_lakes",
+      "trees_forest_path_cutout": 1
+     },
+     "autoplace_controls": {
+      "coal": {
+       "frequency": 3,
+       "size": 0.5,
+       "richness": 2
+      },
+      "copper-ore": {
+       "frequency": 3,
+       "size": 0.5,
+       "richness": 2
+      },
+      "crude-oil": {
+       "frequency": 3,
+       "size": 0.5,
+       "richness": 2
+      },
+      "uranium-ore": {
+       "frequency": 3,
+       "size": 0.5,
+       "richness": 2
+      },
+      "iron-ore": {
+       "frequency": 3,
+       "size": 0.5,
+       "richness": 2
+      },
+      "stone": {
+       "frequency": 3,
+       "size": 0.5,
+       "richness": 2
+      },
+      "water": {
+       "frequency": 4,
+       "size": 0.25
+      },
+      "nauvis_cliff": {
+       "frequency": 0.25,
+       "size": 0.75
+      }
+     },
+     "starting_area": 3,
+     "height": 128
+    }
+   },
+   "lakes": {
+    "order": "g",
+    "basic_settings": {
+     "property_expression_names": {
+      "elevation": "elevation_lakes",
+      "moisture": "moisture_basic",
+      "aux": "aux_basic",
+      "cliffiness": "cliffiness_basic",
+      "cliff_elevation": "cliff_elevation_from_elevation",
+      "trees_forest_path_cutout": 1
+     },
+     "cliff_settings": {
+      "cliff_smoothing": 1
+     },
+     "autoplace_controls": {
+      "trees": {
+       "frequency": 1,
+       "size": 0.5
+      }
+     }
+    }
+   },
+   "island": {
+    "order": "h",
+    "basic_settings": {
+     "property_expression_names": {
+      "elevation": "elevation_island",
+      "moisture": "moisture_basic",
+      "aux": "aux_basic",
+      "cliffiness": "cliffiness_basic",
+      "cliff_elevation": "cliff_elevation_from_elevation",
+      "trees_forest_path_cutout": 1
+     },
+     "cliff_settings": {
+      "cliff_smoothing": 1
+     },
+     "autoplace_controls": {
+      "trees": {
+       "frequency": 1,
+       "size": 0.5
+      }
+     }
+    }
+   }
+  }
+ },
+ "planet": {
+  "nauvis": {
+   "type": "planet",
+   "name": "nauvis",
+   "order": "a[nauvis]",
+   "map_gen_settings": {
+    "autoplace_controls": {
+     "iron-ore": {},
+     "copper-ore": {},
+     "stone": {},
+     "coal": {},
+     "uranium-ore": {},
+     "crude-oil": {},
+     "water": {},
+     "trees": {},
+     "enemy-base": {},
+     "rocks": {},
+     "starting_area_moisture": {},
+     "nauvis_cliff": {}
+    },
+    "moisture_climate_control": true,
+    "autoplace_settings": {
+     "entity": {
+      "settings": {
+       "iron-ore": {},
+       "copper-ore": {},
+       "stone": {},
+       "coal": {},
+       "crude-oil": {},
+       "uranium-ore": {},
+       "fish": {},
+       "big-sand-rock": {},
+       "huge-rock": {},
+       "big-rock": {}
+      }
+     }
+    }
+   }
+  },
+  "vulcanus": {
+   "type": "planet",
+   "name": "vulcanus",
+   "order": "b[vulcanus]",
+   "map_gen_settings": {
+    "autoplace_controls": {
+     "vulcanus_coal": {},
+     "sulfuric_acid_geyser": {},
+     "tungsten_ore": {},
+     "calcite": {},
+     "vulcanus_volcanism": {}
+    },
+    "autoplace_settings": {
+     "entity": {
+      "settings": {
+       "big-volcanic-rock-hot": {},
+       "huge-volcanic-rock-hot": {},
+       "coal": {},
+       "calcite": {},
+       "sulfuric-acid-geyser": {},
+       "tungsten-ore": {},
+       "huge-volcanic-rock": {},
+       "big-volcanic-rock": {},
+       "crater-cliff": {},
+       "vulcanus-chimney": {},
+       "vulcanus-chimney-faded": {},
+       "vulcanus-chimney-cold": {},
+       "vulcanus-chimney-short": {},
+       "vulcanus-chimney-truncated": {},
+       "ashland-lichen-tree": {},
+       "ashland-lichen-tree-flaming": {}
+      }
+     }
+    }
+   }
+  },
+  "gleba": {
+   "type": "planet",
+   "name": "gleba",
+   "order": "c[gleba]",
+   "map_gen_settings": {
+    "autoplace_controls": {
+     "gleba_stone": {},
+     "gleba_plants": {},
+     "gleba_enemy_base": {},
+     "gleba_water": {},
+     "gleba_cliff": {}
+    },
+    "autoplace_settings": {
+     "entity": {
+      "settings": {
+       "stone": {},
+       "iron-stromatolite": {},
+       "copper-stromatolite": {}
+      }
+     }
+    }
+   }
+  },
+  "fulgora": {
+   "type": "planet",
+   "name": "fulgora",
+   "order": "d[fulgora]",
+   "map_gen_settings": {
+    "autoplace_controls": {
+     "scrap": {},
+     "fulgora_islands": {},
+     "fulgora_cliff": {}
+    },
+    "autoplace_settings": {
+     "entity": {
+      "settings": {
+       "scrap": {},
+       "fulgora-sunk-ruin-big": {},
+       "fulgora-sunk-ruin-medium-tall": {},
+       "fulgoran-ruin-vault": {},
+       "fulgoran-ruin-attractor": {},
+       "fulgoran-ruin-colossal": {},
+       "fulgoran-ruin-huge": {},
+       "fulgoran-ruin-big": {},
+       "fulgoran-ruin-stonehenge": {},
+       "fulgoran-ruin-medium": {},
+       "fulgoran-ruin-small": {},
+       "fulgurite": {},
+       "big-fulgora-rock": {}
+      }
+     }
+    }
+   }
+  },
+  "aquilo": {
+   "type": "planet",
+   "name": "aquilo",
+   "order": "e[aquilo]",
+   "map_gen_settings": {
+    "autoplace_controls": {
+     "lithium_brine": {},
+     "fluorine_vent": {},
+     "aquilo_crude_oil": {}
+    },
+    "autoplace_settings": {
+     "entity": {
+      "settings": {
+       "crude-oil": {},
+       "lithium-brine": {},
+       "fluorine-vent": {},
+       "lithium-iceberg-huge": {},
+       "lithium-iceberg-big": {}
+      }
+     }
+    }
+   }
+  }
+ }
+}

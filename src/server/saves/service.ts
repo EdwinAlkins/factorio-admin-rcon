@@ -26,6 +26,7 @@ import type {
   ModDto,
   SavesResult,
   ServerOperationDto,
+  ServerOperationStep,
   UploadStateDto,
 } from "@/lib/api-types";
 
@@ -40,7 +41,7 @@ import type {
  */
 
 /** Archive ids as the data agent generates them; anything else is refused before any call. */
-export const BACKUP_ID = /^[0-9]{8}-[0-9]{6}-(manual|scheduled|pre-restore|pre-mods|upload)(-[0-9]{1,3})?$/;
+export const BACKUP_ID = /^[0-9]{8}-[0-9]{6}-(manual|scheduled|pre-restore|pre-mods|upload|world)(-[0-9]{1,3})?$/;
 
 /** Upload ids as the data agent generates them. */
 export const UPLOAD_ID = /^[0-9a-f]{32}$/;
@@ -113,14 +114,14 @@ export async function listSaves(): Promise<Omit<SavesResult, "ok">> {
 
 // --- Backup ---------------------------------------------------------------
 
-type ServerSnapshot = { running: boolean; rconOk: boolean; version: string | undefined };
+export type ServerSnapshot = { running: boolean; rconOk: boolean; version: string | undefined };
 
 /**
  * Where the server stands, for deciding whether to save first. Without the
  * control agent (CONTROL_ENABLED=false) the panel cannot read the save's
  * completion from the logs, so it archives the newest file as it is.
  */
-async function snapshot(): Promise<ServerSnapshot> {
+export async function snapshot(): Promise<ServerSnapshot> {
   if (!env().CONTROL_ENABLED) return { running: false, rconOk: false, version: undefined };
 
   const container = await agentStatus();
@@ -219,19 +220,22 @@ function enabledMods(mods: ModDto[]): Map<string, string> {
   return new Map(mods.filter((mod) => mod.enabled).map((mod) => [mod.name, mod.version ?? ""]));
 }
 
+/** The game a map was made by: an archive, or a world of the library. */
+type MapOrigin = { factorioVersion?: string; mods: ModDto[] };
+
 /**
  * What differs between the game an archive was taken from and the game now.
  * Loading a map into another version or mod set can fail, or migrate the map
  * in a way that cannot be undone: the operator confirms it knowingly.
  */
-export function compatibilityGaps(backup: BackupDto, currentVersion: string | undefined, currentMods: ModDto[]): string[] {
+export function compatibilityGaps(origin: MapOrigin, currentVersion: string | undefined, currentMods: ModDto[]): string[] {
   const gaps: string[] = [];
-  if (backup.factorioVersion && currentVersion && backup.factorioVersion !== currentVersion) {
-    gaps.push(`Factorio ${backup.factorioVersion} → ${currentVersion}`);
+  if (origin.factorioVersion && currentVersion && origin.factorioVersion !== currentVersion) {
+    gaps.push(`Factorio ${origin.factorioVersion} → ${currentVersion}`);
   }
   // An archive taken without the mods folder records no set: nothing to compare.
-  if (backup.mods.length > 0 && currentMods.length > 0) {
-    const then = enabledMods(backup.mods);
+  if (origin.mods.length > 0 && currentMods.length > 0) {
+    const then = enabledMods(origin.mods);
     const now = enabledMods(currentMods);
     for (const [name, version] of then) {
       if (!now.has(name)) gaps.push(`−${name}`);
@@ -250,6 +254,31 @@ export type RestoreRequest = OperationActor & { id: string; force: boolean };
 const UNTOUCHED = new Set(["backup_not_found", "invalid_archive", "checksum_mismatch"]);
 
 type RestorePlan = { backup: BackupDto; server: ServerSnapshot };
+
+/**
+ * The checks a restore makes before stopping anything, once the map to load
+ * is known: same game version and mod set (unless forced), and nobody playing
+ * (unless forced). Shared with putting a world in play. Throws to refuse,
+ * after `deny`.
+ */
+export async function checkRestore(
+  origin: MapOrigin,
+  force: boolean,
+  deny: (code: string, extra?: string) => void,
+): Promise<ServerSnapshot> {
+  const server = await snapshot();
+  const { mods } = await dataSaves();
+  const gaps = compatibilityGaps(origin, server.version, mods);
+  if (gaps.length > 0 && !force) {
+    deny("restore_incompatible", gaps.join(", "));
+    throw new ApiFailure(409, "restore_incompatible", { gaps: gaps.join(", ") });
+  }
+
+  if (server.running) {
+    server.rconOk = await checkPlayers(force, deny);
+  }
+  return server;
+}
 
 /**
  * Puts an archive back as the server's save:
@@ -287,73 +316,69 @@ export function requestRestore(request: RestoreRequest): Promise<ServerOperation
           if (isAgentError(error)) deny(error.key);
           throw error;
         }
-
-        const server = await snapshot();
-        const { mods } = await dataSaves();
-        const gaps = compatibilityGaps(backup, server.version, mods);
-        if (gaps.length > 0 && !request.force) {
-          deny("restore_incompatible", gaps.join(", "));
-          throw new ApiFailure(409, "restore_incompatible", { gaps: gaps.join(", ") });
-        }
-
-        if (server.running) {
-          server.rconOk = await checkPlayers(request.force, deny);
-        }
-        return { backup, server };
+        return { backup, server: await checkRestore(backup, request.force, deny) };
       },
 
-      async run({ backup, server }, step) {
-        if (server.running) {
-          if (server.rconOk) {
-            step("saving");
-            await saveGame();
-          }
-          step("stopping");
-          await stopServer();
-        }
-
-        step("archiving");
-        let safety: BackupDto | null = null;
-        try {
-          safety = await dataCreateBackup({
-            source: "pre-restore",
-            label: `before ${backup.id}`,
-            createdBy: request.username,
-            factorioVersion: server.version,
-          });
-        } catch (error) {
-          // A server that never saved has nothing to protect; anything else
-          // stops the restore before a single file is touched.
-          if (!(isAgentError(error) && error.key === "no_save")) throw error;
-        }
-
-        try {
-          step("restoring");
-          await dataRestore(backup.id);
-          if (server.running) {
-            step("starting");
-            await startServer();
-            step("waiting_rcon");
-            await waitForRcon();
-          }
-        } catch (error) {
-          // The agent refuses a damaged archive before touching any file:
-          // there is nothing to roll back, only the server to bring back.
-          if (isAgentError(error) && UNTOUCHED.has(error.key)) {
-            if (server.running) {
-              step("starting");
-              await startServer();
-              await waitForRcon();
-            }
-            throw error;
-          }
-          step("rolling_back");
-          await rollBack(safety, server.running, error);
-        }
-      },
+      run: ({ backup, server }, step) => runRestore(backup, server, request.username, step),
     },
     request,
   );
+}
+
+/** The work of a restore, once checked; see requestRestore. */
+export async function runRestore(
+  backup: BackupDto,
+  server: ServerSnapshot,
+  username: string,
+  step: (step: ServerOperationStep) => void,
+): Promise<void> {
+  if (server.running) {
+    if (server.rconOk) {
+      step("saving");
+      await saveGame();
+    }
+    step("stopping");
+    await stopServer();
+  }
+
+  step("archiving");
+  let safety: BackupDto | null = null;
+  try {
+    safety = await dataCreateBackup({
+      source: "pre-restore",
+      label: `before ${backup.id}`,
+      createdBy: username,
+      factorioVersion: server.version,
+    });
+  } catch (error) {
+    // A server that never saved has nothing to protect; anything else
+    // stops the restore before a single file is touched.
+    if (!(isAgentError(error) && error.key === "no_save")) throw error;
+  }
+
+  try {
+    step("restoring");
+    await dataRestore(backup.id);
+    if (server.running) {
+      step("starting");
+      await startServer();
+      step("waiting_rcon");
+      await waitForRcon();
+    }
+  } catch (error) {
+    // The agent refuses a damaged archive before touching any file:
+    // there is nothing to roll back, only the server to bring back.
+    if (isAgentError(error) && UNTOUCHED.has(error.key)) {
+      if (server.running) {
+        step("starting");
+        await startServer();
+        await waitForRcon();
+      }
+      throw error;
+    }
+    step("rolling_back");
+    await rollBack(safety, server.running, error);
+  }
 }
 
 /**

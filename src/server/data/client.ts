@@ -106,6 +106,21 @@ export function dataDownload(id: string): Promise<Response> {
   });
 }
 
+/**
+ * Copies a world of the world agent's library into the archives (source
+ * `world`), verified as a save and against the world's recorded checksum.
+ * Putting it in play is then an ordinary restore of that archive.
+ */
+export async function dataArchiveWorld(id: string, createdBy: string): Promise<BackupDto> {
+  const result = await transport.call<{ backup: BackupDto }>({
+    method: "POST",
+    path: `/v1/worlds/${encodeURIComponent(id)}/archive`,
+    body: { createdBy },
+    timeoutMs: FILE_OPERATION_TIMEOUT_MS,
+  });
+  return result.backup;
+}
+
 // --- Uploads --------------------------------------------------------------
 
 /** Deadline of one chunk: a few megabytes written to disk. */

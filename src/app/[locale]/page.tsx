@@ -40,6 +40,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
       controlEnabled={env().CONTROL_ENABLED}
       savesEnabled={env().SAVES_ENABLED}
       modsEnabled={env().MODS_ENABLED}
+      worldsEnabled={env().WORLDS_ENABLED}
     />
   );
 }

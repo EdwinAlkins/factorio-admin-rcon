@@ -88,8 +88,9 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 		agentkit.WriteError(w, http.StatusBadRequest, "bad_body", err.Error())
 		return
 	}
-	// An upload is published by its own route, never archived from the saves folder.
-	if !saves.ValidSource(body.Source) || body.Source == saves.SourceUpload {
+	// Uploads and worlds are published by their own routes, never archived
+	// from the saves folder.
+	if !saves.ValidSource(body.Source) || body.Source == saves.SourceUpload || body.Source == saves.SourceWorld {
 		agentkit.WriteError(w, http.StatusBadRequest, "bad_body", "source: unknown")
 		return
 	}

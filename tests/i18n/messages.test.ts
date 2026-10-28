@@ -151,6 +151,22 @@ const API_ERROR_CODES = [
   "factorio_version_unknown",
   "mods_rolled_back",
   "mods_rollback_failed",
+  // Worlds (src/server/worlds, world agent; activation through the data agent).
+  "world_disabled",
+  "world_config",
+  "world_unreachable",
+  "world_timeout",
+  "world_rejected",
+  "world_busy",
+  "world_rate_limited",
+  "world_protocol",
+  "world_io",
+  "world_not_found",
+  "worlds_unavailable",
+  "factorio_refused",
+  "factorio_timeout",
+  "invalid_world_settings",
+  "preview_not_found",
 ];
 
 describe("dictionaries", () => {

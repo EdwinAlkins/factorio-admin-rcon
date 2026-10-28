@@ -5,7 +5,8 @@
   },
   "app": {
     "brand": "Factorio",
-    "brandSuffix": "— 管理面板"
+    "brandSuffix": "— 管理面板",
+    "source": "GitHub 上的源代码"
   },
   "login": {
     "subtitle": "需要密码。",
@@ -175,7 +176,8 @@
     "metrics": "统计",
     "server": "服务器",
     "saves": "存档",
-    "mods": "模组"
+    "mods": "模组",
+    "worlds": "世界"
   },
 
   "metrics": {
@@ -257,7 +259,8 @@
       "restore": "恢复",
       "mods_apply": "模组",
       "import": "导入",
-      "server_settings_apply": "服务器设置"
+      "server_settings_apply": "服务器设置",
+      "world_activate": "世界"
     },
     "status": {
       "running": "进行中",
@@ -299,7 +302,8 @@
       "scheduled": "计划",
       "pre-restore": "恢复前",
       "pre-mods": "模组变更前",
-      "upload": "导入"
+      "upload": "导入",
+      "world": "世界"
     },
     "modsCount": "{count, plural, =0 {无模组} other {# 个模组}}",
     "download": "下载",
@@ -511,6 +515,219 @@
       "forceLabel": "仍要重启"
     }
   },
+  "worlds": {
+    "title": "世界",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "retry": "重试",
+    "operation": "进行中：{step}",
+    "versionMismatch": "世界代理使用 Factorio {agent} 生成，服务器运行的是 {server}：世界可能与预览不同，或需要迁移。请为两者设置相同的 FACTORIO_IMAGE 并重新构建世界代理。",
+    "creator": "创建世界",
+    "creatorHint": "种子、资源、地形、敌人、规则 — 附预览",
+    "catalogLoading": "正在从游戏读取地图生成器（首次需要几秒钟）…",
+    "library": "世界库",
+    "libraryEmpty": "还没有世界。在上方创建一个：期间服务器照常运行。",
+    "columns": {
+      "created": "创建于",
+      "version": "游戏",
+      "mods": "模组"
+    },
+    "activate": "投入使用",
+    "reuse": "沿用设置",
+    "download": "下载",
+    "delete": "删除",
+    "confirm": {
+      "activateTitle": "将此世界投入使用？",
+      "activateMessage": "服务器将保存并停止，当前地图会被归档，然后“{name}”成为存档，服务器重新启动。玩家将被断开连接。",
+      "activateDetails": "不会丢失任何内容：当前地图保留在“存档”标签页（“恢复前”），此世界也保留在世界库中。如果服务器未能恢复，将自动还原之前的地图。",
+      "forceTitle": "仍要投入使用？",
+      "forceLabel": "仍然投入使用",
+      "deleteTitle": "删除此世界？",
+      "deleteMessage": "“{name}”将从世界库中永久删除。已投入使用的地图不受影响。"
+    },
+    "sections": {
+      "general": "常规",
+      "resources": "资源",
+      "terrain": "地形",
+      "enemies": "敌人",
+      "pollution": "污染",
+      "evolution": "进化",
+      "expansion": "扩张",
+      "difficulty": "难度",
+      "advanced": "高级（JSON）",
+      "exchange": "地图交换字符串"
+    },
+    "seed": "种子",
+    "seedRandom": "随机",
+    "seedInvalid": "种子必须是 0 到 4294967295 之间的整数。",
+    "newSeed": "新种子",
+    "preset": "预设",
+    "presetCustom": "自定义",
+    "planet": "星球",
+    "none": "此星球没有可调整的项。",
+    "frequency": "频率",
+    "size": "大小",
+    "richness": "丰度",
+    "reset": "恢复默认",
+    "resourcesHint": "频率：矿床数量。大小：每个矿床的面积（0% 表示移除）。丰度：每格的储量。",
+    "rulesHint": "规则影响世界创建后的玩法，而非地形：预览中不会显示。",
+    "mapGen": {
+      "width": "地图宽度（格，0 = 无限）",
+      "height": "地图高度（格，0 = 无限）",
+      "sizeHint": "预设或下方字段均以游戏默认值为起点；圆点标记您修改过的项。",
+      "starting_area": "起始区域（%）",
+      "peaceful_mode": "和平模式（敌人只会反击）",
+      "no_enemies_mode": "无敌人"
+    },
+    "advanced": {
+      "hint": "以 JSON 表示的表单修改，使用 Factorio 自身的名称（mapGen 下为 map-gen-settings.json，mapSettings 下为 map-settings.json）。仅接受表单已知的成员。",
+      "load": "从表单载入",
+      "apply": "应用到表单",
+      "invalid": "JSON 无效，或包含 mapGen 和 mapSettings 以外的成员。"
+    },
+    "exchange": {
+      "hint": "粘贴游戏中“地图交换字符串”对话框里的字符串，即可精确重建该地图。它会取代表单；种子栏留空时沿用字符串自带的种子。",
+      "active": "正在使用交换字符串：表单将被忽略。"
+    },
+    "name": "名称",
+    "namePlaceholder": "世界名称",
+    "create": "创建世界",
+    "createHint": "在服务器旁生成，服务器照常运行。",
+    "created": "世界“{name}”已创建（种子 {seed}）。可在下方世界库中找到。",
+    "area": "显示范围",
+    "areaTiles": "{size} 格",
+    "previewButton": "预览",
+    "rendering": "生成中…",
+    "compare": "比较 {count} 个种子",
+    "compareHint": "点击地图以保留其种子。",
+    "previewAlt": "地图预览，种子 {seed}",
+    "previewCaption": "种子 {seed} · {planet} · {size} × {size} 格，中心 {x}, {y}",
+    "previewEmpty": "选择设置后点击“预览”：游戏会绘制地形而不创建任何内容。",
+    "previewHint": "起始区域位于中心。预览不会改变服务器的地图。",
+    "pan": "移动预览",
+    "panNorth": "北",
+    "panSouth": "南",
+    "panEast": "东",
+    "panWest": "西",
+    "panCentre": "回到出生点",
+    "quantities": {
+      "resource": "资源",
+      "tiles": "格数",
+      "amount": "储量"
+    },
+    "controls": {
+      "iron-ore": "铁矿",
+      "copper-ore": "铜矿",
+      "stone": "石矿",
+      "coal": "煤矿",
+      "crude-oil": "原油",
+      "uranium-ore": "铀矿",
+      "water": "水域",
+      "trees": "树木",
+      "rocks": "岩石",
+      "starting_area_moisture": "起始区域湿度",
+      "nauvis_cliff": "悬崖",
+      "enemy-base": "敌人基地",
+      "vulcanus_coal": "煤矿",
+      "tungsten_ore": "钨矿",
+      "calcite": "方解石",
+      "sulfuric_acid_geyser": "硫酸喷泉",
+      "vulcanus_volcanism": "火山活动",
+      "gleba_stone": "石矿",
+      "gleba_plants": "植物",
+      "gleba_water": "水域",
+      "gleba_cliff": "悬崖",
+      "gleba_enemy_base": "敌人基地",
+      "scrap": "废料",
+      "fulgora_islands": "岛屿",
+      "fulgora_cliff": "悬崖",
+      "lithium_brine": "锂卤水",
+      "fluorine_vent": "氟喷口",
+      "aquilo_crude_oil": "原油"
+    },
+    "resources": {
+      "iron-ore": "铁矿",
+      "copper-ore": "铜矿",
+      "stone": "石矿",
+      "coal": "煤矿",
+      "crude-oil": "原油",
+      "uranium-ore": "铀矿",
+      "tungsten-ore": "钨矿",
+      "calcite": "方解石",
+      "sulfuric-acid-geyser": "硫酸喷泉",
+      "scrap": "废料",
+      "lithium-brine": "锂卤水",
+      "fluorine-vent": "氟喷口"
+    },
+    "planets": {
+      "nauvis": "新地星",
+      "vulcanus": "祝融星",
+      "gleba": "句芒星",
+      "fulgora": "雷神星",
+      "aquilo": "玄冥星"
+    },
+    "presets": {
+      "default": "默认",
+      "rich-resources": "资源丰富",
+      "marathon": "马拉松",
+      "death-world": "死亡世界",
+      "death-world-marathon": "死亡世界马拉松",
+      "rail-world": "铁路世界",
+      "ribbon-world": "带状世界",
+      "lakes": "湖泊",
+      "island": "岛屿"
+    },
+    "rules": {
+      "pollution": {
+        "enabled": "污染",
+        "diffusion_ratio": "扩散比例",
+        "min_to_diffuse": "最小扩散量",
+        "ageing": "吸收系数",
+        "enemy_attack_pollution_consumption_modifier": "攻击消耗系数",
+        "min_pollution_to_damage_trees": "损伤树木的最低污染",
+        "pollution_restored_per_tree_damage": "每棵受损树木吸收量"
+      },
+      "enemy_evolution": {
+        "enabled": "敌人进化",
+        "time_factor": "时间因子",
+        "destroy_factor": "摧毁因子",
+        "pollution_factor": "污染因子"
+      },
+      "enemy_expansion": {
+        "enabled": "敌人扩张",
+        "max_expansion_distance": "最大扩张距离",
+        "settler_group_min_size": "最小队伍规模",
+        "settler_group_max_size": "最大队伍规模",
+        "min_expansion_cooldown": "最短冷却",
+        "max_expansion_cooldown": "最长冷却"
+      },
+      "difficulty_settings": {
+        "technology_price_multiplier": "科技价格倍数",
+        "spoil_time_modifier": "腐坏时间系数"
+      },
+      "units": {
+        "pollution": {
+          "diffusion_ratio": "%"
+        },
+        "enemy_evolution": {
+          "time_factor": "× 10⁻⁷",
+          "destroy_factor": "× 10⁻⁵",
+          "pollution_factor": "× 10⁻⁷"
+        },
+        "enemy_expansion": {
+          "max_expansion_distance": "区块",
+          "min_expansion_cooldown": "分钟",
+          "max_expansion_cooldown": "分钟"
+        }
+      }
+    },
+    "climate": {
+      "control_moisture_frequency": "湿度规模",
+      "control_moisture_bias": "湿度偏向",
+      "control_aux_frequency": "地形类型规模",
+      "control_aux_bias": "地形类型偏向"
+    }
+  },
   "errors": {
     "metrics_disabled": "该面板的指标功能已禁用。",
     "unknown": "发生意外错误。",
@@ -634,6 +851,21 @@
     "settings_tx_not_found": "找不到之前的设置。",
     "public_needs_credentials": "公开游戏需要 factorio.com 用户名以及令牌或密码。",
     "settings_rolled_back": "服务器未能以这些设置重启（{reason}）；已还原之前的设置。",
-    "settings_rollback_failed": "服务器未能重启（{reason}），还原之前的设置也失败了：请检查服务器。"
+    "settings_rollback_failed": "服务器未能重启（{reason}），还原之前的设置也失败了：请检查服务器。",
+    "world_disabled": "此面板已禁用世界功能。",
+    "world_config": "面板无法读取世界代理令牌。",
+    "world_unreachable": "无法连接世界代理。",
+    "world_timeout": "世界代理未及时响应。",
+    "world_rejected": "世界代理拒绝了面板的令牌。",
+    "world_busy": "游戏正在生成预览或世界，请稍后重试。",
+    "world_rate_limited": "预览次数过多，请一分钟后重试。",
+    "world_protocol": "世界代理返回了意外的响应。",
+    "world_io": "世界代理无法读写其文件。",
+    "world_not_found": "该世界不存在。",
+    "worlds_unavailable": "数据代理无法访问世界文件夹：请将 ./worlds 挂载到其中。",
+    "factorio_refused": "Factorio 拒绝了这些设置：{reason}",
+    "factorio_timeout": "Factorio 未能及时完成。",
+    "invalid_world_settings": "世界设置无效：{reason}",
+    "preview_not_found": "此预览已过期，请重新生成。"
   }
 }

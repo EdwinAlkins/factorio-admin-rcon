@@ -18,9 +18,10 @@ dev-tools
 private
 .data/
 data/
-# Archives of the data agent: owned by the Factorio uid, unreadable here, and
-# no business in an image.
+# Archives of the data agent and worlds of the world agent: owned by the
+# Factorio uid, unreadable here, and no business in an image.
 backups/
+worlds/
 graphify-out/
 # Built separately, from its own context.
 services

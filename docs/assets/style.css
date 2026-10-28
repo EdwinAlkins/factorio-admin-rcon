@@ -96,12 +96,18 @@ a:hover {
 
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
   font-weight: 600;
   color: var(--ink);
   text-decoration: none;
   white-space: nowrap;
+}
+
+.brand img {
+  width: 28px;
+  height: 28px;
+  flex: none;
 }
 
 .brand span {

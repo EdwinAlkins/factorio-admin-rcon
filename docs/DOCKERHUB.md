@@ -1,3 +1,5 @@
+<p align="center"><img src="https://edwinalkins.github.io/factorio-admin-rcon/assets/brand/logo-256.png" alt="" width="128" height="128"></p>
+
 # Factorio Admin RCON
 
 **Not a server manager: a hardened RCON admin console.** Give moderators the server actions they

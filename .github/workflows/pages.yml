@@ -34,6 +34,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Images and videos are in Git LFS: without this the site would
+          # publish pointer files instead of them.
+          lfs: true
 
       - uses: actions/configure-pages@v6
 

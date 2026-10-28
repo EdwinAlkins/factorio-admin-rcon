@@ -38,9 +38,9 @@ Everything comes from the environment; no host and no password is ever written t
 ```bash
 cd dev-tools/media
 
-PANEL_PW='…' LOCALE=fr npm run shots     # → out/fr/01-login.png … 12-mobile.png
+PANEL_PW='…' LOCALE=fr npm run shots     # → out/fr/01-login.png … 20-mobile.png
 PANEL_PW='…' LOCALE=fr npm run video     # → out/fr-video/*.webm
-PANEL_PW='…' LOCALE=fr npm run audit     # → out/fr/09-audit-panel.png (better framing)
+PANEL_PW='…' LOCALE=fr npm run audit     # → out/fr/08-audit-panel.png (better framing)
 
 PANEL_PW='…' LOCALE=en npm run shots     # same three for the English set
 ```
@@ -52,7 +52,7 @@ copied into `docs/assets/media/` is committed.
 
 ### Why `audit.mjs` exists
 
-`08-audit.png` shows the audit log in its 22 rem column, where the table overflows and gets
+`07-audit.png` shows the audit log in its 22 rem column, where the table overflows and gets
 cut — that is the real rendering, but it is unreadable as a thumbnail. `audit.mjs` re-shoots
 the same panel below the `lg` breakpoint (1024 px), where the grid stacks and the table fits
 whole. That is the one to publish.
@@ -64,23 +64,34 @@ with ffmpeg:
 
 ```bash
 cd out/fr-video
-ffmpeg -i demo.webm -c:v libx264 -crf 23 -preset slow -pix_fmt yuv420p demo-fr.mp4
+ffmpeg -i demo.webm -c:v libx264 -crf 23 -preset slow -pix_fmt yuv420p -movflags +faststart demo-fr.mp4
 ffmpeg -ss 12 -i demo-fr.mp4 -frames:v 1 poster-fr.png
-ffmpeg -ss 8 -t 40 -i demo-fr.mp4 -vf 'fps=10,scale=900:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse' demo-fr-readme.gif
+ffmpeg -ss 8 -t 40 -i demo-fr.mp4 -vf 'fps=10,scale=900:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle' demo-fr-readme.gif
 ```
 
-Rough targets: MP4 ~1.3 MB, WebM ~3.3 MB, GIF ~3.6 MB at 900×563 / 10 fps / 40 s (the GIF
-skips the sign-in typing, hence the `-ss 8`).
+Rough targets for the 83 s walkthrough: MP4 ~3 MB, WebM ~15 MB (not published), GIF ~4.4 MB
+at 900×563 / 10 fps / 40 s (the GIF skips the sign-in typing, hence the `-ss 8`). Playwright
+names the recording after the page (`page@….webm`): rename it `demo.webm` first. The published
+set is English, like the documentation site: `demo.mp4` and `demo.gif` in `docs/assets/media/`.
 
 ## What the walkthrough does
 
-Sign in → three read-only quick actions (`/players online`, `/version`, `/evolution`) →
-one hand-typed command → the Lua-console warning → the confirmation dialog before a Kick →
-the audit log → the statistics tab → mobile viewport.
+Sign in → three console actions: a quick action (`/players online`), a command typed by hand
+(`/evolution`) and a Kick, stopped at its confirmation → the audit log → the
+statistics tab → the Server tab, its settings opened → Saves → Mods: search "Pyanodons", add
+its modpack, preview the plan that installs the whole suite in one operation, open "Apply" →
+Worlds: the creator, a preview on a fixed seed (`123456789`), another planet's resources, four
+seeds compared, the library → mobile viewport.
 
-**No destructive action is ever executed.** The Lua and Kick dialogs are opened for the shot
-and then *cancelled*; only read commands reach the server. Keep it that way if you extend the
-script — the captures are also the demo of the safety rails, so they have to be honest.
+A tab the target panel does not have — feature off, no agent, no portal credentials — is skipped with a message, so the
+script still runs against the minimal stack. The library is shot only if it already holds a
+world: the script never creates one.
+
+**No destructive action is ever executed.** The Kick and the mods' "Apply" are opened for the
+shot and then *cancelled*; only read commands reach the server. The server
+settings are opened, never saved; nothing is archived, restored or installed; world previews
+write nothing, and "Put in play" is never clicked. Keep it that way if you extend the script —
+the captures are also the demo of the safety rails, so they have to be honest.
 
 ## Output
 
@@ -88,16 +99,24 @@ script — the captures are also the demo of the safety rails, so they have to b
 | --- | --- |
 | `01-login.png` | Sign-in screen |
 | `02-panel.png` | Panel on first load |
-| `03-console.png` | Console after three quick actions |
+| `03-console.png` | Console after `/players online` |
 | `04-quick-actions.png` | The "Quick actions" column alone |
-| `05-console-command.png` | Console with a hand-typed command |
-| `06-lua-guard.png` / `06b-lua-dialog.png` | Lua-console warning (full page / dialog only) |
-| `07-confirm-guard.png` / `07b-confirm-dialog.png` | Confirmation before a Kick |
-| `08-audit.png` | Full page, audit log expanded |
-| `09-audit-panel.png` | Audit panel alone, whole table (from `audit.mjs`) |
-| `10-metrics.png` | Full page, Statistics tab |
-| `11-metrics-panel.png` | Statistics panel alone |
-| `12-mobile.png` | 430×932, full page |
+| `05-console-command.png` | Console after a hand-typed command |
+| `06-confirm-guard.png` / `06b-confirm-dialog.png` | Confirmation before a Kick |
+| `07-audit.png` | Full page, audit log expanded |
+| `08-audit-panel.png` | Audit panel alone, whole table (from `audit.mjs`) |
+| `09-metrics.png` | Full page, Statistics tab |
+| `10-metrics-panel.png` | Statistics panel alone |
+| `11-server.png` | Server tab: state, recent operations, logs |
+| `12-server-settings.png` | Server tab, `server-settings.json` form opened |
+| `13-saves.png` | Saves tab |
+| `14-mods-search.png` | Mods tab, portal search for "Pyanodons" |
+| `15-mods-plan.png` / `15b-mods-apply-dialog.png` | The modpack's plan, the whole suite in one operation, and the "Apply" confirmation |
+| `16-worlds-preview.png` | Worlds tab: creator and a Nauvis preview |
+| `17-worlds-resources.png` | Another planet's resources and its preview (Space Age) |
+| `18-worlds-compare.png` | Four random seeds compared |
+| `19-worlds-library.png` | The worlds library (only when it holds a world) |
+| `20-mobile.png` | 430×932, full page |
 
 ## Before publishing a capture
 
@@ -111,6 +130,11 @@ Screenshots of a live panel carry more than the UI. Check each image you promote
 - **Audit log** — account names and command history. Same rule.
 - **Statistics** — nothing identifying today, but re-check if the panel grows a server-name
   or address field.
+- **Server logs** — Factorio prints the server's public address ("Own address is IP
+  ADDR:(…)"). The script replaces every public IPv4 in the page with `203.0.113.10` (a
+  documentation address) before shooting the Server tab; check that nothing else in the
+  logs is yours.
+- **Saves and worlds** — archive labels and world names are yours: name them for the shot.
 - **Browser** — Playwright screenshots have no address bar, so the URL never leaks through
   the image itself. It can still leak through a filename or a commit message.
 

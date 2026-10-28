@@ -7,7 +7,7 @@
 <meta name="description" content="Code layout, tests, internationalised UI, and the Docker release chain for Factorio Admin RCON.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/development.html">
 <link rel="stylesheet" href="./assets/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<link rel="icon" type="image/png" href="./assets/brand/logo-64.png">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Development &mdash; Factorio Admin RCON">
 <meta property="og:description" content="Code layout, tests, internationalised UI, and the Docker release chain for Factorio Admin RCON.">
@@ -27,7 +27,7 @@
 <a class="skip" href="#content">Skip to content</a>
 
 <div class="topbar">
-  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="brand" href="./index.html"><img src="./assets/brand/logo-64.png" alt="" width="28" height="28">Factorio <span>Admin RCON</span></a>
   <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
 </div>
 
@@ -61,7 +61,7 @@ npm run build</code></pre></div>
 ├── lib/            shared client/server code (types, permissions, Lua templates)
 └── server/         server-only code
     ├── actions/    business definitions, operator catalogue, execution
-    ├── agents/     error taxonomy shared by both agents' clients
+    ├── agents/     error taxonomy shared by the agents' clients
     ├── audit/      SQLite log
     ├── auth/       accounts, sessions, rate limiters
     ├── config/     validated environment variables (zod)
@@ -72,13 +72,15 @@ npm run build</code></pre></div>
     ├── mods/       mod changes: preview, apply with a single restart, rollback
     ├── operations/ long operations: one lock, steps, history
     ├── rcon/       service, queue, parsing, status cache
-    └── saves/      archives, schedule, restore
+    ├── saves/      archives, schedule, restore
+    └── worlds/     world-agent client, previews, creation, activation (a restore)
 
 messages/           dictionaries (en.json is the reference)
 services/
-└── agents/         Go module of both agents, one binary and one image each
+└── agents/         Go module of the agents, one binary and one image each
     ├── cmd/control-agent   holds the Docker socket
-    └── cmd/data-agent      holds the saves, mods and backups, and the way to the portal
+    ├── cmd/data-agent      holds the saves, mods and backups, and the way to the portal
+    └── cmd/world-agent     runs the game's binary: previews, new maps, the worlds library
 docs/               this site</code></pre></div>
 <p>A long operation &mdash; start, stop, restart, backup, restore, mod change
 &mdash; is declared once to <code>server/operations</code>: a

@@ -278,6 +278,31 @@ func TestBuildPlan(t *testing.T) {
 	}
 }
 
+// Factorio 2.1's `+` marks a recommended mod: optional, enabled by default in
+// the game. Pyanodons declares its feature-flag mods this way; they must not
+// block the plan, nor be installed for the operator.
+func TestRecommendedDependenciesAreOptional(t *testing.T) {
+	portalMods := catalog{"py": {"1.0.0:2.1:+ enable-all-feature-flags,+ cargo-bays-and-unloaders,b"}, "b": {"1.0.0:2.1:"}}
+	plan, err := BuildPlan(context.Background(), portalMods, []Installed{builtin("base", true)}, []Change{{Action: ActionInstall, Name: "py"}}, game)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Conflicts) != 0 {
+		t.Fatalf("conflicts: %+v", plan.Conflicts)
+	}
+	if got := summary(plan); !slices.Equal(got, []string{"install b →1.0.0 [py]", "install py →1.0.0"}) {
+		t.Errorf("steps: %q", got)
+	}
+	var hints []string
+	for _, hint := range plan.Optional {
+		hints = append(hints, hint.Optional)
+	}
+	slices.Sort(hints)
+	if !slices.Equal(hints, []string{"cargo-bays-and-unloaders", "enable-all-feature-flags"}) {
+		t.Errorf("optional: %+v", plan.Optional)
+	}
+}
+
 func TestPlanDetails(t *testing.T) {
 	portalMods := catalog{"a": {"1.0.0:2.1:? opt,b"}, "b": {"1.0.0:2.1:"}}
 	inventory := []Installed{builtin("base", true), installed("old", "1.0.0", true, "b"), installed("b", "0.9.0", true)}

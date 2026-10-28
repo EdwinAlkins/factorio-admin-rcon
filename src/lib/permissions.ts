@@ -39,12 +39,19 @@ export const PERMISSIONS = [
   // the server and downloads code it will execute — is for administrators.
   "mods:read",
   "mods:manage",
+  // Worlds. Moderators may browse the library; previewing (it runs the game),
+  // creating, downloading, deleting and putting a world in play — which
+  // replaces the map players are on — are for administrators.
+  "worlds:read",
+  "worlds:create",
+  "worlds:activate",
+  "worlds:delete",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
 const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   viewer: ["status:read", "action:info", "server:read", "mods:read"],
-  moderator: ["status:read", "action:info", "action:moderate", "server:read", "saves:read", "mods:read"],
+  moderator: ["status:read", "action:info", "action:moderate", "server:read", "saves:read", "mods:read", "worlds:read"],
   admin: [
     "status:read",
     "action:info",
@@ -68,6 +75,10 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "saves:configure",
     "mods:read",
     "mods:manage",
+    "worlds:read",
+    "worlds:create",
+    "worlds:activate",
+    "worlds:delete",
   ],
 };
 

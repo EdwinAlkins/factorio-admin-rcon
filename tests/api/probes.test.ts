@@ -39,6 +39,7 @@ afterEach(() => {
     LOG_LEVEL: undefined,
     CUSTOM_COMMANDS_FILE: undefined,
     METRICS_ENABLED: undefined,
+    WORLDS_ENABLED: undefined,
   });
   resetCustomCatalog();
   resetEnvCache();
@@ -63,6 +64,14 @@ describe("probes", () => {
     expect(checks.find((check) => check.name === "database")).toMatchObject({ ok: true });
     expect(checks.find((check) => check.name === "config")).toMatchObject({ ok: true });
     expect((await call(health, { path: "/api/health" })).status).toBe(200);
+  });
+
+  it("checks the world agent only when worlds are on", async () => {
+    const names = async () => ((await call(ready, { path: "/api/ready" })).body.checks as Check[]).map((check) => check.name);
+    expect(await names()).toContain("world");
+
+    withEnv({ WORLDS_ENABLED: "false" });
+    expect(await names()).not.toContain("world");
   });
 
   it("reports an unreadable command catalogue", async () => {

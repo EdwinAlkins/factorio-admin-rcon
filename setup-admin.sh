@@ -1,9 +1,10 @@
 #!/bin/bash
 # Prepares the .env file used by the factorio-admin service:
 # generates the role passwords and the session signing key, the tokens shared
-# with the two agents (./secrets/*-agent-token), an empty mod portal secret
-# (./secrets/factorio-portal), creates the archives folder (./backups) and
-# records the group owning the Docker socket (DOCKER_GID).
+# with the three agents (./secrets/*-agent-token), an empty mod portal secret
+# (./secrets/factorio-portal), creates the archives and worlds folders
+# (./backups, ./worlds) and records the group owning the Docker socket
+# (DOCKER_GID).
 #
 # Values already present are kept by default; use --force to regenerate them
 # (which invalidates every open session).
@@ -14,7 +15,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
 SECRETS_DIR="$SCRIPT_DIR/secrets"
 BACKUPS_DIR="$SCRIPT_DIR/backups"
-# uid of the factoriotools image, which the data agent runs as.
+WORLDS_DIR="$SCRIPT_DIR/worlds"
+# uid of the factoriotools image, which the data and world agents run as.
 FACTORIO_UID=845
 
 FORCE=false
@@ -46,10 +48,11 @@ Examples:
   ./setup-admin.sh --all           # all three roles
   ./setup-admin.sh --force --yes   # full rotation, no questions asked
 
-Also creates ./secrets/control-agent-token and ./secrets/data-agent-token (the
-panel <-> agent tokens), an empty ./secrets/factorio-portal (fill it in to
-search and install mods), the ./backups folder for archives, and writes
-DOCKER_GID, the group owning the Docker socket, to the .env file.
+Also creates ./secrets/control-agent-token, ./secrets/data-agent-token and
+./secrets/world-agent-token (the panel <-> agent tokens), an empty
+./secrets/factorio-portal (fill it in to search and install mods), the
+./backups folder for archives and the ./worlds folder for generated worlds,
+and writes DOCKER_GID, the group owning the Docker socket, to the .env file.
 EOF
 }
 
@@ -249,6 +252,7 @@ ensure_agent_token() {
 
 ensure_agent_token control-agent
 ensure_agent_token data-agent
+ensure_agent_token world-agent
 
 # factorio.com credentials, for searching and installing mods from the panel.
 # Never generated nor overwritten, even with --force: they are the operator's
@@ -265,17 +269,25 @@ if ! grep -q '"token"' "$PORTAL_FILE"; then
     PORTAL_EMPTY=true
 fi
 
-# The data agent writes archives here as the Factorio uid. A directory Docker
-# creates on its own would belong to root, and the agent would refuse to start.
-mkdir -p "$BACKUPS_DIR"
-if [[ "$(stat -c %u "$BACKUPS_DIR")" != "$FACTORIO_UID" ]]; then
-    if chown "$FACTORIO_UID:$FACTORIO_UID" "$BACKUPS_DIR" 2>/dev/null; then
-        echo "→ backups/ handed to uid $FACTORIO_UID"
-    else
-        echo "warning: backups/ must belong to uid $FACTORIO_UID for the data agent:" >&2
-        echo "  sudo chown $FACTORIO_UID:$FACTORIO_UID $BACKUPS_DIR" >&2
+# The data agent writes archives, the world agent generated worlds, both as
+# the Factorio uid. A directory Docker creates on its own would belong to
+# root, and the agent would refuse to start.
+ensure_factorio_dir() {
+    local dir="$1" agent="$2" name
+    name="$(basename "$dir")"
+    mkdir -p "$dir"
+    if [[ "$(stat -c %u "$dir")" != "$FACTORIO_UID" ]]; then
+        if chown "$FACTORIO_UID:$FACTORIO_UID" "$dir" 2>/dev/null; then
+            echo "→ $name/ handed to uid $FACTORIO_UID"
+        else
+            echo "warning: $name/ must belong to uid $FACTORIO_UID for the $agent:" >&2
+            echo "  sudo chown $FACTORIO_UID:$FACTORIO_UID $dir" >&2
+        fi
     fi
-fi
+}
+
+ensure_factorio_dir "$BACKUPS_DIR" "data agent"
+ensure_factorio_dir "$WORLDS_DIR" "world agent"
 
 # The control agent runs as a non-root uid and reaches the socket through the
 # group that owns it, which differs from host to host.

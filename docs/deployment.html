@@ -7,7 +7,7 @@
 <meta name="description" content="Put Factorio Admin RCON behind Caddy, Nginx, Traefik or Tailscale. What TRUST_PROXY changes, and why the panel stays on 127.0.0.1.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/deployment.html">
 <link rel="stylesheet" href="./assets/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<link rel="icon" type="image/png" href="./assets/brand/logo-64.png">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Reverse proxy recipes &mdash; Factorio Admin RCON">
 <meta property="og:description" content="Put Factorio Admin RCON behind Caddy, Nginx, Traefik or Tailscale. What TRUST_PROXY changes, and why the panel stays on 127.0.0.1.">
@@ -27,7 +27,7 @@
 <a class="skip" href="#content">Skip to content</a>
 
 <div class="topbar">
-  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="brand" href="./index.html"><img src="./assets/brand/logo-64.png" alt="" width="28" height="28">Factorio <span>Admin RCON</span></a>
   <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
 </div>
 
@@ -211,8 +211,8 @@ audit log and the backup schedule, not the archives.</p>
 <h2 id="checking">Checking it worked<a class="anchor" href="#checking" aria-label="Link to this section">#</a></h2>
 
 <div class="snippet" data-lang="bash"><pre><code># Readiness: config, catalogue, database and RCON; plus the control agent when
-# server control or Docker metrics are enabled, and the data agent when saves
-# or mods are. One object per check.
+# server control or Docker metrics are enabled, the data agent when saves or
+# mods are, and the world agent when worlds are. One object per check.
 curl -s https://factorio.example.com/api/ready | python3 -m json.tool
 
 # The cookie must come back Secure over HTTPS.

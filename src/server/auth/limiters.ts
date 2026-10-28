@@ -19,6 +19,7 @@ type Limiters = {
   rconPerSession: FixedWindowLimiter;
   serverPerSession: FixedWindowLimiter;
   uploadChunksPerSession: FixedWindowLimiter;
+  worldPreviewsPerSession: FixedWindowLimiter;
 };
 
 const globalRef = globalThis as typeof globalThis & { __factorioLimiters?: Limiters };
@@ -27,6 +28,9 @@ export const SERVER_OPERATIONS_PER_MINUTE = 6;
 
 /** 8 MB each: 80 MB/s, past any uplink, and still a bound on disk writes. */
 export const UPLOAD_CHUNKS_PER_MINUTE = 600;
+
+/** Each runs the game for a second or two: enough to try seeds one after another. */
+export const WORLD_PREVIEWS_PER_MINUTE = 20;
 
 export function limiters(): Limiters {
   if (globalRef.__factorioLimiters) return globalRef.__factorioLimiters;
@@ -42,6 +46,7 @@ export function limiters(): Limiters {
     // needs, and each one disconnects every player.
     serverPerSession: new FixedWindowLimiter(SERVER_OPERATIONS_PER_MINUTE, 60 * 1000),
     uploadChunksPerSession: new FixedWindowLimiter(UPLOAD_CHUNKS_PER_MINUTE, 60 * 1000),
+    worldPreviewsPerSession: new FixedWindowLimiter(WORLD_PREVIEWS_PER_MINUTE, 60 * 1000),
   };
 
   return globalRef.__factorioLimiters;

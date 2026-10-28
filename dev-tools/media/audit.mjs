@@ -24,7 +24,7 @@ await page.waitForTimeout(1500);
 const section = page.locator('section').filter({ hasText: L.audit }).last();
 await section.scrollIntoViewIfNeeded();
 await page.waitForTimeout(300);
-await section.screenshot({ path: `${OUT}/09-audit-panel.png`, animations: 'disabled' });
+await section.screenshot({ path: `${OUT}/08-audit-panel.png`, animations: 'disabled' });
 
 await ctx.close();
 await browser.close();

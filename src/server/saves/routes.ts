@@ -1,6 +1,6 @@
 import { ApiFailure } from "@/server/http/errors";
 import { limiters } from "@/server/auth/limiters";
-import { recordAudit } from "@/server/audit/service";
+import { recordAudit, type AuditKind } from "@/server/audit/service";
 import { BACKUP_ID, UPLOAD_ID } from "@/server/saves/service";
 import type { Session } from "@/server/auth/session";
 
@@ -30,13 +30,19 @@ export function uploadIdFrom(request: Request): string {
 }
 
 /** Same budget as start/stop/restart: each of these copies or rewrites a whole map. */
-export function limitSavesMutation(session: Session, action: string, ip: string | null, requestId: string) {
+export function limitSavesMutation(
+  session: Session,
+  action: string,
+  ip: string | null,
+  requestId: string,
+  kind: AuditKind = "saves",
+) {
   const verdict = limiters().serverPerSession.consume(`session:${session.id}`);
   if (verdict.allowed) return;
   recordAudit({
     username: session.username,
     role: session.role,
-    kind: "saves",
+    kind,
     action,
     status: "denied",
     detail: "rate limit",
