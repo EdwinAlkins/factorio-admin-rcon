@@ -22,14 +22,22 @@ need without handing them full RCON.
   "Kick" button without getting arbitrary Lua;
 - **audit log** of every action, refusals included;
 - **raw RCON console**, restricted to the administrator;
+- **saves** — archives on demand or on a schedule, download, and restore with a safety copy and
+  automatic rollback — through a second agent that holds the game's files but not the socket;
+- **mods** — search the official portal, install, update, enable, disable, remove; dependencies
+  resolved, applied with a single restart, rolled back if the server does not come back;
+- **server control** — start, stop (after a confirmed save), restart and logs — through a separate
+  agent with a closed API, the only component that holds the Docker socket;
 - **Docker**, `amd64` and `arm64`, with a distroless variant, SBOM and provenance;
-- **English and French**, inferred from the browser.
+- **English, French and Chinese**, inferred from the browser.
 
 ## What it is, and what it is not
 
 Raw RCON is an all-or-nothing door: one password, no rate limiting, no trace, and full control of
 the server for whoever gets through it. This panel puts roles, bounded commands and an audit log in
-front of that door. It does **not** manage the server process.
+front of that door. It can also archive and restore saves, install and update mods from the
+official portal, and start, stop and restart the server container — through two separate agents,
+never by holding the Docker socket or the game's files itself.
 
 | Need | This panel | Where to look instead |
 | --- | --- | --- |
@@ -37,21 +45,23 @@ front of that door. It does **not** manage the server process.
 | Delegate moderation without handing out RCON | ✅ | — |
 | Know who ran what, and what was refused | ✅ | — |
 | Run your own Lua one-liners as bounded buttons | ✅ | [Custom commands](#custom-commands) |
-| Install, enable or update **mods** | ❌ | [factoriotools/factorio](https://github.com/factoriotools/factorio-docker) and its env vars |
-| Upload, download or roll back **saves** | ❌ | The `./data` volume |
-| Start, stop or update the **server binary** | ❌ | Your compose file, or [OpenFactorioServerManager](https://github.com/OpenFactorioServerManager/factorio-server-manager) |
+| Install, enable or update **mods** from the official portal | ✅ | [Mods](#mods) |
+| Archive, download or roll back **saves**, on a schedule too | ✅ | [Saves](#saves) |
+| Start, stop or restart the **server**, read its logs | ✅ | [Server control](#server-control) |
+| Update the **server binary** | ❌ | The image tag in your compose file, or [OpenFactorioServerManager](https://github.com/OpenFactorioServerManager/factorio-server-manager) |
 | Drive the server **from scripts** rather than a browser | ❌ | [nekomeowww/factorio-rcon-api](https://github.com/nekomeowww/factorio-rcon-api) |
 
 The honest comparison: *Factorio Server Manager* drives the binary and covers mods and saves, but
-it has had no release since March 2021 and has never seen Factorio 2.0. It solves a different
-problem, and where the two overlap this panel is the narrower, harder-edged tool.
+it has had no release since March 2021 and has never seen Factorio 2.0. Where the two overlap, this
+panel is the narrower, harder-edged tool: it holds neither the Docker socket nor the game's files,
+and splits them between two agents that cannot do each other's job.
 
 ## Compatibility
 
 | | Supported |
 | --- | --- |
 | Factorio | 2.x, Space Age included |
-| Server image | [`factoriotools/factorio`](https://hub.docker.com/r/factoriotools/factorio), or any image exposing standard RCON |
+| Server image | [`factoriotools/factorio`](https://hub.docker.com/r/factoriotools/factorio), or any image exposing standard RCON for the console alone — saves and mods expect factoriotools' layout and uid (845) |
 | Architectures | `linux/amd64`, `linux/arm64` |
 | Runtime | Docker with the Compose v2 plugin; or Node 24+ from source |
 | Browsers | Current Firefox, Chrome and Safari |
@@ -62,6 +72,10 @@ process memory, so a second instance would make both bypassable (see [Security
 model](#security-model)).
 
 ## Quick start (without cloning)
+
+Two ways in. This one is the **minimal** stack — the game server and the panel, no agent: roles,
+actions, console, audit log and the players/UPS graphs, but no Server, Saves or Mods tab. For every
+feature, see [Full install](#full-install-every-feature).
 
 Nothing to clone: one directory, a `docker-compose.yml` pasted as-is, a `.env` you generate. The
 panel is published on Docker Hub, so `docker compose up` is the whole install.
@@ -81,7 +95,9 @@ services:
     volumes:
       - ./data:/factorio
     environment:
-      - UPDATE_MODS_ON_START=true
+      # The image's own mod updater. It needs factorio.com credentials
+      # (USERNAME and TOKEN): set them before turning it on.
+      - UPDATE_MODS_ON_START=false
 
   factorio-admin:
     container_name: factorio-admin-panel
@@ -89,7 +105,7 @@ services:
     # `latest` moves under you on the next release; in production, pin the exact
     # version instead. `-distroless` is the hardened variant (no shell, no
     # package manager) — the full tag list is on Docker Hub.
-    image: williamnauroy/factorio-admin-rcon:1.4-distroless
+    image: williamnauroy/factorio-admin-rcon:1.5-distroless
     restart: unless-stopped
     depends_on:
       - factorio
@@ -118,10 +134,13 @@ services:
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
       - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
-      # This stack has no docker-socket-proxy, so the CPU and memory graphs are
-      # off. Players and UPS keep working. Add the service from the repository's
-      # compose file to get them back.
+      # This stack has no agents: no Server, Saves or Mods tab, and no CPU and
+      # memory graphs. Players and UPS keep working. The full install, from the
+      # repository, brings all of them.
+      - CONTROL_ENABLED=false
       - METRICS_DOCKER=false
+      - SAVES_ENABLED=false
+      - MODS_ENABLED=false
 
 volumes:
   factorio-admin-data:
@@ -215,21 +234,66 @@ PR.
 > fixes depend on Dependabot alerts, enabled under *Settings → Advanced Security* — currently off on
 > this repository.
 
-## Production
+## Full install (every feature)
 
-The `factorio-admin` service in the root `docker-compose.yml`:
+The root `docker-compose.yml` runs the four services — the game server, the panel, the control
+agent and the data agent — with their networks and secrets, already confined:
 
 ```bash
-./setup-admin.sh                              # generates ./.env (passwords + session key)
-docker compose up -d --build factorio-admin   # http://127.0.0.1:3010
+git clone https://github.com/EdwinAlkins/factorio-admin-rcon.git
+cd factorio-admin-rcon
+./setup-admin.sh
+docker compose up -d --build control-agent data-agent factorio-admin   # http://127.0.0.1:3010
 ```
 
-`setup-admin.sh --all` also creates the moderator and viewer passwords, `--ask` prompts for them
-instead of generating them, and `--force` rotates every secret (which ends open sessions). Values
-already present in `.env` are kept by default.
+`setup-admin.sh` writes `.env` (administrator password, `SESSION_SECRET`), generates the two agent
+tokens (`./secrets/control-agent-token`, `./secrets/data-agent-token`, Compose secrets), creates an
+empty `./secrets/factorio-portal`, creates `./backups` for uid 845 (the data agent's), and writes
+`DOCKER_GID`, the group that owns the Docker socket on this host, to `.env`. `--all` also creates
+the moderator and viewer passwords, `--ask` prompts for them instead of generating them, and
+`--force` rotates every secret (which ends open sessions). Values already present are kept by
+default, and the portal file is never overwritten.
 
-An image is published on every release to `williamnauroy/factorio-admin-rcon` (`linux/amd64` and
-`linux/arm64`). Pin an exact version in production:
+To install mods from the portal, fill in `secrets/factorio-portal` — see [Mods](#mods).
+
+| Service | Holds | Needed for |
+| --- | --- | --- |
+| `factorio` | the game, `./data` | everything |
+| `factorio-admin` | sessions, audit, metrics (`factorio-admin-data` volume) | everything |
+| `control-agent` | the Docker socket | Server tab, CPU/memory graphs, applying mods |
+| `data-agent` | `./data/saves`, `./data/mods`, `./backups`, the way to the mod portal | Saves and Mods tabs |
+
+The [Services](https://edwinalkins.github.io/factorio-admin-rcon/services.html) page details who
+holds what, the networks, and how to remove an agent you do not need.
+
+### Upgrading from 1.x
+
+2.0 replaces the `docker-proxy` service (`tecnativa/docker-socket-proxy`) with the project's own
+control agent. With `CONTAINERS=1`, that proxy answered `GET /containers/{id}/json` for every
+container on the host — environment variables included, so the panel's own `ADMIN_PASSWORD` and
+`SESSION_SECRET` were one request away from anything that reached it.
+
+1. Take the new `docker-compose.yml` (or port its `control-agent` and `data-agent` services, its
+   `networks:` and `secrets:` blocks into yours) and delete the `docker-proxy` service.
+2. Run `./setup-admin.sh` once: existing passwords are kept; it adds the agents' tokens, an empty
+   `secrets/factorio-portal`, `./backups` and `DOCKER_GID`.
+3. Drop `DOCKER_API_URL`, `METRICS_CONTAINER` and `DOCKER_TIMEOUT_MS` from your environment: the
+   panel no longer reads them (`CONTROL_AGENT_URL` and `CONTROL_AGENT_TIMEOUT_MS` replace them).
+4. Set `UPDATE_MODS_ON_START=false` on the `factorio` service, as the new `docker-compose.yml`
+   does: otherwise the image replaces the versions chosen in the [Mods](#mods) tab with the newest
+   at every start. Keep it `true`, with `MODS_ENABLED=false`, if you manage mods outside the panel.
+5. `docker compose up -d --build --remove-orphans`.
+
+Not using server control or container metrics? Set `CONTROL_ENABLED=false` and
+`METRICS_DOCKER=false`, and leave the control agent out: nothing in the stack then touches the
+Docker socket. Not using saves or mods? `SAVES_ENABLED=false` and `MODS_ENABLED=false`, and leave
+the data agent out.
+
+Images are published on every release (`linux/amd64` and `linux/arm64`): the panel to
+`williamnauroy/factorio-admin-rcon`, the agents to `williamnauroy/factorio-control-agent` and
+`williamnauroy/factorio-data-agent`. To skip the local build, swap each `build:` block in the compose
+file for an `image:` line, and keep the three on the same version — they speak a private API. Pin
+an exact version in production:
 
 ```bash
 # Replace <version> with the exact release you are deploying — the published
@@ -237,6 +301,8 @@ An image is published on every release to `williamnauroy/factorio-admin-rcon` (`
 # minor, major and `latest` tags.
 docker pull williamnauroy/factorio-admin-rcon:<version>
 docker pull williamnauroy/factorio-admin-rcon:<version>-distroless   # hardened, see below
+docker pull williamnauroy/factorio-control-agent:<version>
+docker pull williamnauroy/factorio-data-agent:<version>
 ```
 
 Versioning and publishing are automated — see [CI.md](CI.md).
@@ -283,13 +349,13 @@ docker run --rm -it \
 
 One password per role; the role is determined by the password used to sign in.
 
-![Permission matrix: only the administrator gets the raw RCON console](docs/assets/media/roles.png)
+![Permission matrix: every role reads server state; only the administrator gets lifecycle controls, logs and raw RCON](docs/assets/media/roles.png)
 
 | Role | Variable | Can do |
 | --- | --- | --- |
-| `viewer` | `VIEWER_PASSWORD` | Status, players, version, seed, evolution, admins, ban list |
-| `moderator` | `MODERATOR_PASSWORD` | + kick, ban/unban, mute/unmute, server message, private message |
-| `admin` | `ADMIN_PASSWORD` | + save, promote/demote, custom commands, **raw RCON console**, audit log |
+| `viewer` | `VIEWER_PASSWORD` | Status, players, version, seed, evolution, admins, ban list, container/game state, recent operations, installed mods |
+| `moderator` | `MODERATOR_PASSWORD` | + kick, ban/unban, mute/unmute, server message, private message; the saves and archives list |
+| `admin` | `ADMIN_PASSWORD` | + save, promote/demote, custom commands, **raw RCON console**, audit log, server logs, start/stop/restart; archive, download, restore, delete and schedule backups; install, update, enable, disable and remove mods |
 
 Permissions are enforced **server-side**: the action catalogue is filtered by role, and
 `/api/actions` re-checks the permission before executing anything.
@@ -384,9 +450,10 @@ reports `commands: false`).
 
 ## Languages
 
-The panel ships in English (default) and French. The language is inferred from the
+The panel ships in English (default), French and Chinese. The language is inferred from the
 `Accept-Language` header on first visit, can be changed from the switcher in the status bar, and is
-remembered in a cookie. It shows up in the URL: `/` for English, `/fr` for French.
+remembered in a cookie. It shows up in the URL: `/` for English, `/fr` for French and `/zh` for
+Chinese.
 
 To add a language:
 
@@ -419,11 +486,19 @@ src/
     ├── audit/      SQLite log
     ├── auth/       accounts, sessions, rate limiters
     ├── config/     validated environment variables (zod)
+    ├── control/    control agent client, start/stop/restart orchestration
+    ├── data/       data agent client (saves, mods)
     ├── http/       route wrapper (session, permission, origin, logs)
-    ├── metrics/    Docker client, sampler, time series
-    └── rcon/       service, queue, parsing, status cache
+    ├── metrics/    CPU/memory computation, sampler, time series
+    ├── mods/       mod changes: preview, apply with a single restart, rollback
+    ├── operations/ long operations: one lock, steps, history
+    ├── rcon/       service, queue, parsing, status cache
+    └── saves/      archives, schedule, restore
 
 messages/           dictionaries (en.json is the reference)
+services/
+└── agents/         Go module of the agents (control-agent holds the Docker socket, data-agent the
+                    game's files and the way to the mod portal; see its README)
 ```
 
 Two distinct execution paths:
@@ -442,9 +517,10 @@ restores the history. Below the master switch sit one flag per source: `METRICS_
 memory) and `METRICS_UPS` (the Lua tick probe), both on by default and both ignored when the master
 is off.
 
-When metrics are disabled, **remove the `docker-proxy` service** from the compose file: it is the
-only component that mounts the Docker socket, and running it for a switched-off feature keeps the
-attack surface without the benefit.
+CPU and memory come from the [control agent](#server-control). When neither metrics nor server
+control use it (`METRICS_DOCKER=false` and `CONTROL_ENABLED=false`), **remove the `control-agent`
+service** from the compose file: it is the only component that mounts the Docker socket, and running
+it for switched-off features keeps the attack surface without the benefit.
 
 The panel samples the server every `METRICS_INTERVAL_MS` (15 s by default) and stores the result
 in the same SQLite file, keeping `METRICS_RETENTION_DAYS` (7 days ≈ 2 MB) and purging the rest at
@@ -452,7 +528,7 @@ startup and hourly. Four series are collected:
 
 | Metric | Source |
 | --- | --- |
-| CPU %, memory | Docker API, through `docker-proxy` |
+| CPU %, memory | Docker stats, through the control agent |
 | Players online | RCON, via the existing status cache |
 | UPS | RCON, tick delta between two samples (`/silent-command`) |
 
@@ -477,6 +553,106 @@ inferring it from the absence of points.
 The sampler runs in the Node process (`src/server/metrics/collector.ts`, started from
 `src/instrumentation.ts`) — there is no external scheduler to deploy.
 
+## Server control
+
+The **Server** tab shows the container's state as Docker sees it and the game's as RCON sees it —
+which is what tells a server stopped on purpose from one whose RCON is down — and lets an
+administrator start, stop and restart it. `CONTROL_ENABLED=false` removes the tab and its endpoints.
+
+| Role | Sees | Can |
+| --- | --- | --- |
+| `viewer`, `moderator` | state, players, version, uptime, recent operations | — |
+| `admin` | the same, plus the last 200 log lines | start, stop, restart |
+
+A **stop** (or restart) runs in order: refuse if players are online or RCON does not answer, unless
+the administrator confirms a second time; `/server-save` over RCON; wait until the log reports the
+save written (`CONTROL_SAVE_TIMEOUT_MS`, 2 min by default — on timeout the server is **left
+running**); then ask Docker to stop the container, with `STOP_TIMEOUT_SECONDS` (60 s) of grace
+before `SIGKILL`. A **start** returns once RCON answers. One operation runs at a time: a second
+request gets `409 operation_in_progress`. Each one is recorded in the audit log and in an operation
+history shown on the tab; an operation cut short by the panel restarting is marked `interrupted`.
+
+The panel never holds the Docker socket. The **control agent** (`services/agents`, a small Go
+service) does, and answers a closed list of operations — status, stats, logs, start, stop, restart —
+on the one container carrying this stack's `factorio` Compose service label. No endpoint takes a
+container id, and the agent has no code for `exec`, create, delete, images, volumes or networks.
+It sits alone with the panel on an `internal` network, unpublished, and requires a token both share
+as a Compose secret. Details and threat model: [services/agents/README.md](services/agents/README.md).
+
+## Saves
+
+The **Saves** tab lists the server's saves folder and the panel's archives. Moderators see both;
+archiving, downloading, restoring, deleting and the schedule are for administrators.
+`SAVES_ENABLED=false` removes the tab, its endpoints and the scheduler.
+
+- **Back up now** asks Factorio to save, waits for the save to be written, then archives it.
+- **Scheduled backups** are set in the tab: interval, how many to keep, for how long. By default
+  they archive the newest autosave instead of triggering a save, which would freeze the game while
+  it is written; that is an option.
+- **Download** streams the archive; it is a full copy of the world, so it is audited.
+- **Import a save** sends a `.zip` from your computer, in 8 MB pieces that resume after a dropped
+  connection, up to `SAVES_MAX_UPLOAD_MB` (2048 by default). The data agent verifies it as a save
+  and keeps it as an archive of source `imported`; playing it is an ordinary **Restore**. Its game
+  version and mods are unknown, which the restore dialog says. Behind nginx, raise
+  `client_max_body_size` to `10m`.
+- **Restore** runs as one operation: verify the archive, refuse if the game version or mod set
+  differs or players are online (unless confirmed a second time), save and stop the server, take
+  a safety archive of the current state, restore, restart. If the server does not come back, the
+  safety archive is restored the same way. A damaged archive is refused before the server is
+  touched.
+
+Archives live in `./backups` on the host, next to `./data` rather than inside it, so they can be
+copied elsewhere with the tool of your choice. Each is a zip plus a JSON sidecar recording its
+checksum, the Factorio version and the mod set. The **data agent** (`services/agents`,
+`cmd/data-agent`) is the only component that writes these files or the saves folder: it runs as
+the Factorio image's uid, sees no Docker socket, and every archive it writes or restores is
+verified entry by entry. Details: [services/agents/README.md](services/agents/README.md).
+
+## Server settings
+
+The **Server** tab edits `server-settings.json` for administrators: the listing (name,
+description, tags, visibility), access, autosaves, pause and network settings, and the passwords.
+**Save for next start** writes the file while the server runs — Factorio reads it only at start
+and never writes it back. **Save and restart** writes it, saves the map and restarts, and puts the
+previous file back if the server does not come back. Only the keys the form shows are rewritten:
+comments and unknown keys are kept. The game password and the factorio.com token and password
+never reach the browser; the form can replace or clear them. It needs `./data/config` mounted in
+the data agent, as the compose file does; the agent opens nothing else in that folder.
+
+## Mods
+
+The **Mods** tab lists the server's mods — version, enabled or not, update available — for every
+role. Changing them is for administrators, and goes through a basket: add changes (install, update,
+enable, disable, remove), **preview** what they amount to, then **apply** them all as one
+operation, with a single restart. `MODS_ENABLED=false` removes the tab and its endpoints.
+
+- **The preview** resolves dependencies the way `info.json` declares them (`?` optional, `!`
+  incompatible, `~`, version constraints): the newest release for this game version that fits,
+  its required dependencies with it, and conflicts named rather than guessed around — disabling a
+  mod another one needs, an incompatibility, no release for this Factorio. Nothing is written.
+- **Apply** downloads and checks every archive first, **with the server still running** — the
+  portal's SHA-1, one top folder, an `info.json` naming the expected release — so a bad download
+  disconnects no one. Then it saves the map, stops the server, archives the map (`before mods: …`,
+  in the [Saves](#saves) tab), swaps the mods in and restarts. If the server crashes while
+  loading, the previous mods are put back and the server restarted as it was, within seconds. A
+  stopped server stays stopped: the new mods load at its next start. Applying needs the control
+  agent (`CONTROL_ENABLED=true`), and the game version, which the panel learns over RCON: start
+  the server once before your first install.
+- **Built-in mods** (`base`, `recycler`…) can be disabled, not removed. `elevated-rails`,
+  `quality` and `space-age` follow the image's `DLC_SPACE_AGE` variable, which it reapplies at
+  every start: change it there. Mods installed as folders are listed, never replaced.
+
+Searching the portal and installing need a factorio.com account: put
+`{"username": "...", "token": "..."}` in `secrets/factorio-portal` (the token is on your
+factorio.com profile, or in `player-data.json`), then `docker compose up -d --force-recreate
+data-agent` — recreate, not restart: an editor saving the file replaces it, and a running
+container keeps seeing the old one. Without
+it, the tab still lists, enables, disables and removes mods, and shows available updates.
+
+The **data agent** is the only component of the stack that reaches the Internet, alone on its own
+network, and only the portal and its download host — no URL ever comes from a request. Mod
+settings (`mod-settings.dat`) are not edited by the panel yet.
+
 ## Endpoints
 
 | Route | Auth | Role |
@@ -488,8 +664,26 @@ The sampler runs in the Node process (`src/server/metrics/collector.ts`, started
 | `POST /api/rcon` | `rcon:raw` | Raw console |
 | `GET /api/audit` | `audit:read` | Last 50 audit entries |
 | `GET /api/metrics` | `status:read` | Time series, `?range=1h\|6h\|24h\|7d` (404 when disabled) |
+| `GET /api/server` | `server:read` | Container + game state, operation in progress, recent operations |
+| `GET /api/server/logs` | `server:logs` | Last lines of the Factorio container, `?tail=1..1000` |
+| `POST /api/server/start` · `stop` · `restart` | `server:start` · `stop` · `restart` | `202` + operation; `{ "force": true }` overrides the player / RCON checks |
 | `GET /api/health` | public | Liveness (Docker probe) |
-| `GET /api/ready` | public | Readiness: config + command catalogue + database + RCON |
+| `GET` · `PUT /api/server-settings` | `server:configure` | `server-settings.json`, never a secret · `{ settings, secrets, hash, restart }`, `202` + operation when `restart` |
+| `GET /api/saves` | `saves:read` | Saves folder, archives, schedule, operation in progress |
+| `POST /api/saves` | `saves:create` | `202` + operation: archive now (saves first) |
+| `GET /api/saves/{id}/download` | `saves:download` | The archive, streamed |
+| `POST /api/saves/{id}/restore` | `saves:restore` | `202` + operation; `{ "force": true }` overrides the version / mods / players checks |
+| `DELETE /api/saves/{id}` | `saves:delete` | Deletes an archive |
+| `POST /api/saves/uploads` | `saves:upload` | `{ size, name }`: opens an upload, answers its `id` and `chunkBytes` |
+| `GET` · `PUT` · `DELETE /api/saves/uploads/{uploadId}` | `saves:upload` | Where it stands · one chunk at `?offset=` · abandons it |
+| `POST /api/saves/uploads/{uploadId}/complete` | `saves:upload` | `202` + operation: verifies the upload and keeps it as an archive |
+| `GET` · `PUT /api/saves/settings` | `saves:read` · `saves:configure` | Backup schedule and retention |
+| `GET /api/mods` | `mods:read` | Installed mods, updates available, game version, operation in progress |
+| `GET /api/mods/search?q=&page=` | `mods:manage` | Search the mod portal (needs portal credentials) |
+| `GET /api/mods/portal/{name}` | `mods:manage` | A mod's releases and dependencies |
+| `POST /api/mods/plan` | `mods:manage` | `{ changes }` → what they would do: steps, dependencies, conflicts, `hash` |
+| `POST /api/mods/apply` | `mods:manage` | `{ changes, planHash }` → `202` + operation; `{ "force": true }` overrides the player / RCON checks |
+| `GET /api/ready` | public | Readiness: config + command catalogue + database + RCON + both agents |
 
 ## Security model
 
@@ -505,10 +699,13 @@ This panel assumes:
   it only if you drive RCON yourself, and bind it to loopback when you do: the protocol offers a
   single password, no rate limiting, and full server control to whoever gets through.
 
-Both the panel and `docker-proxy` run confined in `docker-compose.yml`: `read_only` root filesystem,
+The panel and both agents run confined in `docker-compose.yml`: `read_only` root filesystem,
 `cap_drop: [ALL]`, `no-new-privileges`, plus memory and PID caps. The panel writes only to the
-`/data` volume, so nothing needs a writable root; `docker-proxy` needs a tmpfs on `/run` because
-haproxy puts its pidfile there.
+`/data` volume, so nothing needs a writable root. The control agent writes nothing at all and runs
+as a non-root uid, reaching the socket through the group that owns it (`DOCKER_GID`). The data
+agent runs as the Factorio image's uid (845) and writes only to the saves, mods and backups
+folders, which it reaches through `os.Root`; it is also the only container with a route to the
+Internet, alone on the `egress` network, and only to the mod portal.
 
 The `factorio` service is deliberately left alone — it writes saves, mods and config to
 `/factorio`, so a read-only root would break it. If you want the memory graph to show a real
@@ -543,13 +740,16 @@ What is in place:
   keeping. Commands typed in the **raw console** are not: only a 48-character prefix and a
   SHA-256 fingerprint are stored, so a token pasted there does not end up living a second life in
   the database and its backups. Set `AUDIT_FULL_COMMANDS=true` to keep them verbatim;
-- **no Docker socket in the panel**. CPU and memory metrics go through the `docker-proxy`
-  service, which holds the socket and exposes only `GET /containers/...` (`CONTAINERS=1`,
-  `POST=0`). Mounting the socket into the panel itself would hand an attacker who compromised it
-  the whole host — `:ro` on the mount changes nothing, since the Docker API is a write API. The
-  proxy is not published on any port and is reachable only from the compose network. Removing it
-  (and setting `METRICS_ENABLED=false`) only costs the CPU/memory graphs; players and UPS keep
-  working.
+- **no Docker socket in the panel**. Server control and CPU/memory metrics go through the control
+  agent, which holds the socket and exposes a closed, Factorio-specific API rather than a filtered
+  view of Docker's: the panel can ask to stop *the* server, never name a container, and nothing
+  maps onto `exec`. Its answers are built field by field, so container environments — the panel's
+  own secrets included — never leave it. Mounting the socket into the panel itself would hand an
+  attacker who compromised it the whole host — `:ro` on the mount changes nothing, since the Docker
+  API is a write API. The agent stays the most privileged component of the stack: it is unpublished,
+  alone with the panel on an `internal` network the game server is not on, and authenticates the
+  panel with a shared token. Removing it (with `CONTROL_ENABLED=false` and `METRICS_DOCKER=false`)
+  only costs the Server tab and the CPU/memory graphs;
 
 - **user input never reaches Lua unescaped**. The custom command catalogue is written by the
   operator, so it is trusted the same way an environment variable is; what a viewer or moderator
@@ -563,15 +763,19 @@ account has full RCON access by definition.
 ## FAQ
 
 **Does it replace Factorio Server Manager?**
-No. That project drives the server binary — mods, saves, start/stop. This one talks RCON to a
-server that is already running. See [What it is, and what it is not](#what-it-is-and-what-it-is-not).
+No. That project drives the server binary. This one talks RCON to the server, and through two
+agents starts, stops and restarts its container, archives its saves and manages its mods. See
+[What it is, and what it is not](#what-it-is-and-what-it-is-not).
 
 **Does it start or stop my server?**
-No. The panel never touches the server process; it holds no Docker socket. Starting the server is
-your compose file's job.
+Yes, from the **Server** tab, for administrators — a stop saves the map first. The panel itself
+still holds no Docker socket: the [control agent](#server-control) does, and only acts on the
+`factorio` service of its own Compose stack.
 
 **Does it manage mods?**
-No. Use the Factorio image's own mod handling (`UPDATE_MODS_ON_START`, the `./data/mods` volume).
+Yes, from the **Mods** tab: search the official portal, install, update, enable, disable, remove —
+applied together with a single restart, and rolled back if the server does not come back. See
+[Mods](#mods).
 
 **Do I have to expose RCON to the internet?**
 No — and you should not. The panel reaches RCON over the compose network, and the quickstart
@@ -601,20 +805,37 @@ gets your "Kill all enemies" button without getting arbitrary Lua. See
 [Custom commands](#custom-commands).
 
 **Can I run it without the metrics?**
-Yes. `METRICS_ENABLED=false` turns the feature off end to end, and you can then delete the
-`docker-proxy` service — it is the only component that touches the Docker socket.
+Yes. `METRICS_ENABLED=false` turns the feature off end to end. With `CONTROL_ENABLED=false` as well,
+you can then delete the `control-agent` service — it is the only component that touches the Docker
+socket. Likewise `SAVES_ENABLED=false` and `MODS_ENABLED=false` let you delete the `data-agent`.
+
+**Do I need a factorio.com account?**
+Only to search the mod portal and download mods, as the game itself does. Without one, the Mods tab
+still lists, enables, disables and removes mods, and shows available updates.
+
+**What happens if a mod breaks the server?**
+The change is applied as one operation, after an archive of the map. If the server does not come
+back, the previous mods are put back and the server restarted as it was; the archive stays in the
+Saves tab either way.
+
+**Where do my backups go?**
+`./backups` on the host, next to `./data` rather than inside it: a zip and a JSON sidecar per
+archive, ready to copy elsewhere with `rsync`, `restic` or whatever you already run.
 
 **How much does it need?**
-The compose file caps the panel at 256 MB and 128 PIDs, and it stays well under that. Storage is a
-single SQLite file; seven days of metrics is roughly 2 MB.
+The compose file caps the panel at 256 MB and 128 PIDs, the control agent at 32 MB and the data
+agent at 128 MB, and they stay well under that. Storage is a single SQLite file; seven days of
+metrics is roughly 2 MB. Archives take what your saves take, times the retention you set.
 
 **How do I update?**
-Bump the tag and `docker compose pull && docker compose up -d`. Nothing is built locally, and the
-`factorio-admin-data` volume survives — including a switch between the standard and distroless
-images.
+Minimal stack: bump the tag and `docker compose pull && docker compose up -d`. Full stack:
+`git pull && docker compose up -d --build control-agent data-agent factorio-admin`. The
+`factorio-admin-data` volume survives either way — including a switch between the standard and
+distroless images.
 
 **Something is broken. What do you need?**
-The panel version, your Factorio version, the deployment type, and the output of `/api/ready`. See
+The panel version, your Factorio version, the deployment type, the output of `/api/ready`, and the
+logs of the agent involved if it is a server, saves or mods problem. See
 [SUPPORT.md](SUPPORT.md).
 
 ## Roadmap
@@ -627,6 +848,3 @@ No dates and no promises — the order reflects what would help most, and issues
 - password rotation from the interface instead of a restart;
 - richer audit filtering and export.
 
-Out of scope for the foreseeable future: mod management, save management, and anything that starts
-or stops the server process. Those need control of the binary, which this panel deliberately does
-not have.

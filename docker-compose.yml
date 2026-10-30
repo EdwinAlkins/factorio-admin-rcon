@@ -17,6 +17,11 @@ services:
       # - "127.0.0.1:27015:27015/tcp"
     volumes:
       - ./data:/factorio
+    # On `game` only: the panel reaches RCON there. Not on `control`, so a
+    # compromised game server (a malicious mod runs Lua with file access) cannot
+    # even resolve the control agent's name.
+    networks:
+      - game
     # Left unconfined on purpose: the server writes saves, mods and config to
     # /factorio, so a read-only root would break it.
     # Setting a memory limit here is safe, though, and is what gives the panel's
@@ -24,7 +29,11 @@ services:
     # host's RAM. Size it for your map:
     # mem_limit: 4g
     environment:
-      - UPDATE_MODS_ON_START=true
+      # Off: the panel's Mods tab chooses the versions. On, factoriotools
+      # would replace them with the newest at every start (and needs the
+      # USERNAME/TOKEN variables to do so). Set it back to true only if you
+      # manage mods outside the panel (MODS_ENABLED=false).
+      - UPDATE_MODS_ON_START=false
       # - DLC_SPACE_AGE=false
       # Uncomment to skip updating specific mods
       # - UPDATE_IGNORE=mod1,mod2,mod3
@@ -36,37 +45,115 @@ services:
     #  - com.centurylinklabs.watchtower.scope=factorio
     #  - com.centurylinklabs.watchtower.lifecycle.pre-update="/players-online.sh"
 
-  # Read-only window onto the Docker API, for the panel's CPU/memory metrics.
-  # With METRICS_ENABLED=false, DELETE this service: it is the only component
-  # here that mounts the Docker socket, and keeping it running for a disabled
-  # feature keeps the attack surface without the benefit.
-  # The panel never sees the socket itself: this proxy exposes only
-  # GET /containers/... and refuses every write (POST=0), so a compromised
-  # panel cannot start, stop or exec into anything on the host.
-  # Not published on any port: reachable only from the compose network.
-  # Drop this service to lose CPU/memory graphs; the rest of the panel is fine.
-  docker-proxy:
-    container_name: factorio-docker-proxy
-    image: tecnativa/docker-socket-proxy:latest
+  # The only container that mounts the Docker socket. It does not expose the
+  # Docker API: it answers a closed list of operations on the `factorio`
+  # service of this stack — status, CPU/memory, logs, start, stop, restart —
+  # behind a shared token. No exec, no create/delete, no image, volume or
+  # network call exists in its code. See services/agents/README.md.
+  #
+  # Still the most privileged component here: whoever controls this process
+  # controls the socket, hence the confinement below.
+  # Not published on any port, and alone with the panel on the `control`
+  # network, which has no route out.
+  # With CONTROL_ENABLED=false and METRICS_DOCKER=false, DELETE this service:
+  # keeping the socket mounted for disabled features buys nothing.
+  control-agent:
+    container_name: factorio-control-agent
+    build:
+      context: services/agents
+      args:
+        AGENT: control-agent
     restart: unless-stopped
-    environment:
-      - CONTAINERS=1
-      - POST=0
+    # Non-root (distroless "nonroot"), plus the group that owns the socket on
+    # the host. ./setup-admin.sh writes DOCKER_GID to .env; by hand:
+    #   stat -c %g /var/run/docker.sock
+    user: "65532:65532"
+    group_add:
+      - "${DOCKER_GID:?set DOCKER_GID (run ./setup-admin.sh, or stat -c %g /var/run/docker.sock)}"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    # This is the container holding the socket, so it is the one worth confining
-    # most. haproxy writes its pidfile to /run, hence the tmpfs -- read_only
-    # alone makes it exit with "Cannot create pidfile /run/haproxy.pid".
+      # No `:ro`: on a socket it changes nothing — connecting is all it takes
+      # to send writes. What protects the daemon is the agent's closed API.
+      - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+    secrets:
+      - control_agent_token
+    environment:
+      - CONTROL_AGENT_TOKEN_FILE=/run/secrets/control_agent_token
+      # The agent acts on the container carrying this Compose service label,
+      # in its own Compose project (read from its own labels at startup).
+      - TARGET_SERVICE=factorio
+      # Grace period Docker gives Factorio between SIGTERM and SIGKILL.
+      - STOP_TIMEOUT_SECONDS=${STOP_TIMEOUT_SECONDS:-60}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - control
     read_only: true
-    tmpfs:
-      - /run:rw,noexec,nosuid,size=8m
-      - /tmp:rw,noexec,nosuid,size=8m
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
-    mem_limit: 64m
-    pids_limit: 64
+    mem_limit: 32m
+    pids_limit: 32
+
+  # The only container that writes the game's files: it archives saves,
+  # restores them, lets the panel download them, and installs mods. It never
+  # sees the Docker socket — stopping the server around a restore or a mod
+  # change goes through the control agent. It runs as the factoriotools uid
+  # (845) so the files it writes keep their owner. Unpublished.
+  #
+  # Also the only container of the stack that reaches the Internet, and only
+  # the official mod portal (mods.factorio.com and its download host): the
+  # agent refuses any other host, redirects included. It is alone on the
+  # `egress` network for that.
+  # With SAVES_ENABLED=false and MODS_ENABLED=false, DELETE this service.
+  data-agent:
+    container_name: factorio-data-agent
+    build:
+      context: services/agents
+      args:
+        AGENT: data-agent
+    restart: unless-stopped
+    depends_on:
+      - factorio
+    user: "845:845"
+    volumes:
+      - ./data/saves:/factorio/saves
+      # Read-write: the Mods tab installs, updates and removes mods here.
+      - ./data/mods:/factorio/mods
+      # Read-write, for server-settings.json only (Server tab): the agent opens
+      # no other file here. The folder also holds rconpw, which this agent
+      # cannot use — it is not on the game network. Remove the line to keep
+      # server-settings.json out of the panel's reach.
+      - ./data/config:/factorio/config
+      # Archives, outside ./data so they can be replicated elsewhere. Must
+      # belong to uid 845 (./setup-admin.sh takes care of it).
+      - ./backups:/backups
+    secrets:
+      - data_agent_token
+      - factorio_portal
+    environment:
+      - DATA_AGENT_TOKEN_FILE=/run/secrets/data_agent_token
+      # factorio.com username and token, for searching and installing mods.
+      # Empty (the default ./setup-admin.sh writes): the Mods tab still lists,
+      # enables, disables and removes mods, and shows updates.
+      - PORTAL_CREDENTIALS_FILE=/run/secrets/factorio_portal
+      # Bound on one mod download.
+      - MODS_MAX_DOWNLOAD_MB=${MODS_MAX_DOWNLOAD_MB:-200}
+      # Bound on a save uploaded from the Saves tab.
+      - SAVES_MAX_UPLOAD_MB=${SAVES_MAX_UPLOAD_MB:-2048}
+      # Only if the server loads a fixed SAVE_NAME (LOAD_LATEST_SAVE=false):
+      # restores then write the save under that name, e.g. my-map.zip.
+      - TARGET_SAVE_NAME=${TARGET_SAVE_NAME:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - control
+      - egress
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    pids_limit: 32
 
   # Web admin panel (Next.js) to run RCON commands - see README.md
   factorio-admin:
@@ -84,7 +171,8 @@ services:
     restart: unless-stopped
     depends_on:
       - factorio
-      - docker-proxy
+      - control-agent
+      - data-agent
     ports:
       # Bound to localhost only: the panel gives full RCON access.
       # Both stacks, so browsers resolving "localhost" to ::1 also reach it.
@@ -95,6 +183,14 @@ services:
       - ./data/config:/factorio-config:ro
       # Sessions and audit log (SQLite)
       - factorio-admin-data:/data
+    secrets:
+      - control_agent_token
+      - data_agent_token
+    # `game` to reach RCON (and to publish the port above), `control` to reach
+    # the control agent.
+    networks:
+      - game
+      - control
     # The panel writes only to /data, which is a volume, so the root filesystem
     # can stay read-only. /tmp is a tmpfs purely as insurance: nothing needs it
     # today, but a Node diagnostic report or a future dependency would.
@@ -141,16 +237,29 @@ services:
       - STATUS_CACHE_MS=${STATUS_CACHE_MS:-}
       - AUDIT_RETENTION_DAYS=${AUDIT_RETENTION_DAYS:-}
       - AUDIT_FULL_COMMANDS=${AUDIT_FULL_COMMANDS:-}
+      # Server control (start/stop/restart/logs), through the control agent.
+      # CONTROL_ENABLED=false removes the Server tab and its endpoints.
+      - CONTROL_ENABLED=${CONTROL_ENABLED:-}
+      - CONTROL_AGENT_URL=http://control-agent:8080
+      - CONTROL_AGENT_TOKEN_FILE=/run/secrets/control_agent_token
+      - CONTROL_AGENT_TIMEOUT_MS=${CONTROL_AGENT_TIMEOUT_MS:-}
+      - CONTROL_SAVE_TIMEOUT_MS=${CONTROL_SAVE_TIMEOUT_MS:-}
+      # Saves (archives, downloads, restores, schedule), through the data
+      # agent. SAVES_ENABLED=false removes the Saves tab and the scheduler.
+      - SAVES_ENABLED=${SAVES_ENABLED:-}
+      - DATA_AGENT_URL=http://data-agent:8080
+      - DATA_AGENT_TOKEN_FILE=/run/secrets/data_agent_token
+      - DATA_AGENT_TIMEOUT_MS=${DATA_AGENT_TIMEOUT_MS:-}
+      # Mods (installed list, updates, portal search, install), through the
+      # same data agent. MODS_ENABLED=false removes the Mods tab.
+      - MODS_ENABLED=${MODS_ENABLED:-}
       # Metrics, master switch first, then one flag per source.
       # METRICS_ENABLED=false turns the whole feature off: no collector, no
       # Statistics tab, no /api/metrics -- and the two source flags are ignored.
-      # METRICS_DOCKER=false keeps players and UPS but stops reading the Docker
-      # API, which is what to set if you removed the docker-proxy service.
+      # METRICS_DOCKER=false keeps players and UPS but stops reading CPU/memory
+      # from the control agent, which is what to set if you removed it.
       - METRICS_ENABLED=${METRICS_ENABLED:-}
       - METRICS_DOCKER=${METRICS_DOCKER:-}
-      - DOCKER_API_URL=http://docker-proxy:2375
-      - METRICS_CONTAINER=factorio
-      - DOCKER_TIMEOUT_MS=${DOCKER_TIMEOUT_MS:-}
       - METRICS_INTERVAL_MS=${METRICS_INTERVAL_MS:-}
       - METRICS_RETENTION_DAYS=${METRICS_RETENTION_DAYS:-}
       - METRICS_UPS=${METRICS_UPS:-}
@@ -176,3 +285,26 @@ services:
 volumes:
   # Sessions and audit log of the admin panel
   factorio-admin-data:
+
+networks:
+  # Panel <-> game server (RCON). Not internal: the game port is published from
+  # here, and the server downloads mod updates.
+  game:
+  # Panel <-> agents. `internal`: no route out, nothing published.
+  control:
+    internal: true
+  # The data agent's way out, to the mod portal. Nothing else is on it: the
+  # panel and the control agent keep no route to the Internet.
+  egress:
+
+secrets:
+  # One per agent, each shared with the panel only. Kept outside ./data, which
+  # the game server mounts. ./setup-admin.sh generates them.
+  control_agent_token:
+    file: ./secrets/control-agent-token
+  data_agent_token:
+    file: ./secrets/data-agent-token
+  # {"username": "...", "token": "..."} from factorio.com, or {} for none.
+  # Read by the data agent only.
+  factorio_portal:
+    file: ./secrets/factorio-portal

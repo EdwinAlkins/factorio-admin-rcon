@@ -32,7 +32,7 @@
 </div>
 
 <div class="shell">
-<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./deployment.html" aria-current="page">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./services.html">Services</a></li><li><a href="./deployment.html" aria-current="page">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
 <main id="content">
 <header>
   <h1>Deployment</h1>
@@ -108,20 +108,41 @@ Setting it to <code>$remote_addr</code> discards whatever the client claimed.</p
 
 <h2 id="traefik">Traefik<a class="anchor" href="#traefik" aria-label="Link to this section">#</a></h2>
 
-<p>With Traefik on the same compose network, drop the port publishing entirely
-and label the service. Traefik writes <code>X-Forwarded-For</code> itself for
-any client that is not in <code>trustedIPs</code>.</p>
+<p>With Traefik on a Docker network of its own, drop the port publishing entirely,
+add that network to the panel and label the service. Traefik writes
+<code>X-Forwarded-For</code> itself for any client that is not in
+<code>trustedIPs</code>.</p>
 
-<div class="snippet" data-lang="yaml"><pre><code>factorio-admin:
-  # No `ports:` at all — Traefik reaches the container over the network.
-  environment:
-    - TRUST_PROXY=true
-  labels:
-    - "traefik.enable=true"
-    - "traefik.http.routers.factorio-admin.rule=Host(`factorio.example.com`)"
-    - "traefik.http.routers.factorio-admin.entrypoints=websecure"
-    - "traefik.http.routers.factorio-admin.tls.certresolver=letsencrypt"
-    - "traefik.http.services.factorio-admin.loadbalancer.server.port=3000"</code></pre></div>
+<div class="snippet" data-lang="yaml"><pre><code>services:
+  factorio-admin:
+    # No `ports:` at all — Traefik reaches the container over the network.
+    # Listing networks replaces the compose file's list: keep the two the
+    # panel needs, then add Traefik's.
+    networks:
+      - game
+      - control
+      - proxy
+    environment:
+      - TRUST_PROXY=true
+    labels:
+      - "traefik.enable=true"
+      # The panel sits on three networks: tell Traefik which one to use.
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.factorio-admin.rule=Host(`factorio.example.com`)"
+      - "traefik.http.routers.factorio-admin.entrypoints=websecure"
+      - "traefik.http.routers.factorio-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.factorio-admin.loadbalancer.server.port=3000"
+
+networks:
+  proxy:
+    external: true</code></pre></div>
+
+<div class="warn">
+  <strong>Never attach Traefik to <code>control</code></strong>
+  That network is how the panel reaches the agents, and it is
+  <code>internal</code> precisely so that nothing else does. Traefik joins the
+  panel through its own network, and only the panel's.
+</div>
 
 <h2 id="tailscale">Tailscale<a class="anchor" href="#tailscale" aria-label="Link to this section">#</a></h2>
 
@@ -145,9 +166,53 @@ tailscale serve status</code></pre></div>
   publish the panel to the whole internet.
 </div>
 
+<h2 id="egress">Outbound access<a class="anchor" href="#egress" aria-label="Link to this section">#</a></h2>
+
+<p>Only one container of the stack talks to the Internet on the panel's behalf:
+the <a href="./services.html#data-agent">data agent</a>, to search the mod portal
+and download mods. If the host sits behind an egress firewall, it needs:</p>
+
+<div class="table-wrap"><table><thead><tr><th>Destination</th><th>Port</th><th>For</th></tr></thead><tbody>
+<tr><td><code>mods.factorio.com</code></td><td>443/tcp</td><td>Search, mod pages, update checks</td></tr>
+<tr><td><code>dl-mod.factorio.com</code></td><td>443/tcp</td><td>Downloads (the portal redirects there)</td></tr>
+</tbody></table></div>
+
+<p>The agent refuses any other host, redirects included, so opening more buys
+nothing. The panel and the control agent need no outbound access at all. The
+game server has its own needs, unrelated to the panel: the public server list,
+and the image's own updater if you turn it on.</p>
+
+<p>Behind an HTTP proxy, give the data agent the standard variable; Go honours
+it:</p>
+
+<div class="snippet" data-lang="yaml"><pre><code>  data-agent:
+    environment:
+      - HTTPS_PROXY=http://proxy.internal:3128</code></pre></div>
+
+<h2 id="backups">Backups off the host<a class="anchor" href="#backups" aria-label="Link to this section">#</a></h2>
+
+<p>Archives land in <code>./backups</code>, deliberately outside
+<code>./data</code>, so that a copy elsewhere is one folder, not a selection. Each
+archive is a zip plus a JSON sidecar that describes it, so a copy is useful on
+its own. Use whatever you already run:</p>
+
+<div class="snippet" data-lang="bash"><pre><code># A nightly copy, as the archives' owner (uid 845) or root
+rsync -a --delete ./backups/ backup-host:/srv/factorio-backups/
+
+# Or a deduplicated, encrypted repository
+restic -r sftp:backup-host:/srv/restic backup ./backups</code></pre></div>
+
+<p>Two folders inside it are the agent's own: <code>replaced-&lt;time&gt;/</code>
+holds the saves a restore replaced, and <code>.mods/</code> the last mod
+transactions. Copy them too or leave them out; nothing depends on them
+elsewhere. The panel's own volume, <code>factorio-admin-data</code>, holds the
+audit log and the backup schedule, not the archives.</p>
+
 <h2 id="checking">Checking it worked<a class="anchor" href="#checking" aria-label="Link to this section">#</a></h2>
 
-<div class="snippet" data-lang="bash"><pre><code># Readiness: config, command catalogue, database and RCON, one object each.
+<div class="snippet" data-lang="bash"><pre><code># Readiness: config, catalogue, database and RCON; plus the control agent when
+# server control or Docker metrics are enabled, and the data agent when saves
+# or mods are. One object per check.
 curl -s https://factorio.example.com/api/ready | python3 -m json.tool
 
 # The cookie must come back Secure over HTTPS.
@@ -159,7 +224,7 @@ curl -si https://factorio.example.com/api/login \
 start answering <code>429</code>. If they never do, the panel is not seeing
 distinct client addresses &mdash; re-read <code>TRUST_PROXY</code> above.</p>
 
-<nav class="pager"><a href="./installation.html">&larr; Installation</a><a href="./configuration.html">Configuration &rarr;</a></nav>
+<nav class="pager"><a href="./services.html">&larr; Services</a><a href="./configuration.html">Configuration &rarr;</a></nav>
 </main>
 </div>
 

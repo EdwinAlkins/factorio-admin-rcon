@@ -42,6 +42,40 @@ jobs:
 
       - run: npm test
 
+  # The agents hold the Docker socket and the game's files: they get the race
+  # detector, a vulnerability scan, gosec and the privilege-boundary test
+  # (boundaries_test.go) on every PR.
+  agents:
+    name: Agents (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/agents
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          # go.mod's `toolchain` line is the single source of the Go version.
+          go-version-file: services/agents/go.mod
+          cache-dependency-path: services/agents/go.mod
+
+      - run: go vet ./...
+
+      - run: go test -race ./...
+
+      # Reports only the vulnerabilities the code can actually reach, standard
+      # library included — the reason to rebuild on a Go patch release.
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+
+      # `goinstall` builds the linter with the Go above: a prebuilt binary
+      # compiled with an older Go refuses to load go.mod's language version.
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          install-mode: goinstall
+          working-directory: services/agents
+
   image:
     name: Build image (no push)
     runs-on: ubuntu-latest
@@ -71,3 +105,23 @@ jobs:
           push: false
           platforms: linux/amd64
           cache-from: type=gha
+
+      # The control agent's image, from the agents' module. A separate cache
+      # scope: it shares no layer with the panel's.
+      - uses: docker/build-push-action@v7
+        with:
+          context: services/agents
+          build-args: AGENT=control-agent
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=control-agent
+          cache-to: type=gha,mode=max,scope=control-agent
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: services/agents
+          build-args: AGENT=data-agent
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=data-agent
+          cache-to: type=gha,mode=max,scope=data-agent

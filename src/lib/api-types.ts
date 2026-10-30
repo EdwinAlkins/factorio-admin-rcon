@@ -1,4 +1,5 @@
 import type { Permission, Role } from "@/lib/permissions";
+import type { ServerSecretKey, ServerSettingKey } from "@/lib/server-settings";
 
 /** Contract of the JSON responses, shared by the routes and the components. */
 
@@ -205,6 +206,306 @@ export type MetricsResult = {
   summary: MetricsSummaryDto;
   health: MetricsHealthDto;
 };
+
+/** Docker's view of the Factorio container, as relayed by the control agent. */
+export type ContainerStatusDto = {
+  /** created, running, paused, restarting, removing, exited or dead. */
+  state: string;
+  /** Only when the image defines a healthcheck. */
+  health?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  exitCode: number;
+  restartCount: number;
+  image: string;
+};
+
+export type ServerLogLineDto = {
+  stream: "stdout" | "stderr";
+  text: string;
+};
+
+/** The three operations of the Server tab's buttons. */
+export type ServerLifecycleType = "start" | "stop" | "restart";
+export type ServerOperationType =
+  | ServerLifecycleType
+  | "backup"
+  | "restore"
+  | "mods_apply"
+  | "import"
+  | "server_settings_apply";
+export type ServerOperationStatus = "running" | "success" | "error" | "interrupted";
+/** Where a running operation stands, for the progress display. */
+export type ServerOperationStep =
+  | "saving"
+  | "stopping"
+  | "starting"
+  | "waiting_rcon"
+  | "archiving"
+  | "verifying"
+  | "writing"
+  | "restoring"
+  | "downloading"
+  | "installing"
+  | "rolling_back";
+
+export type ServerOperationDto = {
+  id: number;
+  type: ServerOperationType;
+  status: ServerOperationStatus;
+  step: ServerOperationStep | null;
+  username: string;
+  startedAt: number;
+  finishedAt: number | null;
+  /** Translation key under `errors.*` when the operation failed. */
+  errorCode: string | null;
+  /** Whether the operator bypassed the player / RCON checks. */
+  forced: boolean;
+};
+
+/**
+ * The panel's synthesis of the two sources of truth: Docker for the
+ * container, RCON for the game.
+ *
+ * - `stopped`  : the container is not running, on purpose or not;
+ * - `starting` : the container runs but RCON does not answer yet (map loading);
+ * - `running`  : container up and RCON answering;
+ * - `stopping` : an operation of the panel is bringing it down;
+ * - `error`    : the container runs but RCON stays silent, or Docker reports
+ *                it dead or paused;
+ * - `unknown`  : the control agent itself cannot be reached.
+ */
+export type ServerState = "stopped" | "starting" | "running" | "stopping" | "error" | "unknown";
+
+export type ServerResult = {
+  ok: true;
+  state: ServerState;
+  container: ContainerStatusDto | null;
+  /** Translation key under `errors.*` when the agent could not be read. */
+  controlError: string | null;
+  rcon: { ok: boolean; count: number | null; version: string | null };
+  operation: ServerOperationDto | null;
+  recent: ServerOperationDto[];
+};
+
+export type ServerOperationResult = {
+  ok: true;
+  operation: ServerOperationDto;
+};
+
+export type ServerLogsResult = {
+  ok: true;
+  lines: ServerLogLineDto[];
+};
+
+/**
+ * server-settings.json as the panel sees it: the editable keys the file
+ * holds (values as they are in the file, unchecked), and whether each secret
+ * is set.
+ */
+export type ServerSettingsDto = {
+  settings: Partial<Record<ServerSettingKey, unknown>>;
+  secrets: Record<ServerSecretKey, boolean>;
+  /** Names the version a change is made from: refused if the file changed since. */
+  hash: string;
+};
+
+export type ServerSettingsResult = ServerSettingsDto & {
+  ok: true;
+  operation: ServerOperationDto | null;
+};
+
+export type SecretChangeDto = { set: string } | { clear: true };
+
+/** A change: `restart` applies it now, otherwise at the server's next start. */
+export type ServerSettingsChangeDto = {
+  settings: Partial<Record<ServerSettingKey, unknown>>;
+  secrets: Partial<Record<ServerSecretKey, SecretChangeDto>>;
+  hash: string;
+  restart: boolean;
+  force?: boolean;
+};
+
+/** One mod of the server's set, as the data agent reads it. */
+export type ModDto = {
+  name: string;
+  enabled: boolean;
+  /** Empty for mods that ship with the game. */
+  version?: string;
+  builtin: boolean;
+};
+
+/** One file of Factorio's saves folder. */
+export type SaveFileDto = {
+  name: string;
+  size: number;
+  modified: string;
+  /** The save factoriotools loads at the next start. */
+  latest: boolean;
+};
+
+/** `upload`: sent from the operator's computer; its version and mod set are unknown. */
+export type BackupSource = "manual" | "scheduled" | "pre-restore" | "pre-mods" | "upload";
+
+/** One archive kept by the panel, as described by its sidecar. */
+export type BackupDto = {
+  id: string;
+  source: BackupSource;
+  label?: string;
+  createdAt: string;
+  createdBy?: string;
+  size: number;
+  sha256: string;
+  saveName: string;
+  factorioVersion?: string;
+  mods: ModDto[];
+};
+
+export type BackupSettingsDto = {
+  enabled: boolean;
+  intervalMinutes: number;
+  /** 0: no limit on the number of scheduled archives. */
+  keepLast: number;
+  /** 0: no age limit. */
+  maxAgeDays: number;
+  /**
+   * Ask Factorio to save before archiving. Off by default: a blocking save
+   * freezes the game while it is written; without it the newest autosave is
+   * archived instead.
+   */
+  triggerSave: boolean;
+  lastRunAt: number | null;
+};
+
+export type SavesResult = {
+  ok: true;
+  saves: SaveFileDto[];
+  backups: BackupDto[];
+  /** The server's mod set now, to compare with an archive's. */
+  mods: ModDto[];
+  settings: BackupSettingsDto;
+  /** Any operation in progress — a backup or restore, or a server one. */
+  operation: ServerOperationDto | null;
+  /** Largest save the data agent accepts from an upload; 0: uploads are off. */
+  maxUploadBytes: number;
+};
+
+/** Where an upload stands: the next chunk starts at `offset`. */
+export type UploadStateDto = {
+  id: string;
+  offset: number;
+  size: number;
+};
+
+export type UploadResult = {
+  ok: true;
+  upload: UploadStateDto;
+  /** Size of every chunk but the last. */
+  chunkBytes: number;
+};
+
+export type BackupSettingsResult = {
+  ok: true;
+  settings: BackupSettingsDto;
+};
+
+export type ModAction = "install" | "update" | "enable" | "disable" | "remove";
+
+/** One line of the Mods tab's basket. */
+export type ModChangeDto = {
+  action: ModAction;
+  name: string;
+  /** install/update only: a precise release; absent, the newest that fits. */
+  version?: string;
+};
+
+/** A mod of the server, with what the portal knows of it. */
+export type InstalledModDto = ModDto & {
+  /** Installed as a folder by hand: enabled or disabled, never replaced. */
+  unpacked: boolean;
+  /** An expansion mod the Factorio image toggles from DLC_SPACE_AGE at every start. */
+  dlc: boolean;
+  /** Newer release for this game version, when there is one. */
+  update?: string;
+};
+
+export type ModsResult = {
+  ok: true;
+  mods: InstalledModDto[];
+  /** Portal credentials configured: searching and installing are possible. */
+  credentials: boolean;
+  /** Translation key under `errors.*` when the update check failed. */
+  portalError: string | null;
+  /** null until the panel has seen the server run once. */
+  factorioVersion: string | null;
+  operation: ServerOperationDto | null;
+};
+
+export type ModPlanStepDto = {
+  action: ModAction;
+  name: string;
+  from?: string;
+  to?: string;
+  /** Absent when asked for; otherwise the mod that needs it. */
+  requiredBy?: string;
+  enabled?: boolean;
+  download?: { fileName: string; url: string; sha1: string };
+  replaces?: string[];
+};
+
+export type ModConflictDto = {
+  mod: string;
+  /** Translated under `mods.conflict.*`. */
+  code: string;
+  /** English detail from the data agent (versions, constraint). */
+  detail: string;
+};
+
+export type ModPlanDto = {
+  factorioVersion: string;
+  steps: ModPlanStepDto[];
+  conflicts: ModConflictDto[];
+  optional: { mod: string; optional: string }[];
+  /** Mods whose info.json could not be read: their needs are not checked. */
+  unchecked: string[];
+  /** Sent back with the basket to apply exactly this plan. */
+  hash: string;
+};
+
+export type ModPlanResult = { ok: true; plan: ModPlanDto };
+
+export type ModSearchHitDto = {
+  name: string;
+  title: string;
+  summary: string;
+  owner: string;
+  category: string;
+  downloads_count: number;
+  installed: boolean;
+};
+
+export type ModSearchResult = { ok: true; hits: ModSearchHitDto[]; page: number; pageCount: number };
+
+export type ModReleaseDto = {
+  version: string;
+  factorioVersion: string;
+  releasedAt: string;
+  dependencies: string[];
+  /** Runs on this game version. */
+  compatible: boolean;
+};
+
+export type ModDetailsDto = {
+  name: string;
+  title: string;
+  summary: string;
+  owner: string;
+  category: string;
+  downloadsCount: number;
+  releases: ModReleaseDto[];
+};
+
+export type ModDetailsResult = { ok: true; mod: ModDetailsDto };
 
 export type SessionInfo = {
   username: string;

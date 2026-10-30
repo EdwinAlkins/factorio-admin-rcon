@@ -29,13 +29,17 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
   // are resolved on the client, except for commands from the operator's file,
   // which carry their own text (hence `locale`).
   //
-  // `metricsEnabled` is read here rather than through a client request: the tab
-  // must not appear for a fraction of a second before vanishing.
+  // `metricsEnabled` and `controlEnabled` are read here rather than through a
+  // client request: a tab must not appear for a fraction of a second before
+  // vanishing.
   return (
     <AdminPanel
       session={info}
       actions={catalogFor(session!, locale)}
       metricsEnabled={env().METRICS_ENABLED}
+      controlEnabled={env().CONTROL_ENABLED}
+      savesEnabled={env().SAVES_ENABLED}
+      modsEnabled={env().MODS_ENABLED}
     />
   );
 }

@@ -4,7 +4,9 @@ import { DatabaseSync } from "node:sqlite";
 import { env } from "@/server/config/env";
 
 /**
- * Local storage: revocable sessions, audit log and metric series.
+ * Local storage: revocable sessions, audit log, metric series, the history of
+ * long operations (start, stop, restart, backup, restore) and the settings
+ * changed from the interface.
  *
  * `node:sqlite` ships with Node 22+, so there is no native dependency to
  * compile and the Docker image stays simple. A single panel instance writes to
@@ -49,6 +51,29 @@ CREATE TABLE IF NOT EXISTS metrics (
   players     INTEGER,
   game_tick   INTEGER,
   ups         REAL
+);
+
+CREATE TABLE IF NOT EXISTS server_operations (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  type        TEXT NOT NULL,
+  status      TEXT NOT NULL,
+  step        TEXT,
+  username    TEXT NOT NULL,
+  role        TEXT NOT NULL,
+  forced      INTEGER NOT NULL DEFAULT 0,
+  started_at  INTEGER NOT NULL,
+  finished_at INTEGER,
+  error_code  TEXT,
+  detail      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS server_operations_started_at ON server_operations (started_at DESC);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key         TEXT PRIMARY KEY,
+  value       TEXT NOT NULL,
+  updated_at  INTEGER NOT NULL,
+  updated_by  TEXT
 );
 `;
 

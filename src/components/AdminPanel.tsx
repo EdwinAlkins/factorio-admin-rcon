@@ -8,9 +8,13 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Console from "@/components/Console";
 import MetricsPanel from "@/components/MetricsPanel";
 import QuickActions from "@/components/QuickActions";
+import SavesPanel from "@/components/SavesPanel";
+import ModsPanel from "@/components/ModsPanel";
+import ServerPanel from "@/components/ServerPanel";
 import ServerStatusBar from "@/components/ServerStatusBar";
 import { useActionText } from "@/hooks/useActionText";
 import { useCommandRunner } from "@/hooks/useCommandRunner";
+import { useServerControl } from "@/hooks/useServerControl";
 import { useServerStatus } from "@/hooks/useServerStatus";
 import { fetchJson } from "@/lib/fetch-json";
 import { isLuaCommand } from "@/lib/lua";
@@ -26,7 +30,7 @@ type Pending = {
   run: () => void;
 };
 
-type Tab = "console" | "metrics";
+type Tab = "console" | "metrics" | "server" | "saves" | "mods";
 
 /**
  * The command as it will be sent, shown before confirming. Purely informative:
@@ -44,16 +48,27 @@ function preview(action: ActionDto, values: Record<string, string>): string | un
   }
 }
 
-const TABS: Tab[] = ["console", "metrics"];
-
 type Props = {
   session: SessionInfo;
   actions: ActionDto[];
   /** `false`: the feature is off server-side, so the tab does not exist. */
   metricsEnabled: boolean;
+  /** Same, for the Server tab (CONTROL_ENABLED). */
+  controlEnabled: boolean;
+  /** Same, for the Saves tab (SAVES_ENABLED). */
+  savesEnabled: boolean;
+  /** Same, for the Mods tab (MODS_ENABLED). */
+  modsEnabled: boolean;
 };
 
-export default function AdminPanel({ session, actions, metricsEnabled }: Props) {
+export default function AdminPanel({
+  session,
+  actions,
+  metricsEnabled,
+  controlEnabled,
+  savesEnabled,
+  modsEnabled,
+}: Props) {
   const t = useTranslations();
   const text = useActionText();
   const router = useRouter();
@@ -73,6 +88,22 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
     enabled: can(session.role, "status:read"),
     onUnauthorized,
   });
+
+  const showServer = controlEnabled && can(session.role, "server:read");
+  const showSaves = savesEnabled && can(session.role, "saves:read");
+  const showMods = modsEnabled && can(session.role, "mods:read");
+  const tabs: Tab[] = [
+    "console",
+    ...(metricsEnabled ? (["metrics"] as const) : []),
+    ...(showServer ? (["server"] as const) : []),
+    ...(showSaves ? (["saves"] as const) : []),
+    ...(showMods ? (["mods"] as const) : []),
+  ];
+
+  // Mounted with the panel rather than the tab: the status bar uses its state
+  // to say "stopped" instead of "unreachable".
+  const onSettled = useCallback(() => void refresh(), [refresh]);
+  const control = useServerControl({ enabled: showServer, onUnauthorized, onSettled });
 
   const { entries, busy, runCommand, runAction, clear } = useCommandRunner({
     onUnauthorized,
@@ -136,7 +167,7 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
       canRun={canRunRaw}
       onRun={submitCommand}
       onClear={clear}
-      className={metricsEnabled && tab !== "console" ? "hidden" : ""}
+      className={tabs.length > 1 && tab !== "console" ? "hidden" : ""}
     />
   );
 
@@ -150,7 +181,11 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
       <ServerStatusBar
         session={session}
         status={status}
-        onRefresh={() => void refresh()}
+        lifecycle={control.server?.state ?? null}
+        onRefresh={() => {
+          void refresh();
+          if (showServer) void control.refresh();
+        }}
         onLogout={() => void logout()}
         logoutError={logoutError}
       />
@@ -160,16 +195,16 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
           <QuickActions actions={actions} busy={busy} onRun={submitAction} />
           {canReadAudit && <AuditPanel onUnauthorized={onUnauthorized} />}
         </div>
-        {/* Sans métriques, la console reprend toute la colonne : un onglet
+        {/* Sans autre onglet, la console reprend toute la colonne : un onglet
             unique n'est pas un onglet, et l'écran redevient exactement celui
-            d'avant la fonctionnalité. */}
-        {metricsEnabled ? (
-          // Both panels stay mounted: hiding rather than unmounting preserves
+            d'avant ces fonctionnalités. */}
+        {tabs.length > 1 ? (
+          // Every panel stays mounted: hiding rather than unmounting preserves
           // the console's input and scroll position across tabs. Metric polling
-          // is stopped by `active`.
+          // and log loading are stopped by `active`.
           <div className="flex min-h-0 flex-col gap-3">
             <nav className="flex gap-2">
-              {TABS.map((key) => (
+              {tabs.map((key) => (
                 <button
                   key={key}
                   type="button"
@@ -184,11 +219,45 @@ export default function AdminPanel({ session, actions, metricsEnabled }: Props) 
 
             {consolePane}
 
-            <MetricsPanel
-              active={tab === "metrics"}
-              onUnauthorized={onUnauthorized}
-              className={tab === "metrics" ? "flex-1" : "hidden"}
-            />
+            {metricsEnabled && (
+              <MetricsPanel
+                active={tab === "metrics"}
+                onUnauthorized={onUnauthorized}
+                className={tab === "metrics" ? "flex-1" : "hidden"}
+              />
+            )}
+
+            {showServer && (
+              <ServerPanel
+                session={session}
+                server={control.server}
+                failure={control.failure}
+                submitting={control.submitting}
+                run={control.run}
+                onRefresh={() => void control.refresh()}
+                active={tab === "server"}
+                onUnauthorized={onUnauthorized}
+                className={tab === "server" ? "flex-1" : "hidden"}
+              />
+            )}
+
+            {showSaves && (
+              <SavesPanel
+                session={session}
+                active={tab === "saves"}
+                onUnauthorized={onUnauthorized}
+                className={tab === "saves" ? "flex-1" : "hidden"}
+              />
+            )}
+
+            {showMods && (
+              <ModsPanel
+                session={session}
+                active={tab === "mods"}
+                onUnauthorized={onUnauthorized}
+                className={tab === "mods" ? "flex-1" : "hidden"}
+              />
+            )}
           </div>
         ) : (
           consolePane

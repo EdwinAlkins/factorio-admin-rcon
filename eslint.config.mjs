@@ -22,6 +22,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Runtime folders of the stack (game files, archives): no source there,
+    // and owned by the Factorio uid once the stack has run, so unreadable.
+    "data/",
+    "backups/",
   ]),
 ]);
 

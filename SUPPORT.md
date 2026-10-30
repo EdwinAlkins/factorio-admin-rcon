@@ -12,17 +12,19 @@
 
 Most reports that stall do so for want of one of these. Five minutes here saves a round trip:
 
-1. **Check the [FAQ](README.md#faq)** — mods, saves, starting the server and individual accounts
-   are all deliberate non-features, and they account for most of the surprises.
+1. **Check the [FAQ](README.md#faq)** — individual accounts are a deliberate non-feature, and the
+   Server, Saves and Mods tabs only exist in the [full install](README.md#full-install-every-feature):
+   the minimal stack runs no agent. Those two account for most of the surprises.
 2. **Check [compatibility](README.md#compatibility)** — Factorio 2.x, standard RCON, one panel
-   instance per server.
-3. **Get `/api/ready`.** It reports config, command catalogue, database and RCON separately, which
-   usually names the broken one outright:
+   instance per server; saves and mods expect `factoriotools/factorio`.
+3. **Get `/api/ready`.** It reports config, command catalogue, database, RCON and each agent
+   separately, which usually names the broken one outright:
    ```bash
    curl -s http://127.0.0.1:3010/api/ready
    ```
 4. **Get the logs.** `docker compose logs factorio-admin` for the panel,
-   `docker compose logs factorio` when RCON is the suspect.
+   `docker compose logs factorio` when RCON is the suspect, `docker compose logs control-agent` for
+   starting and stopping, `docker compose logs data-agent` for saves and mods.
 
 ## What to include
 

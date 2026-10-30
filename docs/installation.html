@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install with Docker Compose &mdash; Factorio Admin RCON</title>
-<meta name="description" content="Run Factorio Admin RCON beside factoriotools/factorio. One compose file, generated secrets, loopback-only panel, no published RCON port.">
+<meta name="description" content="Run Factorio Admin RCON beside factoriotools/factorio: a minimal stack without cloning, or the full one with server control, saves and mods.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/installation.html">
 <link rel="stylesheet" href="./assets/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Install with Docker Compose &mdash; Factorio Admin RCON">
-<meta property="og:description" content="Run Factorio Admin RCON beside factoriotools/factorio. One compose file, generated secrets, loopback-only panel, no published RCON port.">
+<meta property="og:description" content="Run Factorio Admin RCON beside factoriotools/factorio: a minimal stack without cloning, or the full one with server control, saves and mods.">
 <meta property="og:type" content="article">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://edwinalkins.github.io/factorio-admin-rcon/installation.html">
 <meta property="og:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Install with Docker Compose &mdash; Factorio Admin RCON">
-<meta name="twitter:description" content="Run Factorio Admin RCON beside factoriotools/factorio. One compose file, generated secrets, loopback-only panel, no published RCON port.">
+<meta name="twitter:description" content="Run Factorio Admin RCON beside factoriotools/factorio: a minimal stack without cloning, or the full one with server control, saves and mods.">
 <meta name="twitter:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Factorio Admin RCON","item":"https://edwinalkins.github.io/factorio-admin-rcon/"},{"@type":"ListItem","position":2,"name":"Installation"}]}
@@ -32,25 +32,44 @@
 </div>
 
 <div class="shell">
-<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html" aria-current="page">Installation</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html" aria-current="page">Installation</a></li><li><a href="./services.html">Services</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
 <main id="content">
 <header>
   <h1>Installation</h1>
-  <p class="lede">Getting the panel into production with Docker Compose, in a handful of commands.</p>
+  <p class="lede">Two ways in: a minimal stack pasted without cloning anything, or the full
+  stack with server control, saves and mods.</p>
 </header>
+<h2 id="choose">Which one?<a class="anchor" href="#choose" aria-label="Link to this section">#</a></h2>
+<div class="table-wrap"><table><thead><tr><th></th><th><a href="#quick-start">Minimal</a></th><th><a href="#full">Full</a></th></tr></thead><tbody>
+<tr><td>Roles, quick actions, custom commands, audit log</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Raw RCON console (administrator)</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Players and UPS graphs</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>CPU and memory graphs</td><td>&mdash;</td><td>Yes</td></tr>
+<tr><td>Server tab: start, stop, restart, logs</td><td>&mdash;</td><td>Yes</td></tr>
+<tr><td>Saves tab: archives, schedule, download, restore</td><td>&mdash;</td><td>Yes</td></tr>
+<tr><td>Mods tab: portal search, install, update, enable, remove</td><td>&mdash;</td><td>Yes</td></tr>
+<tr><td>Containers</td><td>2: Factorio, the panel</td><td>4: + <a href="./services.html#control-agent">control agent</a>, <a href="./services.html#data-agent">data agent</a></td></tr>
+<tr><td>Docker socket mounted</td><td>Nowhere</td><td>In the control agent only</td></tr>
+<tr><td>Needs</td><td>A <code>docker-compose.yml</code> and a <code>.env</code></td><td>A clone of the repository</td></tr>
+</tbody></table></div>
+<p>Both keep the panel's data in the same named volume, so starting minimal and
+moving to the full stack later loses nothing.</p>
 <h2 id="requirements">Requirements<a class="anchor" href="#requirements" aria-label="Link to this section">#</a></h2>
 <ul>
-  <li>Docker and the Compose plugin;</li>
-  <li>a headless Factorio server with RCON enabled &mdash; the
-      <a href="#quick-start"><code>docker-compose.yml</code> below</a> provides
-      one;</li>
+  <li>Docker and the Compose plugin, on <code>linux/amd64</code> or
+      <code>linux/arm64</code>;</li>
+  <li>a headless Factorio 2.x server with RCON enabled &mdash; both compose files
+      below provide one (<code>factoriotools/factorio</code>);</li>
+  <li>for the full stack: <code>git</code>, <code>openssl</code>, and access to the
+      Docker socket for <code>./setup-admin.sh</code>; a factorio.com account if
+      you want to install mods from the portal;</li>
   <li>nothing else: the panel ships its own SQLite storage
       (<code>node:sqlite</code>, built into Node, no native dependency to
       compile).</li>
 </ul>
-<h2 id="quick-start">Quick start, without cloning<a class="anchor" href="#quick-start" aria-label="Link to this section">#</a></h2>
-<p>The images are published, so the repository is optional: one directory, the
-<code>docker-compose.yml</code> below pasted as it stands, and a generated
+<h2 id="quick-start">Minimal install, without cloning<a class="anchor" href="#quick-start" aria-label="Link to this section">#</a></h2>
+<p>The panel's image is published, so the repository is optional: one directory,
+the <code>docker-compose.yml</code> below pasted as it stands, and a generated
 <code>.env</code> next to it. Both the game server and the panel come up with
 <code>docker compose up</code>.</p>
 <div class="snippet" data-lang="yaml"><pre><code>services:
@@ -66,13 +85,15 @@
     volumes:
       - ./data:/factorio
     environment:
-      - UPDATE_MODS_ON_START=true
+      # The image's own mod updater. It needs factorio.com credentials
+      # (USERNAME and TOKEN): set them before turning it on.
+      - UPDATE_MODS_ON_START=false
 
   factorio-admin:
     container_name: factorio-admin-panel
     # A minor tag: patches arrive, a major never lands on you by surprise.
     # In production, pin the exact version instead.
-    image: williamnauroy/factorio-admin-rcon:1.4-distroless
+    image: williamnauroy/factorio-admin-rcon:1.5-distroless
     restart: unless-stopped
     depends_on:
       - factorio
@@ -100,14 +121,17 @@
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
       - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
-      # No docker-socket-proxy here, so the CPU and memory graphs are off.
-      # Players and UPS keep working.
+      # No agents in this stack: no Server, Saves or Mods tab, no CPU and
+      # memory graphs. Players and UPS keep working.
+      - CONTROL_ENABLED=false
       - METRICS_DOCKER=false
+      - SAVES_ENABLED=false
+      - MODS_ENABLED=false
 
 volumes:
   factorio-admin-data:</code></pre></div>
-<p>The secrets are generated rather than typed &mdash; that is all
-<code>setup-admin.sh</code> does in the repository:</p>
+<p>The secrets are generated rather than typed. For this minimal stack, the two
+relevant values are:</p>
 <div class="snippet" data-lang="bash"><pre><code>cat &gt; .env &lt;&lt;EOF
 ADMIN_PASSWORD=$(openssl rand -base64 18)
 SESSION_SECRET=$(openssl rand -hex 32)
@@ -129,31 +153,102 @@ password has no account at all.</p>
 </div>
 <p>Updating is a pull, since nothing is built locally: bump the tag, then
 <code>docker compose pull &amp;&amp; docker compose up -d</code>.</p>
-<h2 id="production">Production setup<a class="anchor" href="#production" aria-label="Link to this section">#</a></h2>
-<p><code>setup-admin.sh</code> writes a <code>.env</code> file next to the
-<code>docker-compose.yml</code>: one password per role and the session signing
-key.</p>
-<div class="snippet" data-lang="bash"><pre><code>./setup-admin.sh                # ADMIN_PASSWORD + SESSION_SECRET
-./setup-admin.sh --all          # all three roles
-./setup-admin.sh --force --yes  # full rotation, no questions asked</code></pre></div>
-<p>Then:</p>
-<div class="snippet" data-lang="bash"><pre><code>docker compose up -d --build factorio-admin</code></pre></div>
+<h2 id="full">Full install, every feature<a class="anchor" href="#full" aria-label="Link to this section">#</a></h2>
+<p>The repository's <code>docker-compose.yml</code> runs the four services, their
+networks and their secrets, already confined. <code>./setup-admin.sh</code>
+prepares everything they need on the host.</p>
+<div class="snippet" data-lang="bash"><pre><code>git clone https://github.com/EdwinAlkins/factorio-admin-rcon.git
+cd factorio-admin-rcon
+
+./setup-admin.sh
+docker compose up -d --build control-agent data-agent factorio-admin
+# &rarr; http://127.0.0.1:3010</code></pre></div>
+<p>Compose starts the <code>factorio</code> service along with them. What
+<code>./setup-admin.sh</code> does, all of it safe to run again:</p>
+<ul>
+  <li>writes <code>.env</code>: the administrator password and
+      <code>SESSION_SECRET</code>, kept if already there;</li>
+  <li>generates the two agent tokens, <code>secrets/control-agent-token</code> and
+      <code>secrets/data-agent-token</code>;</li>
+  <li>creates an empty <code>secrets/factorio-portal</code> (<code>{}</code>), which
+      it never overwrites;</li>
+  <li>creates <code>backups/</code> and hands it to uid 845, the data agent's;</li>
+  <li>records <code>DOCKER_GID</code>, the group owning the Docker socket on this
+      host, for the control agent.</li>
+</ul>
+<div class="snippet" data-lang="bash"><pre><code>./setup-admin.sh --all          # moderator and viewer passwords too
+./setup-admin.sh --ask          # prompt for the passwords instead of generating them
+./setup-admin.sh --force --yes  # full rotation, no questions asked (ends every session)</code></pre></div>
+<p>To install mods from the portal, add your factorio.com credentials to
+<code>secrets/factorio-portal</code> and recreate the data agent &mdash; see
+<a href="./services.html#portal">Portal credentials</a>. Without them, the Mods
+tab still lists, enables, disables and removes mods.</p>
 <div class="warn">
   <strong>SESSION_SECRET is required</strong>
   Without it, Compose refuses to start the service. That is deliberate: the
   cookie signing key must not be derived from the passwords, otherwise changing
   one password signs everybody out. <code>setup-admin.sh</code> generates it.
 </div>
-<h3 id="volumes">What gets mounted<a class="anchor" href="#volumes" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Mount</th><th>Purpose</th></tr></thead><tbody><tr><td><code>./data/config:/factorio-config:ro</code></td><td>The RCON password (<code>rconpw</code>, regenerated by the game server) and, if you have one, your <a href='./commands.html'>command catalogue</a>. The directory is mounted rather than the file, so a recreated file is picked up without a restart.</td></tr><tr><td><code>factorio-admin-data:/data</code></td><td>Named volume: sessions, audit log and metric series (SQLite). It is the only place the panel writes to.</td></tr></tbody></table></div>
-<p>The container runs with a read-only root filesystem,
+<h3 id="volumes">What gets mounted<a class="anchor" href="#volumes" aria-label="Link to this section">#</a></h3><div class="table-wrap"><table><thead><tr><th>Mount</th><th>Into</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>./data</code></td><td>factorio</td><td>The game's folder: saves, mods, config.</td></tr>
+<tr><td><code>./data/config:/factorio-config:ro</code></td><td>panel</td><td>The RCON password (<code>rconpw</code>, regenerated by the game server) and, if you have one, your <a href='./commands.html'>command catalogue</a>. The directory is mounted rather than the file, so a recreated file is picked up without a restart.</td></tr>
+<tr><td><code>factorio-admin-data:/data</code></td><td>panel</td><td>Named volume: sessions, audit log, metric series, backup schedule and operation history (SQLite). It is the only place the panel writes to.</td></tr>
+<tr><td><code>/var/run/docker.sock</code></td><td>control agent</td><td>The panel calls the agent's closed, token-protected API and never receives the socket. <code>DOCKER_SOCKET</code> overrides the path (rootless Docker).</td></tr>
+<tr><td><code>./data/saves</code>, <code>./data/mods</code></td><td>data agent</td><td>Read-write: restores write saves, the Mods tab installs and removes mods.</td></tr>
+<tr><td><code>./backups</code></td><td>data agent</td><td>Archives, outside <code>./data</code> so they can be replicated on their own. Must belong to uid 845.</td></tr>
+<tr><td><code>secrets/*-agent-token</code></td><td>panel, one agent each</td><td>Compose secrets, one per agent.</td></tr>
+<tr><td><code>secrets/factorio-portal</code></td><td>data agent</td><td>factorio.com credentials, or <code>{}</code>.</td></tr>
+</tbody></table></div>
+<p>The panel and both agents run with a read-only root filesystem,
 <code>cap_drop: [ALL]</code>, <code>no-new-privileges</code>, and memory and PID
-caps. <code>/tmp</code> is a tmpfs, purely as insurance.</p>
+caps (256 MB for the panel, 32 MB and 128 MB for the agents). None of them runs
+as root: the panel as uid 1000, the control agent as 65532 plus the socket's
+group, the data agent as 845. The <a href="./services.html">Services</a> page
+explains who holds what, and how to remove an agent you do not need.</p>
+<h3 id="images">Published images instead of a local build<a class="anchor" href="#images" aria-label="Link to this section">#</a></h3>
+<p>The compose file builds the three images from the clone. Releases also
+publish them, for <code>amd64</code> and <code>arm64</code>, with an SBOM and
+build provenance: swap each <code>build:</code> block for an <code>image:</code>
+line. Keep the three on the <strong>same version</strong> &mdash; the panel and its
+agents speak a private API, versioned together.</p>
+<div class="snippet" data-lang="yaml"><pre><code>  control-agent:
+    image: williamnauroy/factorio-control-agent:&lt;version&gt;
+  data-agent:
+    image: williamnauroy/factorio-data-agent:&lt;version&gt;
+  factorio-admin:
+    image: williamnauroy/factorio-admin-rcon:&lt;version&gt;-distroless</code></pre></div>
 <h3 id="distroless">Hardened image (optional)<a class="anchor" href="#distroless" aria-label="Link to this section">#</a></h3>
-<p><code>Dockerfile.distroless</code> produces a variant with no shell and no
-package manager, published under <code>-distroless</code> tags. It is the
-variant the <code>docker-compose.yml</code> uses by default. It shrinks the
+<p><code>Dockerfile.distroless</code> produces a variant of the panel with no
+shell and no package manager, published under <code>-distroless</code> tags. It
+is the variant the <code>docker-compose.yml</code> uses by default. It shrinks the
 attack surface at the cost of less convenient debugging: no
-<code>docker exec … sh</code>.</p>
+<code>docker exec … sh</code>. Both agents are distroless already: a static Go
+binary and nothing else.</p>
+<h3 id="upgrading">Upgrading from 1.x<a class="anchor" href="#upgrading" aria-label="Link to this section">#</a></h3>
+<p>2.0 replaces the <code>docker-proxy</code> service
+(<code>tecnativa/docker-socket-proxy</code>) with the project's own control agent,
+and adds the data agent. With <code>CONTAINERS=1</code>, that proxy answered for
+every container on the host, environment variables included &mdash; so the
+panel's own <code>ADMIN_PASSWORD</code> and <code>SESSION_SECRET</code> were one
+request away from anything that reached it.</p>
+<ol>
+  <li>take the new <code>docker-compose.yml</code> (or port its
+      <code>control-agent</code> and <code>data-agent</code> services, its
+      <code>networks:</code> and <code>secrets:</code> blocks into yours) and delete
+      the <code>docker-proxy</code> service;</li>
+  <li>run <code>./setup-admin.sh</code> once: existing passwords are kept; it adds
+      the agents' tokens, an empty <code>secrets/factorio-portal</code>,
+      <code>backups/</code> and <code>DOCKER_GID</code>;</li>
+  <li>drop <code>DOCKER_API_URL</code>, <code>METRICS_CONTAINER</code> and
+      <code>DOCKER_TIMEOUT_MS</code> from your environment: the panel no longer
+      reads them;</li>
+  <li>set <code>UPDATE_MODS_ON_START=false</code> on the <code>factorio</code>
+      service, as the new compose file does: otherwise the image replaces the
+      versions chosen in the Mods tab with the newest at every start. Keep it
+      <code>true</code>, with <code>MODS_ENABLED=false</code>, if you manage mods
+      outside the panel;</li>
+  <li><code>docker compose up -d --build --remove-orphans</code>.</li>
+</ol>
 <h2 id="proxy">Behind a reverse proxy<a class="anchor" href="#proxy" aria-label="Link to this section">#</a></h2>
 <p>The panel only listens on the loopback interface. To expose it, put a TLS
 reverse proxy in front and enable <code>TRUST_PROXY</code>:</p>
@@ -166,15 +261,24 @@ reverse proxy in front and enable <code>TRUST_PROXY</code>:</p>
   limiting falls back to a global bucket &mdash; coarser, but unforgeable.
 </div>
 <p>The session cookie turns <code>secure</code> on its own as soon as the request
-arrives over HTTPS (<code>COOKIE_SECURE=auto</code>, the default).</p>
-<h2 id="probes">Health probes<a class="anchor" href="#probes" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Route</th><th>Answers</th><th>Use it for</th></tr></thead><tbody><tr><td><code>/api/health</code></td><td>200 as long as the process is alive</td><td>Docker's <em>liveness</em> probe. It does not depend on Factorio.</td></tr><tr><td><code>/api/ready</code></td><td>200 when configuration, command catalogue, database and RCON all answer; 503 otherwise</td><td>The <em>readiness</em> probe. Kept separate from the above so a Factorio outage does not restart the panel in a loop.</td></tr></tbody></table></div><h2 id="updating">Updating<a class="anchor" href="#updating" aria-label="Link to this section">#</a></h2><div class="snippet" data-lang="bash"><pre><code>git pull
-docker compose up -d --build factorio-admin</code></pre></div>
-<p>Published images follow the versions semantic-release cuts
-(<code>williamnauroy/factorio-admin-rcon</code>). The database schema is upgraded
-at startup: columns added after the fact are caught up by an idempotent
-<code>ALTER TABLE</code>, so there is nothing to do by hand.</p>
+arrives over HTTPS (<code>COOKIE_SECURE=auto</code>, the default). Recipes for
+Caddy, Nginx, Traefik and Tailscale are in <a href="./deployment.html">Deployment</a>.</p>
+<h2 id="probes">Health probes<a class="anchor" href="#probes" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Route</th><th>Answers</th><th>Use it for</th></tr></thead><tbody><tr><td><code>/api/health</code></td><td>200 as long as the process is alive</td><td>Docker's <em>liveness</em> probe. It does not depend on Factorio.</td></tr><tr><td><code>/api/ready</code></td><td>200 when configuration, command catalogue, database and RCON answer, plus the control agent when server control or Docker metrics use it, and the data agent when saves or mods do; 503 otherwise</td><td>The <em>readiness</em> probe. Kept separate from the above so a Factorio outage does not restart the panel in a loop.</td></tr></tbody></table></div>
+<p>Each agent image carries its own Docker healthcheck (the binary run with
+<code>-healthcheck</code>), so <code>docker compose ps</code> shows them
+<code>healthy</code> or not.</p>
+<h2 id="updating">Updating<a class="anchor" href="#updating" aria-label="Link to this section">#</a></h2>
+<div class="snippet" data-lang="bash"><pre><code># Minimal stack: bump the tag in docker-compose.yml, then
+docker compose pull &amp;&amp; docker compose up -d
 
-<nav class="pager"><a href="./overview.html">&larr; Overview</a><a href="./deployment.html">Deployment &rarr;</a></nav>
+# Full stack, built from the clone
+git pull
+docker compose up -d --build control-agent data-agent factorio-admin</code></pre></div>
+<p>Published images follow the versions semantic-release cuts. The database
+schema is upgraded at startup: columns added after the fact are caught up by an
+idempotent <code>ALTER TABLE</code>, so there is nothing to do by hand.</p>
+
+<nav class="pager"><a href="./overview.html">&larr; Overview</a><a href="./services.html">Services &rarr;</a></nav>
 </main>
 </div>
 

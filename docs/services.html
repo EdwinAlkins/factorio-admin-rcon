@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Services: server, saves and mods &mdash; Factorio Admin RCON</title>
+<meta name="description" content="The four containers of the stack, what each one holds, and how the panel starts and stops the server, archives and restores saves, and installs mods from the official portal.">
+<link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/services.html">
+<link rel="stylesheet" href="./assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<meta property="og:site_name" content="Factorio Admin RCON">
+<meta property="og:title" content="Services: server, saves and mods &mdash; Factorio Admin RCON">
+<meta property="og:description" content="The four containers of the stack, what each one holds, and how the panel starts and stops the server, archives and restores saves, and installs mods from the official portal.">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://edwinalkins.github.io/factorio-admin-rcon/services.html">
+<meta property="og:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Services: server, saves and mods &mdash; Factorio Admin RCON">
+<meta name="twitter:description" content="The four containers of the stack, what each one holds, and how the panel starts and stops the server, archives and restores saves, and installs mods from the official portal.">
+<meta name="twitter:image" content="https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Factorio Admin RCON","item":"https://edwinalkins.github.io/factorio-admin-rcon/"},{"@type":"ListItem","position":2,"name":"Services"}]}
+</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<div class="topbar">
+  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
+</div>
+
+<div class="shell">
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./services.html" aria-current="page">Services</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<main id="content">
+<header>
+  <h1>Services</h1>
+  <p class="lede">Four containers, three networks, and who holds what. Then the three tabs they
+  make possible: Server, Saves and Mods.</p>
+</header>
+
+<p>The panel talks RCON to the game server and nothing more. Everything that
+needs more reach goes through one of two small Go agents
+(<code>services/agents</code>), each holding exactly one dangerous thing:
+the <strong>control agent</strong> holds the Docker socket, the <strong>data
+agent</strong> holds the game's files and the only way out to the Internet.
+Neither can do the other's job, and the panel can do neither on its own. A
+compromised panel can ask to stop <em>the</em> server or restore an archive
+that already exists; it cannot name another container, run a command in one, or
+write a file of its choosing.</p>
+
+<h2 id="stack">The stack at a glance<a class="anchor" href="#stack" aria-label="Link to this section">#</a></h2>
+
+<div class="diagram">
+<svg viewBox="0 0 940 300" role="img" xmlns="http://www.w3.org/2000/svg"
+     aria-label="The panel reaches the Factorio server over RCON on the game network, and the two agents over the internal control network. The control agent alone holds the Docker socket. The data agent alone holds the saves, mods and backups folders, and alone reaches the mod portal, over the egress network.">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+  <g font-family="system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',Helvetica,Arial,sans-serif">
+    <g fill="var(--surface)" stroke="var(--line)">
+      <rect x="4"   y="118" width="130" height="64" rx="7"/>
+      <rect x="190" y="110" width="170" height="80" rx="7"/>
+      <rect x="430" y="14"  width="190" height="72" rx="7"/>
+      <rect x="430" y="114" width="190" height="72" rx="7"/>
+      <rect x="430" y="214" width="190" height="72" rx="7"/>
+      <rect x="700" y="114" width="236" height="72" rx="7"/>
+      <rect x="700" y="214" width="236" height="72" rx="7"/>
+      <rect x="700" y="14"  width="236" height="72" rx="7"/>
+    </g>
+    <g fill="var(--ink)" font-size="14" font-weight="600" text-anchor="middle">
+      <text x="69"  y="146">Browser</text>
+      <text x="275" y="142">Admin panel</text>
+      <text x="525" y="44">Factorio</text>
+      <text x="525" y="144">Control agent</text>
+      <text x="525" y="244">Data agent</text>
+      <text x="818" y="144">Docker socket</text>
+      <text x="818" y="244">Saves, mods, backups</text>
+      <text x="818" y="44">mods.factorio.com</text>
+    </g>
+    <g fill="var(--muted)" font-size="11.5" text-anchor="middle">
+      <text x="69"  y="166">127.0.0.1:3010</text>
+      <text x="275" y="162">sessions &#183; roles &#183; audit</text>
+      <text x="275" y="178">no socket, no game files</text>
+      <text x="525" y="64">RCON, game network</text>
+      <text x="525" y="164">token, control network</text>
+      <text x="525" y="264">token, control network</text>
+      <text x="818" y="164">one container, closed API</text>
+      <text x="818" y="264">uid 845, verified archives</text>
+      <text x="818" y="64">egress network, HTTPS only</text>
+    </g>
+    <g stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#arrow)">
+      <line x1="138" y1="150" x2="182" y2="150"/>
+      <path d="M364 130 L398 130 L398 50 L422 50"/>
+      <line x1="364" y1="150" x2="422" y2="150"/>
+      <path d="M364 170 L398 170 L398 250 L422 250"/>
+      <line x1="624" y1="150" x2="692" y2="150"/>
+      <line x1="624" y1="250" x2="692" y2="250"/>
+      <path d="M624 230 L660 230 L660 50 L692 50"/>
+    </g>
+  </g>
+</svg>
+</div>
+
+<div class="table-wrap"><table><thead><tr><th>Service</th><th>Holds</th><th>Networks</th><th>Needed for</th></tr></thead><tbody>
+<tr><td><code>factorio</code></td><td>The game: <code>./data</code> mounted on <code>/factorio</code>. Left unconfined on purpose: it writes its saves, mods and config.</td><td><code>game</code></td><td>Everything</td></tr>
+<tr><td><code>factorio-admin</code></td><td>Sessions, audit log, metric series and the operation history, in the <code>factorio-admin-data</code> volume. Read-only access to <code>./data/config</code> for the RCON password.</td><td><code>game</code>, <code>control</code></td><td>Everything</td></tr>
+<tr><td><code>control-agent</code></td><td>The Docker socket, and nothing else.</td><td><code>control</code></td><td>Server tab, CPU and memory graphs, applying mods</td></tr>
+<tr><td><code>data-agent</code></td><td><code>./data/saves</code>, <code>./data/mods</code>, <code>./data/config</code> (for <code>server-settings.json</code>), <code>./backups</code>, and the factorio.com credentials.</td><td><code>control</code>, <code>egress</code></td><td>Saves tab, Mods tab</td></tr>
+</tbody></table></div>
+
+<h3 id="networks">Networks<a class="anchor" href="#networks" aria-label="Link to this section">#</a></h3>
+<div class="table-wrap"><table><thead><tr><th>Network</th><th>Who is on it</th><th>Why</th></tr></thead><tbody>
+<tr><td><code>game</code></td><td>Factorio, the panel</td><td>RCON, and the published game port. The game server is <em>not</em> on <code>control</code>: a malicious mod runs Lua with file access, and must not even resolve an agent's name.</td></tr>
+<tr><td><code>control</code></td><td>The panel, both agents</td><td><code>internal: true</code>: no route out, nothing published. Each agent requires its own token, as a Compose secret shared with the panel only.</td></tr>
+<tr><td><code>egress</code></td><td>The data agent, alone</td><td>Its way out to the mod portal. The panel and the control agent keep no route to the Internet.</td></tr>
+</tbody></table></div>
+
+<h3 id="files">Secrets and files on the host<a class="anchor" href="#files" aria-label="Link to this section">#</a></h3>
+<div class="table-wrap"><table><thead><tr><th>Path</th><th>What</th><th>Who reads it</th></tr></thead><tbody>
+<tr><td><code>secrets/control-agent-token</code></td><td>Token shared by the panel and the control agent. Generated by <code>./setup-admin.sh</code>.</td><td>Panel, control agent</td></tr>
+<tr><td><code>secrets/data-agent-token</code></td><td>Token shared by the panel and the data agent, distinct from the other one. Generated too.</td><td>Panel, data agent</td></tr>
+<tr><td><code>secrets/factorio-portal</code></td><td>Your factorio.com credentials, <code>{"username": "...", "token": "..."}</code>, or <code>{}</code> for none. Created empty, never overwritten, even by <code>--force</code>.</td><td>Data agent only</td></tr>
+<tr><td><code>data/</code></td><td>The game's folder: <code>saves/</code>, <code>mods/</code>, <code>config/rconpw</code>, and your optional <code>config/commands.json</code>.</td><td>Factorio; the panel reads <code>config/</code>; the data agent writes <code>saves/</code> and <code>mods/</code></td></tr>
+<tr><td><code>backups/</code></td><td>Archives, outside <code>data/</code> so they can be copied elsewhere on their own. Must belong to uid 845; <code>./setup-admin.sh</code> sees to it.</td><td>Data agent only</td></tr>
+</tbody></table></div>
+
+<h3 id="switches">Turning features off<a class="anchor" href="#switches" aria-label="Link to this section">#</a></h3>
+<p>Every feature that needs an agent has a switch. Once nothing uses an agent,
+<strong>delete its service</strong> from the compose file: a privileged
+container kept running for a disabled feature is all cost and no benefit.</p>
+<div class="table-wrap"><table><thead><tr><th>To remove</th><th>Set</th><th>Then you can delete</th></tr></thead><tbody>
+<tr><td>Server tab</td><td><code>CONTROL_ENABLED=false</code></td><td><code>control-agent</code>, together with <code>METRICS_DOCKER=false</code></td></tr>
+<tr><td>CPU and memory graphs</td><td><code>METRICS_DOCKER=false</code></td><td>(same)</td></tr>
+<tr><td>Saves tab and scheduler</td><td><code>SAVES_ENABLED=false</code></td><td><code>data-agent</code>, together with <code>MODS_ENABLED=false</code></td></tr>
+<tr><td>Mods tab</td><td><code>MODS_ENABLED=false</code></td><td>(same)</td></tr>
+</tbody></table></div>
+<div class="note">
+  <strong>Some features lean on both agents</strong>
+  Applying mods stops and restarts the server, so it is refused with
+  <code>CONTROL_ENABLED=false</code>. Saves work without the control agent, with
+  two caveats: a backup archives the newest save file as it is, without asking
+  Factorio to save first, and a restore cannot stop the server &mdash; stop it
+  yourself before restoring.
+</div>
+
+<h2 id="control-agent">The control agent<a class="anchor" href="#control-agent" aria-label="Link to this section">#</a></h2>
+<p>The only container that mounts the Docker socket. It does not expose the
+Docker API: it answers a closed list of operations &mdash; status, CPU and
+memory, logs, start, stop, restart &mdash; on the one container carrying this
+stack's <code>factorio</code> Compose service label. No route takes a container
+id. There is no code for <code>exec</code>, for creating or deleting a
+container, or for images, volumes and networks. Its answers are built field by
+field, so no container's environment, the panel's own secrets included, ever
+leaves it.</p>
+<p>It still is the most privileged component of the stack, so it runs as a
+non-root uid with only the socket's group added (<code>DOCKER_GID</code>),
+read-only, with every capability dropped, 32 MB and 32 PIDs. API and threat
+model: <a href="https://github.com/EdwinAlkins/factorio-admin-rcon/blob/main/services/agents/README.md">services/agents/README.md</a>.</p>
+
+<h2 id="data-agent">The data agent<a class="anchor" href="#data-agent" aria-label="Link to this section">#</a></h2>
+<p>The only container that writes the game's files. It archives saves,
+verifies them, streams them for download and restores them; it installs,
+updates, enables, disables and removes mods. It never sees the Docker socket:
+stopping the server around a restore or a mod change is the panel's job,
+through the control agent.</p>
+<ul>
+  <li>It runs as <strong>uid 845</strong>, the <code>factoriotools/factorio</code>
+      image's, so the files it writes keep the owner the game expects.</li>
+  <li>It only reads and writes three folders &mdash; saves, mods and backups
+      &mdash; and one file of a fourth, <code>config/server-settings.json</code>.
+      A restore or an install verifies every archive entry by entry before
+      writing anything.</li>
+  <li>It is also the only component that reaches the Internet, and only
+      <code>mods.factorio.com</code> and its download host
+      <code>dl-mod.factorio.com</code>, over HTTPS. No request carries a URL:
+      they are built from a fixed base and validated mod names, and every
+      redirect is checked against those two hosts.</li>
+</ul>
+
+<h2 id="server">Server tab<a class="anchor" href="#server" aria-label="Link to this section">#</a></h2>
+<p>The container's state as Docker sees it, and the game's as RCON sees it.
+That pair is what tells a server stopped on purpose from one whose RCON is
+down.</p>
+<div class="table-wrap"><table><thead><tr><th>Role</th><th>Sees</th><th>Can</th></tr></thead><tbody>
+<tr><td><code>viewer</code>, <code>moderator</code></td><td>State, players, version, uptime, recent operations</td><td>&mdash;</td></tr>
+<tr><td><code>admin</code></td><td>The same, plus the last 200 log lines</td><td>Start, stop, restart; edit the server settings</td></tr>
+</tbody></table></div>
+<p>A <strong>stop</strong>, or a restart, runs in order:</p>
+<ol>
+  <li>refuse if players are online or RCON does not answer, unless the
+      administrator confirms a second time;</li>
+  <li><code>/server-save</code> over RCON, then wait until the log reports the
+      save written (<code>CONTROL_SAVE_TIMEOUT_MS</code>, 2 minutes by default).
+      On timeout the server is <strong>left running</strong>;</li>
+  <li>ask Docker to stop the container, with <code>STOP_TIMEOUT_SECONDS</code>
+      (60 s) of grace before <code>SIGKILL</code>.</li>
+</ol>
+<p>A <strong>start</strong> returns once RCON answers.</p>
+
+<h3 id="server-settings">Server settings<a class="anchor" href="#server-settings" aria-label="Link to this section">#</a></h3>
+<p>The tab edits <code>server-settings.json</code>: the name, description and
+tags of the listing, its visibility, the player limit, autosaves, pause and
+network settings, and the passwords. Factorio reads the file when it starts,
+so a change is either <strong>saved for the next start</strong> &mdash; the
+server keeps running, Factorio never writes the file back &mdash; or
+<strong>saved and applied</strong>: written, then the map saved and the server
+restarted, with the same players-online check as a restart. If the server does
+not come back, the previous file is put back and the server started again.</p>
+<ul>
+  <li>Only the keys the tab shows are rewritten. Comments, keys of a newer
+      Factorio and anything added by hand are kept, in their order; blank
+      lines between groups are not.</li>
+  <li>The game password and the factorio.com token and password are never
+      sent to the browser: the tab only says whether each is set, and can
+      replace or clear it. The audit log names the keys changed, never a
+      value of theirs.</li>
+  <li>A public game needs a factorio.com username and a token or password:
+      a change that would publish without them is refused.</li>
+  <li>The five previous versions are kept in <code>./backups/.server-settings/</code>.</li>
+</ul>
+<p>This needs <code>./data/config</code> mounted in the data agent, as the
+compose file does. A stack set up before this feature does not: the tab then
+says so, and the rest works as before. The folder also holds
+<code>rconpw</code>; the agent opens nothing else there, and could not use it
+anyway &mdash; it is not on the game network.</p>
+
+<h3 id="operations">One operation at a time<a class="anchor" href="#operations" aria-label="Link to this section">#</a></h3>
+<p>Start, stop, restart, a backup, a restore, an import, a mod change and
+applying server settings share a single
+lock: a second request gets <code>409 operation_in_progress</code> instead of
+racing the first. Each operation runs in the background (the route answers
+<code>202</code>), reports its steps as it goes, and lands in the audit log and in
+the history shown on the Server tab. One cut short by the panel restarting is
+marked <code>interrupted</code>.</p>
+
+<h2 id="saves">Saves tab<a class="anchor" href="#saves" aria-label="Link to this section">#</a></h2>
+<p>The server's saves folder and the panel's archives, side by side.
+Moderators see both. Archiving, downloading, restoring, deleting and the
+schedule are for administrators. Viewers do not see the tab.</p>
+<ul>
+  <li><strong>Back up now</strong> asks Factorio to save, waits for the save to be
+      written, then archives it.</li>
+  <li><strong>Download</strong> streams the archive. It is a full copy of the
+      world, so it is audited.</li>
+  <li><strong>Delete</strong> removes an archive and its sidecar.</li>
+</ul>
+
+<h3 id="import">Import a save<a class="anchor" href="#import" aria-label="Link to this section">#</a></h3>
+<p>Sends a <code>.zip</code> save from your computer &mdash; a single-player map,
+or one from another server &mdash; up to <code>SAVES_MAX_UPLOAD_MB</code> (2048 by
+default). It goes in 8&nbsp;MB pieces, so a dropped connection resumes where it
+stopped rather than from zero, and no single request outlives a proxy's
+timeout. The data agent then reads it back in full, as it does any archive,
+and keeps it as an archive of source <em>imported</em>. Nothing reaches the
+saves folder at that point: playing it is an ordinary
+<a href="#restore">restore</a>, with its safety archive and its rollback.</p>
+<p>A save does not state its game version or mod set in a stable form, so an
+imported archive records neither, and the restore cannot compare them: the
+dialog says so. A map's scenario scripts run on the server, which is why
+importing is for administrators only, and audited.</p>
+<p>Behind nginx, raise <code>client_max_body_size</code> to <code>10m</code>: its
+default, 1&nbsp;MB, refuses every piece.</p>
+
+<h3 id="schedule">Scheduled backups<a class="anchor" href="#schedule" aria-label="Link to this section">#</a></h3>
+<p>Set in the tab, stored in the panel's database, and run by the panel's own
+process: there is no cron to install.</p>
+<div class="table-wrap"><table><thead><tr><th>Setting</th><th>Default</th><th>Range</th></tr></thead><tbody>
+<tr><td>Enabled</td><td>off</td><td>&mdash;</td></tr>
+<tr><td>Interval</td><td>60 minutes</td><td>15 minutes to 7 days</td></tr>
+<tr><td>Keep the last</td><td>48</td><td>0 (no limit) to 1,000</td></tr>
+<tr><td>Keep for</td><td>7 days</td><td>0 (no limit) to 365</td></tr>
+<tr><td>Save first</td><td>off</td><td>&mdash;</td></tr>
+</tbody></table></div>
+<p>By default a scheduled run archives the newest autosave rather than
+triggering a save, which would freeze the game while it is written. Retention
+only ever prunes scheduled archives: manual ones stay until you delete them.
+Safety archives, those taken before a restore or a mod change, have their own
+policy, applied after each scheduled run: the last 10, for 30 days at most, and
+never one less than a week old.</p>
+
+<h3 id="restore">Restore<a class="anchor" href="#restore" aria-label="Link to this section">#</a></h3>
+<p>One operation, from start to finish:</p>
+<ol>
+  <li>verify the archive against its recorded checksum. A damaged one is
+      refused here, before the server is touched;</li>
+  <li>refuse if the game version or the mod set differs from the archive's, or
+      if players are online, unless the administrator confirms a second
+      time;</li>
+  <li>save, then stop the server;</li>
+  <li>take a <strong>safety archive</strong> of the current state
+      (<code>pre-restore</code>);</li>
+  <li>restore, start the server, wait for RCON.</li>
+</ol>
+<p>If the server does not come back, the safety archive is restored the same way
+and the server started as it was. The operation ends in error either way, and
+says whether that rollback worked. Nothing is destroyed along the way: the saves
+a restore replaces are moved to <code>replaced-&lt;time&gt;/</code> in the backups
+folder, out of Factorio's sight (the three latest sets are kept).</p>
+<p>The restored file is written last, with the current time, so
+<code>factoriotools/factorio</code>'s default (<code>LOAD_LATEST_SAVE=true</code>)
+loads it. For a server started on a fixed <code>SAVE_NAME</code>, set
+<code>TARGET_SAVE_NAME</code> to that file name.</p>
+
+<h3 id="archives">What an archive is<a class="anchor" href="#archives" aria-label="Link to this section">#</a></h3>
+<p>A zip of the save in <code>./backups</code>, plus a JSON sidecar recording
+its source (<code>manual</code>, <code>scheduled</code>, <code>pre-restore</code>,
+<code>pre-mods</code>), who asked, its size and SHA-256, the Factorio version and
+the mod set at the time. An archive describes itself: the panel's database is not
+needed to know what it is. Every copy is written atomically and verified entry by
+entry. Archives are plain files: copy them off the host with
+whatever you already use (<code>rsync</code>, <code>restic</code>, a NAS share).
+See <a href="./deployment.html#backups">Deployment</a>.</p>
+
+<h2 id="mods">Mods tab<a class="anchor" href="#mods" aria-label="Link to this section">#</a></h2>
+<p>Every role sees the server's mods: version, enabled or not, update
+available. Changing them is for administrators, and goes through a basket:</p>
+<ol>
+  <li><strong>add changes</strong>: install from the portal, update, enable,
+      disable, remove, up to 50 at once;</li>
+  <li><strong>preview</strong> what they amount to. Nothing is written;</li>
+  <li><strong>apply</strong> them all as one operation, with a single
+      restart.</li>
+</ol>
+
+<h3 id="mods-preview">The preview<a class="anchor" href="#mods-preview" aria-label="Link to this section">#</a></h3>
+<p>Dependencies are resolved the way each mod's <code>info.json</code> declares
+them: required, <code>?</code> optional, <code>!</code> incompatible,
+<code>~</code> does not affect load order, and version constraints. For each mod,
+the preview picks the newest release for this game's version that satisfies
+every enabled mod, then pulls its required dependencies in, recursively.</p>
+<p>What cannot be satisfied is a <strong>conflict</strong>, named rather than
+guessed around: disabling a mod another one needs, an incompatibility, no
+release for this Factorio. The panel never silently downgrades something else
+to make room. The preview carries a hash; if a release is published between
+preview and apply, the apply is refused (<code>plan_changed</code>) and you
+preview again.</p>
+
+<h3 id="mods-apply">Applying<a class="anchor" href="#mods-apply" aria-label="Link to this section">#</a></h3>
+<ol>
+  <li><strong>download and verify</strong> every archive, with the server still
+      running: the portal's SHA-1, every entry's CRC, names that stay inside the
+      archive, a single top folder, an <code>info.json</code> naming the expected
+      release. A slow portal or a bad download disconnects nobody;</li>
+  <li>refuse if players are online or RCON is down, unless confirmed a second
+      time;</li>
+  <li>save the map, stop the server;</li>
+  <li>archive the map (<code>pre-mods</code>, labelled
+      <code>before mods: &hellip;</code>, in the Saves tab);</li>
+  <li>swap the mods in and rewrite <code>mod-list.json</code>, keeping every
+      entry it does not change;</li>
+  <li>start the server and wait for RCON.</li>
+</ol>
+<p>If the server does not come back, the previous mods are put back from a
+journal and the server restarted as it was, within seconds. A server that was
+stopped stays stopped: the new mods load at its next start.</p>
+
+<h3 id="mods-limits">What the tab does not touch<a class="anchor" href="#mods-limits" aria-label="Link to this section">#</a></h3>
+<ul>
+  <li><strong>Built-in mods</strong> (<code>base</code>, <code>recycler</code>&hellip;)
+      can be disabled, never removed.</li>
+  <li><strong><code>elevated-rails</code>, <code>quality</code> and
+      <code>space-age</code></strong> follow the image's <code>DLC_SPACE_AGE</code>
+      variable, which it reapplies at every start. Change it on the
+      <code>factorio</code> service.</li>
+  <li><strong>Mods installed as folders</strong> are listed and can be toggled,
+      never replaced or removed.</li>
+  <li><strong>Mod settings</strong> (<code>mod-settings.dat</code>) are not
+      edited.</li>
+</ul>
+
+<h3 id="portal">Portal credentials<a class="anchor" href="#portal" aria-label="Link to this section">#</a></h3>
+<p>Searching the portal and downloading need a factorio.com account, the same
+one the game uses. Without it, the tab still lists, enables, disables and
+removes mods, and shows the updates available.</p>
+<div class="snippet" data-lang="bash"><pre><code># Token: https://factorio.com/profile, or player-data.json in the game's folder
+cat &gt; secrets/factorio-portal &lt;&lt;'EOF'
+{"username": "your-name", "token": "..."}
+EOF
+
+# Recreate, do not restart: an editor saving the file replaces it, and a
+# running container keeps seeing the old one.
+docker compose up -d --force-recreate data-agent</code></pre></div>
+<div class="warn">
+  <strong>Set <code>UPDATE_MODS_ON_START=false</code> on the game server</strong>
+  With it on, <code>factoriotools/factorio</code> replaces every mod with its
+  newest release at each start, undoing the versions the tab chose. The
+  repository's <code>docker-compose.yml</code> sets it off. Keep it on, with
+  <code>MODS_ENABLED=false</code>, only if you manage mods outside the panel.
+</div>
+<p>The tab needs to know the game's version to pick releases. It reads it over
+RCON, and remembers the last one seen: start the server once before installing
+your first mod.</p>
+
+<nav class="pager"><a href="./installation.html">&larr; Installation</a><a href="./deployment.html">Deployment &rarr;</a></nav>
+</main>
+</div>
+
+<footer class="site">
+  Factorio Admin RCON documentation &mdash;
+  <a href="https://github.com/EdwinAlkins/factorio-admin-rcon">EdwinAlkins/factorio-admin-rcon</a>
+</footer>
+</body>
+</html>

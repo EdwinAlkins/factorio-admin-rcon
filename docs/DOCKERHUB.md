@@ -16,13 +16,22 @@ need without handing them full RCON.
 - **audit log** of every action, refusals included, in SQLite;
 - **raw RCON console**, restricted to the administrator;
 - **metrics** (CPU, memory, players, UPS) without mounting the Docker socket into the panel;
-- **English and French**, inferred from the browser.
+- **server control** — start, stop after a confirmed save, restart, logs — through a control agent
+  that alone holds the Docker socket;
+- **saves** — archives on demand or on a schedule, download, restore with a safety copy and
+  automatic rollback — and **mods** from the official portal, dependencies resolved, applied with
+  a single restart and rolled back on failure — through a data agent that alone holds the game's
+  files;
+- **English, French and Chinese**, inferred from the browser.
 
-![Permission matrix: only the administrator gets the raw RCON console](https://edwinalkins.github.io/factorio-admin-rcon/assets/media/roles.png)
+![Permission matrix: every role reads server state; only the administrator gets lifecycle controls, logs and raw RCON](https://edwinalkins.github.io/factorio-admin-rcon/assets/media/roles.png)
 
 ## Quick start
 
-One directory, this `docker-compose.yml`, and a `.env` you generate. Nothing to clone.
+One directory, this `docker-compose.yml`, and a `.env` you generate. Nothing to clone. This is the
+minimal stack: the game server and the panel, no agent, so no Server, Saves or Mods tab. For every
+feature, use the [full install](https://edwinalkins.github.io/factorio-admin-rcon/installation.html#full)
+from the repository.
 
 ```yaml
 services:
@@ -38,13 +47,15 @@ services:
     volumes:
       - ./data:/factorio
     environment:
-      - UPDATE_MODS_ON_START=true
+      # The image's own mod updater. It needs factorio.com credentials
+      # (USERNAME and TOKEN): set them before turning it on.
+      - UPDATE_MODS_ON_START=false
 
   factorio-admin:
     container_name: factorio-admin-panel
     # A minor tag: patches arrive, a major never lands on you by surprise.
     # In production, pin the exact version instead.
-    image: williamnauroy/factorio-admin-rcon:1.4-distroless
+    image: williamnauroy/factorio-admin-rcon:1.5-distroless
     restart: unless-stopped
     depends_on:
       - factorio
@@ -72,9 +83,12 @@ services:
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
       - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
-      # No docker-socket-proxy in this stack, so the CPU and memory graphs are
-      # off. Players and UPS keep working.
+      # No agents in this stack: no Server, Saves or Mods tab, no CPU and
+      # memory graphs. Players and UPS keep working.
+      - CONTROL_ENABLED=false
       - METRICS_DOCKER=false
+      - SAVES_ENABLED=false
+      - MODS_ENABLED=false
 
 volumes:
   factorio-admin-data:
@@ -105,10 +119,11 @@ without a restart.
 | `SESSION_SECRET` | — | Required, 32 characters minimum. Signs the session cookie |
 | `MODERATOR_PASSWORD` | — | Optional. Moderation actions, no raw RCON |
 | `VIEWER_PASSWORD` | — | Optional. Read-only |
-| `RCON_HOST` / `RCON_PORT` | `127.0.0.1` / `27015` | Where the Factorio server is |
+| `RCON_HOST` / `RCON_PORT` | `factorio` / `27015` | Where the Factorio server is |
 | `RCON_PASSWORD_FILE` | `/factorio-config/rconpw` | Re-read on every connection attempt |
 | `TRUST_PROXY` | `false` | Set to `true` **only** behind a reverse proxy you control |
 | `METRICS_ENABLED` | `true` | `false` removes the feature end to end |
+| `CONTROL_ENABLED` / `SAVES_ENABLED` / `MODS_ENABLED` | `true` | `false` removes the Server, Saves or Mods tab — set them off without the agents |
 | `CUSTOM_COMMANDS_FILE` | `/factorio-config/commands.json` | Your own bounded command catalogue |
 
 The [full reference](https://edwinalkins.github.io/factorio-admin-rcon/configuration.html) covers
@@ -138,7 +153,11 @@ What is in place: sessions persisted in SQLite so signing out really revokes the
 constant-time password comparison, login attempt limiting, per-session command rate limiting and a
 bounded RCON queue, origin checking on every mutating request, a nonce-based CSP, HSTS, a bounded
 request body, and an audit log that fingerprints rather than stores raw console commands. The panel
-holds **no Docker socket**.
+holds **no Docker socket**: starting and stopping the server goes through a separate control agent
+(`williamnauroy/factorio-control-agent`) with a closed, Factorio-only API. It holds **no game files**
+either: saves and mods go through a data agent (`williamnauroy/factorio-data-agent`), which never
+sees the socket, verifies every archive it writes, and alone reaches the Internet — only the
+official mod portal. Both agents are published with the panel; keep the three on the same version.
 
 Be clear about the limit: the `admin` role has full RCON access by design, which means arbitrary
 Lua. That is the account you protect, not one the panel can constrain.

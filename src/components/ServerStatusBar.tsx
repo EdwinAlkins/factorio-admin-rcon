@@ -3,12 +3,14 @@
 import { useTranslations } from "next-intl";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
-import type { SessionInfo } from "@/lib/api-types";
+import type { ServerState, SessionInfo } from "@/lib/api-types";
 import type { ServerStatus } from "@/lib/types";
 
 type Props = {
   session: SessionInfo;
   status: ServerStatus;
+  /** Docker's view, when server control is on: explains an RCON failure. */
+  lifecycle: ServerState | null;
   onRefresh: () => void;
   onLogout: () => void;
   logoutError: string | null;
@@ -17,18 +19,28 @@ type Props = {
 export default function ServerStatusBar({
   session,
   status,
+  lifecycle,
   onRefresh,
   onLogout,
   logoutError,
 }: Props) {
   const t = useTranslations();
   const online = status.state === "ok" ? status.count : null;
+  // RCON fails whenever the server is down, on purpose or not. With Docker's
+  // view at hand, a stopped server says "stopped" rather than "unreachable".
+  const lifecycleNote =
+    status.state === "error" &&
+    (lifecycle === "stopped" || lifecycle === "starting" || lifecycle === "stopping")
+      ? t(`statusBar.lifecycle.${lifecycle}`)
+      : null;
   const dotLabel =
     status.state === "ok"
       ? t("statusBar.dot.ok", { count: status.count })
-      : status.state === "error"
-        ? t("statusBar.dot.error")
-        : t("statusBar.dot.loading");
+      : lifecycleNote
+        ? lifecycleNote
+        : status.state === "error"
+          ? t("statusBar.dot.error")
+          : t("statusBar.dot.loading");
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3">
@@ -40,7 +52,7 @@ export default function ServerStatusBar({
           {session.username} · {t(`roles.${session.role}`)}
           {status.state === "ok" &&
             ` · ${t("statusBar.target", { target: status.target, version: status.version })}`}
-          {status.state === "error" && ` · ${status.message}`}
+          {status.state === "error" && ` · ${lifecycleNote ?? status.message}`}
           {status.state === "loading" && ` · ${t("statusBar.connecting")}`}
         </p>
       </div>

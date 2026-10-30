@@ -9,8 +9,9 @@ body:
         vulnerabilities go through [SECURITY.md](https://github.com/EdwinAlkins/factorio-admin-rcon/blob/main/SECURITY.md),
         never a public issue.
 
-        Worth two minutes first: mods, saves, starting the server and individual
-        user accounts are deliberate non-features — see the
+        Worth two minutes first: individual user accounts are a deliberate
+        non-feature, and the Server, Saves and Mods tabs only exist in the full
+        install (the minimal stack runs no agent) — see the
         [FAQ](https://github.com/EdwinAlkins/factorio-admin-rcon#faq).
 
   - type: textarea
@@ -80,7 +81,7 @@ body:
     id: ready
     attributes:
       label: Output of /api/ready
-      description: "`curl -s http://127.0.0.1:3010/api/ready` — it reports config, commands, database and RCON separately."
+      description: "`curl -s http://127.0.0.1:3010/api/ready` — it reports config, commands, database, RCON and each agent separately."
       render: json
     validations:
       required: true
@@ -89,7 +90,7 @@ body:
     id: logs
     attributes:
       label: Panel logs around the failure
-      description: "`docker compose logs factorio-admin`. Redact passwords, SESSION_SECRET and the RCON password."
+      description: "`docker compose logs factorio-admin`, plus `control-agent` or `data-agent` for a server, saves or mods problem. Redact passwords, SESSION_SECRET, the RCON password and the factorio.com token."
       render: shell
     validations:
       required: false

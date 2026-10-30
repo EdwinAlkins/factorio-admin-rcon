@@ -1,6 +1,7 @@
 import { env } from "@/server/config/env";
 import { getRcon, rconTarget } from "@/server/rcon";
 import { parseOnlinePlayers, parseVersion } from "@/server/rcon/parse";
+import { rememberFactorioVersion } from "@/server/factorio-version";
 
 /**
  * Server status, cached server-side.
@@ -33,6 +34,7 @@ async function measure(): Promise<ServerStatusSnapshot> {
   const players = await rcon.execute("/players online");
   const version = await rcon.execute("/version");
   const online = parseOnlinePlayers(players.output);
+  rememberFactorioVersion(parseVersion(version.output));
 
   return {
     online,

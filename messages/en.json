@@ -24,6 +24,11 @@
       "ok": "Server reachable, {count, plural, =0 {no player} one {# player} other {# players}} online",
       "error": "Server unreachable",
       "loading": "Status loading"
+    },
+    "lifecycle": {
+      "stopped": "Server stopped",
+      "starting": "Server starting",
+      "stopping": "Server stopping"
     }
   },
   "roles": {
@@ -69,7 +74,21 @@
     },
     "actions": {
       "login": "Sign-in",
-      "command": "Raw command"
+      "command": "Raw command",
+      "start": "Server start",
+      "stop": "Server stop",
+      "restart": "Server restart",
+      "backup": "Backup",
+      "restore": "Restore",
+      "delete": "Archive deleted",
+      "download": "Archive downloaded",
+      "settings": "Backup schedule changed",
+      "mods_apply": "Mod changes",
+      "upload": "Save upload started",
+      "upload_abort": "Save upload cancelled",
+      "import": "Save imported",
+      "server_settings": "Server settings changed",
+      "server_settings_apply": "Server settings applied"
     }
   },
   "confirm": {
@@ -153,7 +172,10 @@
   },
   "tabs": {
     "console": "Console",
-    "metrics": "Statistics"
+    "metrics": "Statistics",
+    "server": "Server",
+    "saves": "Saves",
+    "mods": "Mods"
   },
 
   "metrics": {
@@ -171,7 +193,7 @@
     "low": "low",
     "memoryOf": "{used} / {limit}",
     "chartLabel": "{metric} over the selected range, currently {current}",
-    "dockerUnavailable": "Container metrics unavailable (Docker proxy unreachable).",
+    "dockerUnavailable": "Container metrics unavailable (control agent unreachable).",
     "dockerPending": "Container metrics not collected yet.",
     "dockerDegraded": "Container metrics are lagging (recent readings failed).",
     "sparse": "sparse data over this slice",
@@ -179,6 +201,316 @@
     "upsUnavailable": "UPS measurement disabled or server unreachable."
   },
 
+  "server": {
+    "title": "Server",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "state": {
+      "stopped": "Stopped",
+      "starting": "Starting",
+      "running": "Running",
+      "stopping": "Stopping",
+      "error": "Error",
+      "unknown": "Unknown"
+    },
+    "rconDown": "RCON not answering",
+    "players": "Players",
+    "version": "Version",
+    "uptime": "Uptime",
+    "uptimeValue": "{hours} h {minutes} min",
+    "image": "Image",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "confirm": {
+      "startTitle": "Start the server?",
+      "startMessage": "The Factorio container will start and load the map.",
+      "stopTitle": "Stop the server?",
+      "stopMessage": "The map is saved first, then the server is stopped. Players will be disconnected.",
+      "restartTitle": "Restart the server?",
+      "restartMessage": "The map is saved first, then the server restarts. Players will be disconnected.",
+      "forceTitle": "Continue anyway?",
+      "forceLabel": "Continue anyway"
+    },
+    "step": {
+      "pending": "Preparing",
+      "saving": "Saving the map",
+      "stopping": "Stopping the server",
+      "starting": "Starting the container",
+      "waiting_rcon": "Waiting for the map to load",
+      "archiving": "Archiving the save",
+      "restoring": "Restoring the archive",
+      "downloading": "Downloading and checking the mods",
+      "installing": "Installing the mods",
+      "rolling_back": "Rolling back to the previous state",
+      "verifying": "Verifying the save",
+      "writing": "Writing the settings"
+    },
+    "operationBy": "requested by {username}",
+    "history": "Recent operations",
+    "historyEmpty": "No operation yet.",
+    "type": {
+      "start": "Start",
+      "stop": "Stop",
+      "restart": "Restart",
+      "backup": "Backup",
+      "restore": "Restore",
+      "mods_apply": "Mods",
+      "import": "Import",
+      "server_settings_apply": "Server settings"
+    },
+    "status": {
+      "running": "in progress",
+      "success": "done",
+      "error": "failed",
+      "interrupted": "interrupted"
+    },
+    "forced": "forced",
+    "logs": {
+      "title": "Logs",
+      "hint": "last {count} lines",
+      "refresh": "Refresh",
+      "empty": "No output."
+    }
+  },
+
+  "saves": {
+    "title": "Saves",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "backupNow": "Back up now",
+    "labelPlaceholder": "Label (optional)",
+    "operation": "In progress: {step}",
+    "live": "Saves folder",
+    "liveEmpty": "No save yet: the server has not created its map.",
+    "latest": "loaded at next start",
+    "archives": "Archives",
+    "archivesEmpty": "No archive yet.",
+    "columns": {
+      "date": "Date",
+      "source": "Source",
+      "label": "Label",
+      "size": "Size",
+      "version": "Version",
+      "mods": "Mods"
+    },
+    "source": {
+      "manual": "manual",
+      "scheduled": "scheduled",
+      "pre-restore": "before restore",
+      "pre-mods": "before mod change",
+      "upload": "imported"
+    },
+    "modsCount": "{count, plural, =0 {no mod} one {# mod} other {# mods}}",
+    "download": "Download",
+    "restore": "Restore",
+    "delete": "Delete",
+    "confirm": {
+      "restoreTitle": "Restore this archive?",
+      "restoreMessage": "The server is saved and stopped, the current state is archived, then {id} becomes the save and the server restarts. Players will be disconnected.",
+      "deleteTitle": "Delete this archive?",
+      "deleteMessage": "{id} will be deleted for good.",
+      "forceTitle": "Restore anyway?",
+      "forceLabel": "Restore anyway",
+      "restoreUnknown": "This save was imported from a computer: its Factorio version and mods are unknown. If they differ from the server's, the map may fail to load, or be migrated for good."
+    },
+    "schedule": {
+      "title": "Scheduled backups",
+      "enabled": "Enabled",
+      "interval": "Every (minutes)",
+      "keepLast": "Keep the last (0 = no limit)",
+      "maxAgeDays": "Keep for (days, 0 = no limit)",
+      "triggerSave": "Ask Factorio to save first",
+      "triggerSaveHint": "Freezes the game while the save is written. Off: the newest autosave is archived.",
+      "save": "Save the schedule",
+      "saved": "Schedule saved.",
+      "lastRun": "Last run: {date}",
+      "never": "Never run yet."
+    },
+    "import": {
+      "title": "Import a save",
+      "hint": "A .zip save from your computer, up to {max}. It becomes an archive: restore it to play it.",
+      "file": "Save file",
+      "start": "Import",
+      "cancel": "Cancel",
+      "progress": "Sending: {percent} % ({sent} of {total})",
+      "resuming": "Connection lost, resuming…",
+      "notZip": "Choose a .zip file.",
+      "tooLarge": "This file is larger than the limit ({max}).",
+      "done": "Sent. The archive is listed once the server has verified it."
+    }
+  },
+
+  "mods": {
+    "title": "Mods",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "operation": "In progress: {step}",
+    "game": "Factorio {version}",
+    "versionUnknown": "The game version is not known yet: start the server once so mods can be matched to it.",
+    "installed": "Installed",
+    "installedEmpty": "No mod list yet: the server has not started.",
+    "updatesUnavailable": "The mod portal could not be reached: available updates are not shown.",
+    "columns": {
+      "name": "Mod",
+      "version": "Version",
+      "state": "State"
+    },
+    "enabled": "enabled",
+    "disabled": "disabled",
+    "builtin": "part of the game",
+    "unpacked": "folder",
+    "dlc": "set by DLC_SPACE_AGE",
+    "updateAvailable": "update {version}",
+    "enable": "Enable",
+    "disable": "Disable",
+    "update": "Update",
+    "remove": "Remove",
+    "search": {
+      "title": "Find a mod",
+      "placeholder": "Search the mod portal",
+      "submit": "Search",
+      "empty": "No result.",
+      "noCredentials": "Searching and installing need a factorio.com account. Write your username and token to secrets/factorio-portal, next to docker-compose.yml (the token is on your factorio.com profile), then recreate the data agent:",
+      "installed": "installed",
+      "add": "Add",
+      "details": "Details",
+      "by": "by {owner}",
+      "downloads": "{count, plural, one {# download} other {# downloads}}",
+      "more": "More results"
+    },
+    "details": {
+      "releases": "Releases",
+      "compatible": "for this game",
+      "otherGame": "Factorio {version}",
+      "dependencies": "Needs: {list}",
+      "addVersion": "Add this version",
+      "close": "Close"
+    },
+    "basket": {
+      "title": "Pending changes",
+      "empty": "Nothing pending: add changes from the lists above.",
+      "remove": "Remove from the list",
+      "clear": "Clear",
+      "preview": "Preview",
+      "apply": "Apply (restart required)",
+      "change": {
+        "install": "Install {name}",
+        "update": "Update {name}",
+        "enable": "Enable {name}",
+        "disable": "Disable {name}",
+        "remove": "Remove {name}"
+      },
+      "version": "version {version}"
+    },
+    "plan": {
+      "title": "What will happen",
+      "nothing": "These changes change nothing.",
+      "step": {
+        "install": "Install {name} {to}",
+        "update": "Update {name} {from} → {to}",
+        "enable": "Enable {name}",
+        "disable": "Disable {name}",
+        "remove": "Remove {name} {from}"
+      },
+      "requiredBy": "needed by {mod}",
+      "conflicts": "To settle before applying",
+      "optional": "Optional, not installed: {mod} can use {optional}",
+      "unchecked": "Needs not checked (unreadable info.json): {list}",
+      "conflict": {
+        "not_found": "not on the mod portal",
+        "not_installed": "not installed",
+        "no_release": "no release fits this game",
+        "incompatible": "incompatible with another enabled mod",
+        "missing": "a required mod would be missing",
+        "version": "a required mod has the wrong version",
+        "builtin": "part of the game",
+        "unpacked": "installed as a folder, managed by hand",
+        "base": "the base game cannot be disabled",
+        "dlc": "set by the Factorio image (DLC_SPACE_AGE)",
+        "unresolvable": "the dependencies do not settle",
+        "unknown_action": "unknown change"
+      }
+    },
+    "confirm": {
+      "applyTitle": "Apply these mod changes?",
+      "applyMessage": "The mods are downloaded and checked first, with the server still running. Then the map is saved and archived, the server stops, the mods are swapped in and the server restarts. Players will be disconnected.",
+      "forceTitle": "Apply anyway?",
+      "forceLabel": "Apply anyway"
+    }
+  },
+
+  "serverSettings": {
+    "title": "Server settings",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "hint": "server-settings.json. Factorio reads it when it starts: save for the next start, or save and restart to apply it now. Keys the panel does not know are kept as they are.",
+    "groups": {
+      "listing": "Listing",
+      "access": "Access",
+      "saving": "Autosaves",
+      "pause": "Pause",
+      "network": "Network"
+    },
+    "fields": {
+      "name": "Name in the server list",
+      "description": "Description",
+      "tags": "Tags",
+      "visibility": "Visibility",
+      "username": "factorio.com username",
+      "max_players": "Maximum players (0 = no limit)",
+      "ignore_player_limit_for_returning_players": "Returning players ignore the limit",
+      "require_user_verification": "Require a factorio.com account",
+      "allow_commands": "Console commands",
+      "afk_autokick_interval": "Kick idle players after (minutes, 0 = never)",
+      "autosave_interval": "Autosave every (minutes)",
+      "autosave_slots": "Autosave slots",
+      "autosave_only_on_server": "Autosave on the server only",
+      "non_blocking_saving": "Non-blocking saving (experimental)",
+      "auto_pause": "Pause when nobody is connected",
+      "auto_pause_when_players_connect": "Pause while a player connects",
+      "only_admins_can_pause_the_game": "Only admins can pause",
+      "max_upload_in_kilobytes_per_second": "Upload limit (kB/s, 0 = none)",
+      "max_upload_slots": "Upload slots (0 = no limit)",
+      "minimum_latency_in_ticks": "Minimum latency (ticks)",
+      "max_heartbeats_per_second": "Heartbeats per second (6 to 240)",
+      "minimum_segment_size": "Minimum segment size",
+      "minimum_segment_size_peer_count": "Minimum segment size, from peers",
+      "maximum_segment_size": "Maximum segment size",
+      "maximum_segment_size_peer_count": "Maximum segment size, from peers"
+    },
+    "visibility": {
+      "public": "Public (factorio.com list)",
+      "lan": "LAN"
+    },
+    "allowCommands": {
+      "true": "Everyone",
+      "false": "Nobody",
+      "admins-only": "Admins only"
+    },
+    "tagsHint": "comma-separated",
+    "secrets": {
+      "title": "Passwords",
+      "game_password": "Game password",
+      "token": "factorio.com token",
+      "password": "factorio.com password",
+      "isSet": "set",
+      "notSet": "not set",
+      "newValue": "New value",
+      "clear": "Clear"
+    },
+    "save": "Save for next start",
+    "saveRestart": "Save and restart",
+    "saved": "Saved. Factorio applies it at its next start.",
+    "nothingChanged": "Nothing changed.",
+    "launched": "Applying: the server restarts.",
+    "confirm": {
+      "restartTitle": "Restart the server with these settings?",
+      "restartMessage": "The settings are written, the map is saved, then the server restarts. Players will be disconnected. If it does not come back, the previous settings are put back.",
+      "forceTitle": "Restart anyway?",
+      "forceLabel": "Restart anyway"
+    }
+  },
   "errors": {
     "metrics_disabled": "Metrics are disabled on this panel.",
     "unknown": "Unexpected error.",
@@ -230,6 +562,78 @@
     "command_too_long": "Command too long (maximum {max} bytes).",
     "backpressure": "Too many commands queued, try again in a few seconds.",
     "service_stopping": "The panel is shutting down.",
-    "probe_failed": "RCON check failed."
+    "probe_failed": "RCON check failed.",
+
+    "control_disabled": "Server control is disabled on this panel.",
+    "control_config": "Control agent token unavailable on the panel.",
+    "control_unreachable": "The control agent is unreachable.",
+    "control_timeout": "The control agent did not respond in time.",
+    "control_rejected": "The control agent refused the panel's token.",
+    "control_target_missing": "The Factorio container does not exist.",
+    "control_target_ambiguous": "Several containers match the Factorio service; refusing to guess.",
+    "control_busy": "The control agent is already running an operation.",
+    "control_rate_limited": "Too many server operations. Try again in a minute.",
+    "control_docker": "Docker refused or failed the operation.",
+    "control_protocol": "Unexpected response from the control agent.",
+    "operation_in_progress": "Another server operation is in progress.",
+    "server_already_running": "The server is already running.",
+    "server_not_running": "The server is not running.",
+    "players_online": "Players online: {count}. They will be disconnected.",
+    "rcon_unavailable_force_required": "RCON does not answer: the map cannot be saved first, and Factorio will only save on its own if it quits within the grace period.",
+    "save_timeout": "The save did not finish in time; the server was left running.",
+    "rcon_not_back": "The server started but RCON did not answer in time.",
+    "server_crashed": "The server stopped while loading (exit code {exitCode}): see its logs.",
+    "invalid_body": "Invalid request body.",
+    "invalid_tail": "Invalid line count (1 to {max}).",
+
+    "data_disabled": "Saves are disabled on this panel.",
+    "data_config": "Data agent token unavailable on the panel.",
+    "data_unreachable": "The data agent is unreachable.",
+    "data_timeout": "The data agent did not respond in time.",
+    "data_rejected": "The data agent refused the panel's token.",
+    "data_busy": "The data agent is already running an operation.",
+    "data_rate_limited": "Too many file operations. Try again in a minute.",
+    "data_protocol": "Unexpected response from the data agent.",
+    "data_io": "The data agent could not read or write the files.",
+    "backup_not_found": "This archive does not exist.",
+    "no_save": "The server has no save yet.",
+    "invalid_archive": "This file is not a valid Factorio save.",
+    "checksum_mismatch": "This archive changed since it was made; it will not be restored.",
+    "restore_incompatible": "This archive comes from a different game: {gaps}.",
+    "restore_rolled_back": "The restore failed ({reason}); the previous state was put back.",
+    "restore_rollback_failed": "The restore failed ({reason}) and the previous state could not be put back: check the saves folder and the latest “before restore” archive.",
+    "mods_disabled": "Mods are disabled on this panel.",
+    "mods_conflict": "These changes have conflicts: preview them to see which.",
+    "plan_changed": "Something changed since the preview (a new release on the portal?): preview again.",
+    "mods_nothing_to_do": "These changes change nothing.",
+    "tx_not_found": "This mod change is no longer available.",
+    "tx_already_committed": "This mod change was already applied.",
+    "mods_unavailable": "The mods folder does not exist yet: start the server once.",
+    "invalid_mod_archive": "A downloaded mod is not a valid archive of the expected release.",
+    "mod_not_found": "This mod is not on the mod portal.",
+    "portal_credentials_missing": "No mod portal credentials are configured (secrets/factorio-portal).",
+    "portal_rejected": "The mod portal refused the credentials: check secrets/factorio-portal.",
+    "portal_unreachable": "The mod portal could not be reached.",
+    "download_too_large": "A mod is larger than allowed (MODS_MAX_DOWNLOAD_MB).",
+    "download_checksum": "A downloaded mod does not match the portal's checksum.",
+    "factorio_version_unknown": "The game version is not known yet: start the server once.",
+    "mods_rolled_back": "The mod change failed ({reason}); the previous mods were put back.",
+    "mods_rollback_failed": "The mod change failed ({reason}) and the previous mods could not be put back: check the mods folder and the latest “before mod change” archive.",
+    "upload_not_found": "This upload no longer exists: start it again.",
+    "upload_busy": "Another upload is in progress.",
+    "upload_offset": "The upload is out of step with the server; it resumes where the server stands.",
+    "upload_too_large": "This save is larger than allowed (SAVES_MAX_UPLOAD_MB).",
+    "upload_incomplete": "The upload is not complete yet.",
+    "uploads_disabled": "Uploads are disabled.",
+    "chunk_too_large": "A piece of the upload is larger than allowed.",
+    "server_settings_unavailable": "The data agent does not mount Factorio's config folder (./data/config): add it to docker-compose.yml.",
+    "server_settings_missing": "The server has not created server-settings.json yet: start it once.",
+    "server_settings_unreadable": "server-settings.json is not valid JSON; fix it by hand first.",
+    "invalid_setting": "A setting has an invalid value.",
+    "settings_changed": "server-settings.json changed since it was loaded: refresh, then try again.",
+    "settings_tx_not_found": "The previous settings could not be found.",
+    "public_needs_credentials": "A public game needs a factorio.com username and a token or password.",
+    "settings_rolled_back": "The server did not restart with these settings ({reason}); the previous ones were put back.",
+    "settings_rollback_failed": "The server did not restart ({reason}), and putting the previous settings back failed too: check the server."
   }
 }

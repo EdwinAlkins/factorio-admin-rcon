@@ -32,7 +32,7 @@
 </div>
 
 <div class="shell">
-<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html" aria-current="page">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
+<nav class="sidenav" aria-label="Documentation sections"><h2>The panel</h2><ul><li><a href="./overview.html">Overview</a></li><li><a href="./installation.html">Installation</a></li><li><a href="./services.html">Services</a></li><li><a href="./deployment.html">Deployment</a></li><li><a href="./configuration.html">Configuration</a></li></ul><h2>Using it</h2><ul><li><a href="./commands.html">Custom commands</a></li><li><a href="./api.html">HTTP API</a></li></ul><h2>Under the hood</h2><ul><li><a href="./security.html" aria-current="page">Security model</a></li><li><a href="./development.html">Development</a></li></ul></nav>
 <main id="content">
 <header>
   <h1>Security model</h1>
@@ -45,11 +45,12 @@ usefully &mdash; what it does not claim to protect.</p>
 <h2 id="roles">Roles and permissions<a class="anchor" href="#roles" aria-label="Link to this section">#</a></h2>
 <p>One password per role, no usernames: the role follows from the password used
 to sign in.</p>
-<div class="table-wrap"><table><thead><tr><th>Role</th><th>Variable</th><th>Can</th></tr></thead><tbody><tr><td><code>viewer</code></td><td><code>VIEWER_PASSWORD</code></td><td>Status, players, version, seed, evolution, admins, ban list</td></tr><tr><td><code>moderator</code></td><td><code>MODERATOR_PASSWORD</code></td><td>+ kick, ban, mute, server message, private message</td></tr><tr><td><code>admin</code></td><td><code>ADMIN_PASSWORD</code></td><td>+ save, promote, custom commands, <strong>raw RCON console</strong>, audit log</td></tr></tbody></table></div><div class="table-wrap"><table><thead><tr><th>Permission</th><th>viewer</th><th>moderator</th><th>admin</th></tr></thead><tbody><tr><td><code>status:read</code></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><code>action:info</code></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><code>action:moderate</code></td><td>&mdash;</td><td>✓</td><td>✓</td></tr><tr><td><code>action:server</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>action:custom</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>rcon:raw</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>audit:read</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Role</th><th>Variable</th><th>Can</th></tr></thead><tbody><tr><td><code>viewer</code></td><td><code>VIEWER_PASSWORD</code></td><td>Status, players, version, seed, evolution, admins, ban list, container/game state, recent server operations, installed mods</td></tr><tr><td><code>moderator</code></td><td><code>MODERATOR_PASSWORD</code></td><td>+ kick, ban, mute, server message and private message; the saves and archives list</td></tr><tr><td><code>admin</code></td><td><code>ADMIN_PASSWORD</code></td><td>+ save, promote, custom commands, <strong>raw RCON console</strong>, audit log, server logs, start, stop and restart; edit the server settings; archive, download, import, restore, delete and schedule backups; install, update, enable, disable and remove mods</td></tr></tbody></table></div><div class="table-wrap"><table><thead><tr><th>Permission</th><th>viewer</th><th>moderator</th><th>admin</th></tr></thead><tbody><tr><td><code>status:read</code></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><code>action:info</code></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><code>action:moderate</code></td><td>&mdash;</td><td>✓</td><td>✓</td></tr><tr><td><code>action:server</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>action:custom</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>rcon:raw</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>audit:read</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>server:read</code></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><code>server:logs</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>server:start</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>server:stop</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>server:restart</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>server:configure</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>saves:read</code></td><td>&mdash;</td><td>✓</td><td>✓</td></tr><tr><td><code>saves:create</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>saves:download</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>saves:upload</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>saves:restore</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>saves:delete</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>saves:configure</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr><tr><td><code>mods:read</code></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><code>mods:manage</code></td><td>&mdash;</td><td>&mdash;</td><td>✓</td></tr></tbody></table></div>
 <p>Permissions are enforced <strong>server-side</strong>: the catalogue is
-filtered by role before being sent, and <code>/api/actions</code> re-checks the
-permission before executing anything. The panel never trusts what the browser
-hands back.</p>
+filtered by role before being sent, <code>/api/actions</code> re-checks an
+action's permission, and every server, saves and mods route declares its own
+<code>server:*</code>, <code>saves:*</code> or <code>mods:*</code> permission.
+The panel never trusts what the browser hands back.</p>
 <h2 id="paths">Two execution paths<a class="anchor" href="#paths" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Route</th><th>Who</th><th>What reaches RCON</th></tr></thead><tbody><tr><td><code>POST /api/actions</code></td><td>Every role, according to the action's permission</td><td>A command <strong>built by the server</strong> from an id and validated fields. The client cannot craft an arbitrary one.</td></tr><tr><td><code>POST /api/rcon</code></td><td><code>rcon:raw</code> &mdash; administrator</td><td>The typed line, as-is.</td></tr></tbody></table></div>
 <p>This split is what makes <a href="./commands.html">custom commands</a>
 interesting: they take the first path, so a moderator can be given a precise
@@ -95,6 +96,11 @@ possible &mdash; which is what lets you call the API with <code>curl</code>.</p>
   <li><strong>Bounded request body</strong>, 16 KiB, enforced on
       <code>Content-Length</code> <em>and</em> while reading &mdash; the former is
       absent in <code>chunked</code> and does not bind the sender anyway.</li>
+  <li><strong>One long operation at a time</strong>: start, stop, restart,
+      backup, restore and mod changes share a lock, and those that restart the
+      server share a per-session rate limit. Each agent applies its own mutation
+      limit on top, and the data agent caps its calls to the mod portal (60 a
+      minute).</li>
 </ul>
 <h2 id="csp">Headers and CSP<a class="anchor" href="#csp" aria-label="Link to this section">#</a></h2>
 <p>The content security policy carries a <strong>fresh 128-bit nonce per
@@ -125,23 +131,58 @@ which outcome and how long it took.</p>
       there may carry a token; the log must not become a second place where that
       secret lives on, volume backups included.
       <code>AUDIT_FULL_COMMANDS=true</code> restores verbatim storage.</li>
+  <li><strong>Server operations</strong> &mdash; start, stop, restart, backups,
+      restores, mod changes &mdash; are recorded with who asked, whether they
+      were forced, and how they ended. So is every archive download: it is a full
+      copy of the world.</li>
 </ul>
 <h2 id="container">Container isolation<a class="anchor" href="#container" aria-label="Link to this section">#</a></h2>
-<p>The panel and <code>docker-proxy</code> both run confined: read-only root,
+<p>The panel and both agents run confined: read-only root,
 <code>cap_drop: [ALL]</code>, <code>no-new-privileges</code>, memory and PID
-caps.</p>
+caps, and a non-root uid. The control agent reaches the Docker socket through
+the group that owns it; the data agent runs as the game image's uid (845).
+Who holds what is laid out in <a href="./services.html">Services</a>.</p>
 
 <div class="note">
   <strong>No Docker socket in the panel</strong>
-  CPU and memory metrics go through the <code>docker-proxy</code> service, which
-  holds the socket and only exposes <code>GET /containers/…</code>. Mounting the
-  socket into the panel would hand the whole host to anyone who compromised it
-  &mdash; and <code>:ro</code> would change nothing, the Docker API being a write
-  API.
+  Server control and CPU/memory metrics go through the control agent
+  (<code>services/agents</code>), which holds the socket and answers a
+  closed list of operations on the one <code>factorio</code> container of its
+  stack: status, stats, logs, start, stop, restart. No endpoint takes a container
+  id, nothing maps onto <code>exec</code>, and its answers are built field by
+  field, so no container's environment ever leaves it. It is unpublished, alone
+  with the panel on an <code>internal</code> network, and requires a shared
+  token. Mounting the socket into the panel would hand the whole host to anyone
+  who compromised it &mdash; and <code>:ro</code> would change nothing, the
+  Docker API being a write API.
 </div>
 
+<div class="note">
+  <strong>No game files in the panel either</strong>
+  Saves and mods go through the data agent, which sees no Docker socket and
+  reads and writes three folders only: saves, mods and backups. Every path goes
+  through Go's <code>os.Root</code>, so <code>..</code>, absolute paths and
+  symbolic links leading outside are refused. Every archive it writes, restores
+  or installs is verified entry by entry first. The agent that can stop the
+  server is never the one that can rewrite its files.
+</div>
+
+<h3 id="portal">The way out to the mod portal<a class="anchor" href="#portal" aria-label="Link to this section">#</a></h3>
+<p>The data agent is the only component that reaches the Internet, alone on the
+<code>egress</code> network, and only <code>mods.factorio.com</code> and
+<code>dl-mod.factorio.com</code>, over HTTPS. No request carries a URL; every
+redirect is checked against those two hosts. A download is kept only if its
+SHA-1 matches the portal's, every entry stays inside a single top folder, and
+its <code>info.json</code> names the release that was asked for.</p>
+<p>The factorio.com token lives in <code>secrets/factorio-portal</code>,
+readable by the data agent only. It travels only in the download URL's query
+string, as the portal requires, and is stripped from every error before
+anything can log it.</p>
+
 <p>The <code>factorio</code> service is deliberately left alone: it writes its
-saves, mods and configuration, and a read-only root would break it.</p>
+saves, mods and configuration, and a read-only root would break it. It is not on
+the <code>control</code> network, so a compromised server cannot even resolve an
+agent's name.</p>
 <h2 id="assumptions">Deployment assumptions<a class="anchor" href="#assumptions" aria-label="Link to this section">#</a></h2>
 <ul>
   <li><strong>A single instance</strong>: 1 container = 1 Node process = 1 RCON
@@ -158,6 +199,10 @@ saves, mods and configuration, and a read-only root would break it.</p>
 administrator account has full RCON access by definition. The panel does not try
 to protect against that &mdash; it tries to make sure not everyone needs to be an
 administrator.</p>
+<p>The same goes for mods. A mod is Lua the server runs, and the portal does
+not review it. The panel checks that what it installs is the release the portal
+published, not that the release is harmless: an administrator who installs a
+mod trusts its author, exactly as when installing it by hand.</p>
 
 <nav class="pager"><a href="./commands.html">&larr; Custom commands</a><a href="./api.html">HTTP API &rarr;</a></nav>
 </main>

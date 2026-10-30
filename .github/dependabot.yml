@@ -74,6 +74,35 @@ updates:
       prefix: chore
       include: scope
 
+  # The control agent. Its builder image carries the Go toolchain, so a Go
+  # patch release (standard-library fixes) arrives as a base-image bump: `fix`,
+  # because it must cut a release of the one component holding the Docker
+  # socket. The module has no dependency today; the gomod entry covers any
+  # added later. Keep go.mod's `toolchain` line in step by hand.
+  - package-ecosystem: docker
+    directory: "/services/agents"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Paris
+    labels: ["dependencies"]
+    commit-message:
+      prefix: fix
+      include: scope
+
+  - package-ecosystem: gomod
+    directory: "/services/agents"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Paris
+    labels: ["dependencies"]
+    commit-message:
+      prefix: fix
+      include: scope
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

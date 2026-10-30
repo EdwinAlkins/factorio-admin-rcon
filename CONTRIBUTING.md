@@ -6,9 +6,12 @@ path to a merged change is a focused diff with a reason attached.
 ## Before you start
 
 For anything larger than a fix, open an issue or a discussion first. The panel has a deliberate
-scope — it talks RCON to a server that is already running, and it does not manage mods, saves or
-the server process. A pull request that crosses that line is likely to be declined, and it is
-cheaper to find that out before you write it.
+shape — it talks RCON to the server, and everything that needs more reach goes through one of two
+agents with a closed API: the control agent holds the Docker socket, the data agent the game's
+files and the way to the mod portal. A change that gives the panel the socket or the files, gives
+one agent the other's job, or opens an agent to arbitrary containers, paths or URLs is likely to be
+declined, and it is cheaper to find that out before you write it. Agent changes are Go, in
+`services/agents` (`go test -race ./...`; see its README).
 
 ## Setting up
 

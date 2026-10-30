@@ -2,13 +2,8 @@ import { env } from "@/server/config/env";
 import { errorFields, logger } from "@/server/log";
 import { getRcon } from "@/server/rcon";
 import { getServerStatus } from "@/server/rcon/status";
-import {
-  cpuPercent,
-  findContainerId,
-  forgetContainerId,
-  memoryUsage,
-  readStats,
-} from "@/server/metrics/docker";
+import { isAgentError } from "@/server/agents/errors";
+import { cpuPercent, memoryUsage, readStats } from "@/server/metrics/docker";
 import {
   purgeMetrics,
   recordSample,
@@ -188,24 +183,16 @@ export function deriveUps(
   return ups > IMPLAUSIBLE_UPS ? null : ups;
 }
 
-/** Container metrics, or `null` when the Docker proxy does not answer. */
+/** Container metrics, or `null` when the control agent does not answer. */
 async function collectDocker(state: State, now: number) {
   if (!env().METRICS_DOCKER) return null;
 
-  // Same backoff as RCON: no point re-querying a dead proxy every 15 s for
+  // Same backoff as RCON: no point re-querying a dead agent every 15 s for
   // hours on end.
   if (now < state.docker.retryAt) return null;
 
   try {
-    const id = await findContainerId();
-    if (!id) throw new Error(`no container matching "${env().METRICS_CONTAINER}"`);
-
-    const stats = await readStats(id);
-    if (!stats) {
-      // 404: the container was recreated, the memorised id is stale.
-      forgetContainerId();
-      throw new Error("container not found");
-    }
+    const stats = await readStats();
 
     if (state.docker.failures > 0) logger.info("docker metrics restored");
     succeed(state.docker, now);
@@ -217,11 +204,13 @@ async function collectDocker(state: State, now: number) {
       memLimit: memory?.limit ?? null,
     };
   } catch (error) {
-    forgetContainerId();
-    // One line per outage: otherwise 5,760 log lines a day while the proxy is
+    // One line per outage: otherwise 5,760 log lines a day while the agent is
     // missing, which would drown out everything else.
     if (state.docker.failures === 0) {
-      logger.warn("docker metrics unavailable", errorFields(error));
+      logger.warn("docker metrics unavailable", {
+        ...errorFields(error),
+        detail: isAgentError(error) ? error.detail : undefined,
+      });
     }
     fail(state.docker, now, env().METRICS_INTERVAL_MS);
     return null;
@@ -335,7 +324,7 @@ export function startMetricsCollector() {
 
   logger.info("metrics collector started", {
     intervalMs,
-    docker: env().METRICS_DOCKER ? env().DOCKER_API_URL : "disabled",
+    docker: env().METRICS_DOCKER ? env().CONTROL_AGENT_URL : "disabled",
     ups: env().METRICS_UPS,
   });
 }

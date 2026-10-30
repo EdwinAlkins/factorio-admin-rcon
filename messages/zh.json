@@ -24,6 +24,11 @@
       "ok": "服务器可达，{count} 人在线",
       "error": "服务器不可达",
       "loading": "正在获取状态"
+    },
+    "lifecycle": {
+      "stopped": "服务器已停止",
+      "starting": "服务器启动中",
+      "stopping": "服务器停止中"
     }
   },
   "roles": {
@@ -69,7 +74,21 @@
     },
     "actions": {
       "login": "登录",
-      "command": "原始命令"
+      "command": "原始命令",
+      "start": "启动服务器",
+      "stop": "停止服务器",
+      "restart": "重启服务器",
+      "backup": "备份",
+      "restore": "恢复",
+      "delete": "删除归档",
+      "download": "下载归档",
+      "settings": "修改备份计划",
+      "mods_apply": "模组变更",
+      "upload": "开始上传存档",
+      "upload_abort": "取消上传存档",
+      "import": "导入存档",
+      "server_settings": "修改服务器设置",
+      "server_settings_apply": "应用服务器设置"
     }
   },
   "confirm": {
@@ -153,7 +172,10 @@
   },
   "tabs": {
     "console": "控制台",
-    "metrics": "统计"
+    "metrics": "统计",
+    "server": "服务器",
+    "saves": "存档",
+    "mods": "模组"
   },
 
   "metrics": {
@@ -171,7 +193,7 @@
     "low": "最低",
     "memoryOf": "{used} / {limit}",
     "chartLabel": "所选范围内的{metric}，当前为 {current}",
-    "dockerUnavailable": "容器指标不可用（Docker 代理不可达）。",
+    "dockerUnavailable": "容器指标不可用（控制代理不可达）。",
     "dockerPending": "尚未采集容器指标。",
     "dockerDegraded": "容器指标滞后（最近的采集失败）。",
     "sparse": "该区间数据稀疏",
@@ -179,6 +201,316 @@
     "upsUnavailable": "UPS 测量已禁用或服务器不可达。"
   },
 
+  "server": {
+    "title": "服务器",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "state": {
+      "stopped": "已停止",
+      "starting": "启动中",
+      "running": "运行中",
+      "stopping": "停止中",
+      "error": "错误",
+      "unknown": "未知"
+    },
+    "rconDown": "RCON 无响应",
+    "players": "玩家",
+    "version": "版本",
+    "uptime": "运行时间",
+    "uptimeValue": "{hours} 小时 {minutes} 分钟",
+    "image": "镜像",
+    "start": "启动",
+    "stop": "停止",
+    "restart": "重启",
+    "confirm": {
+      "startTitle": "启动服务器？",
+      "startMessage": "Factorio 容器将启动并加载地图。",
+      "stopTitle": "停止服务器？",
+      "stopMessage": "先保存地图，然后停止服务器。玩家将被断开连接。",
+      "restartTitle": "重启服务器？",
+      "restartMessage": "先保存地图，然后重启服务器。玩家将被断开连接。",
+      "forceTitle": "仍要继续？",
+      "forceLabel": "仍然继续"
+    },
+    "step": {
+      "pending": "准备中",
+      "saving": "正在保存地图",
+      "stopping": "正在停止服务器",
+      "starting": "正在启动容器",
+      "waiting_rcon": "正在加载地图",
+      "archiving": "正在归档存档",
+      "restoring": "正在恢复归档",
+      "downloading": "正在下载并校验模组",
+      "installing": "正在安装模组",
+      "rolling_back": "正在回退到之前的状态",
+      "verifying": "正在校验存档",
+      "writing": "正在写入设置"
+    },
+    "operationBy": "由 {username} 发起",
+    "history": "最近的操作",
+    "historyEmpty": "暂无操作。",
+    "type": {
+      "start": "启动",
+      "stop": "停止",
+      "restart": "重启",
+      "backup": "备份",
+      "restore": "恢复",
+      "mods_apply": "模组",
+      "import": "导入",
+      "server_settings_apply": "服务器设置"
+    },
+    "status": {
+      "running": "进行中",
+      "success": "完成",
+      "error": "失败",
+      "interrupted": "已中断"
+    },
+    "forced": "强制",
+    "logs": {
+      "title": "日志",
+      "hint": "最近 {count} 行",
+      "refresh": "刷新",
+      "empty": "无输出。"
+    }
+  },
+
+  "saves": {
+    "title": "存档",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "backupNow": "立即备份",
+    "labelPlaceholder": "标签（可选）",
+    "operation": "进行中：{step}",
+    "live": "存档文件夹",
+    "liveEmpty": "尚无存档：服务器还未创建地图。",
+    "latest": "下次启动时加载",
+    "archives": "归档",
+    "archivesEmpty": "暂无归档。",
+    "columns": {
+      "date": "日期",
+      "source": "来源",
+      "label": "标签",
+      "size": "大小",
+      "version": "版本",
+      "mods": "模组"
+    },
+    "source": {
+      "manual": "手动",
+      "scheduled": "计划",
+      "pre-restore": "恢复前",
+      "pre-mods": "模组变更前",
+      "upload": "导入"
+    },
+    "modsCount": "{count, plural, =0 {无模组} other {# 个模组}}",
+    "download": "下载",
+    "restore": "恢复",
+    "delete": "删除",
+    "confirm": {
+      "restoreTitle": "恢复此归档？",
+      "restoreMessage": "服务器将先保存并停止，当前状态会被归档，然后 {id} 成为存档并重启服务器。玩家将被断开连接。",
+      "deleteTitle": "删除此归档？",
+      "deleteMessage": "{id} 将被永久删除。",
+      "forceTitle": "仍要恢复？",
+      "forceLabel": "仍然恢复",
+      "restoreUnknown": "该存档是从电脑导入的：其 Factorio 版本和模组未知。如果与服务器不同，地图可能无法加载，或被永久迁移。"
+    },
+    "schedule": {
+      "title": "计划备份",
+      "enabled": "已启用",
+      "interval": "间隔（分钟）",
+      "keepLast": "保留最近（0 = 不限）",
+      "maxAgeDays": "保留天数（0 = 不限）",
+      "triggerSave": "先让 Factorio 保存",
+      "triggerSaveHint": "写入存档时游戏会暂停。关闭时归档最新的自动存档。",
+      "save": "保存计划",
+      "saved": "计划已保存。",
+      "lastRun": "上次运行：{date}",
+      "never": "尚未运行。"
+    },
+    "import": {
+      "title": "导入存档",
+      "hint": "来自你电脑的 .zip 存档，最大 {max}。它会成为一个归档：恢复后即可游玩。",
+      "file": "存档文件",
+      "start": "导入",
+      "cancel": "取消",
+      "progress": "正在上传：{percent}%（{sent} / {total}）",
+      "resuming": "连接中断，正在续传…",
+      "notZip": "请选择 .zip 文件。",
+      "tooLarge": "该文件超过上限（{max}）。",
+      "done": "已上传。服务器校验完成后归档会出现在列表中。"
+    }
+  },
+
+  "mods": {
+    "title": "模组",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "operation": "进行中：{step}",
+    "game": "Factorio {version}",
+    "versionUnknown": "尚不知道游戏版本：请先启动一次服务器，以便为其匹配模组。",
+    "installed": "已安装",
+    "installedEmpty": "还没有模组列表：服务器尚未启动过。",
+    "updatesUnavailable": "无法连接模组门户：不显示可用的更新。",
+    "columns": {
+      "name": "模组",
+      "version": "版本",
+      "state": "状态"
+    },
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "builtin": "游戏自带",
+    "unpacked": "文件夹",
+    "dlc": "由 DLC_SPACE_AGE 控制",
+    "updateAvailable": "可更新至 {version}",
+    "enable": "启用",
+    "disable": "禁用",
+    "update": "更新",
+    "remove": "删除",
+    "search": {
+      "title": "查找模组",
+      "placeholder": "在模组门户中搜索",
+      "submit": "搜索",
+      "empty": "没有结果。",
+      "noCredentials": "搜索和安装需要 factorio.com 账号。请将用户名和令牌写入 secrets/factorio-portal（与 docker-compose.yml 同一目录；令牌在您的 factorio.com 个人资料页），然后重建 data-agent：",
+      "installed": "已安装",
+      "add": "添加",
+      "details": "详情",
+      "by": "作者 {owner}",
+      "downloads": "{count, plural, other {# 次下载}}",
+      "more": "更多结果"
+    },
+    "details": {
+      "releases": "版本",
+      "compatible": "适用于当前游戏",
+      "otherGame": "Factorio {version}",
+      "dependencies": "依赖：{list}",
+      "addVersion": "添加此版本",
+      "close": "关闭"
+    },
+    "basket": {
+      "title": "待应用的变更",
+      "empty": "没有待应用的变更：请从上方列表添加。",
+      "remove": "从列表中移除",
+      "clear": "清空",
+      "preview": "预览",
+      "apply": "应用（需要重启）",
+      "change": {
+        "install": "安装 {name}",
+        "update": "更新 {name}",
+        "enable": "启用 {name}",
+        "disable": "禁用 {name}",
+        "remove": "删除 {name}"
+      },
+      "version": "版本 {version}"
+    },
+    "plan": {
+      "title": "将要执行的操作",
+      "nothing": "这些变更不会改变任何内容。",
+      "step": {
+        "install": "安装 {name} {to}",
+        "update": "更新 {name} {from} → {to}",
+        "enable": "启用 {name}",
+        "disable": "禁用 {name}",
+        "remove": "删除 {name} {from}"
+      },
+      "requiredBy": "{mod} 需要",
+      "conflicts": "应用前需要解决",
+      "optional": "可选，未安装：{mod} 可以使用 {optional}",
+      "unchecked": "未检查依赖（info.json 无法读取）：{list}",
+      "conflict": {
+        "not_found": "模组门户上没有此模组",
+        "not_installed": "未安装",
+        "no_release": "没有适用于当前游戏的版本",
+        "incompatible": "与另一个已启用的模组不兼容",
+        "missing": "会缺少一个必需的模组",
+        "version": "某个必需模组的版本不符",
+        "builtin": "游戏自带",
+        "unpacked": "以文件夹形式安装，需手动管理",
+        "base": "无法禁用基础游戏",
+        "dlc": "由 Factorio 镜像控制（DLC_SPACE_AGE）",
+        "unresolvable": "依赖关系无法确定",
+        "unknown_action": "未知的变更"
+      }
+    },
+    "confirm": {
+      "applyTitle": "应用这些模组变更？",
+      "applyMessage": "先在服务器运行时下载并校验模组。然后保存并归档地图，停止服务器，替换模组并重启服务器。玩家将被断开连接。",
+      "forceTitle": "仍要应用？",
+      "forceLabel": "仍然应用"
+    }
+  },
+
+  "serverSettings": {
+    "title": "服务器设置",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "hint": "server-settings.json。Factorio 在启动时读取它：保存后在下次启动时生效，或保存并重启立即生效。面板不认识的键会原样保留。",
+    "groups": {
+      "listing": "公开信息",
+      "access": "访问",
+      "saving": "自动存档",
+      "pause": "暂停",
+      "network": "网络"
+    },
+    "fields": {
+      "name": "服务器列表中的名称",
+      "description": "描述",
+      "tags": "标签",
+      "visibility": "可见性",
+      "username": "factorio.com 用户名",
+      "max_players": "最大玩家数（0 = 不限）",
+      "ignore_player_limit_for_returning_players": "老玩家不受人数限制",
+      "require_user_verification": "要求 factorio.com 账号",
+      "allow_commands": "控制台命令",
+      "afk_autokick_interval": "闲置多久后踢出（分钟，0 = 从不）",
+      "autosave_interval": "自动存档间隔（分钟）",
+      "autosave_slots": "自动存档槽位",
+      "autosave_only_on_server": "仅在服务器上自动存档",
+      "non_blocking_saving": "非阻塞存档（实验性）",
+      "auto_pause": "无人在线时暂停",
+      "auto_pause_when_players_connect": "玩家连接时暂停",
+      "only_admins_can_pause_the_game": "仅管理员可暂停",
+      "max_upload_in_kilobytes_per_second": "上传限速（kB/s，0 = 不限）",
+      "max_upload_slots": "上传槽位（0 = 不限）",
+      "minimum_latency_in_ticks": "最小延迟（tick）",
+      "max_heartbeats_per_second": "每秒心跳数（6 到 240）",
+      "minimum_segment_size": "最小分段大小",
+      "minimum_segment_size_peer_count": "最小分段大小的对等端数",
+      "maximum_segment_size": "最大分段大小",
+      "maximum_segment_size_peer_count": "最大分段大小的对等端数"
+    },
+    "visibility": {
+      "public": "公开（factorio.com 列表）",
+      "lan": "局域网"
+    },
+    "allowCommands": {
+      "true": "所有人",
+      "false": "无人",
+      "admins-only": "仅管理员"
+    },
+    "tagsHint": "用逗号分隔",
+    "secrets": {
+      "title": "密码",
+      "game_password": "游戏密码",
+      "token": "factorio.com 令牌",
+      "password": "factorio.com 密码",
+      "isSet": "已设置",
+      "notSet": "未设置",
+      "newValue": "新值",
+      "clear": "清除"
+    },
+    "save": "保存（下次启动生效）",
+    "saveRestart": "保存并重启",
+    "saved": "已保存。Factorio 会在下次启动时应用。",
+    "nothingChanged": "没有任何更改。",
+    "launched": "正在应用：服务器正在重启。",
+    "confirm": {
+      "restartTitle": "使用这些设置重启服务器？",
+      "restartMessage": "先写入设置并保存地图，然后重启服务器。玩家将被断开。如果服务器未能恢复，将还原之前的设置。",
+      "forceTitle": "仍要重启？",
+      "forceLabel": "仍要重启"
+    }
+  },
   "errors": {
     "metrics_disabled": "该面板的指标功能已禁用。",
     "unknown": "发生意外错误。",
@@ -230,6 +562,78 @@
     "command_too_long": "命令过长（最大 {max} 字节）。",
     "backpressure": "排队的命令过多，请稍后重试。",
     "service_stopping": "面板正在关闭。",
-    "probe_failed": "RCON 检查失败。"
+    "probe_failed": "RCON 检查失败。",
+
+    "control_disabled": "此面板已禁用服务器控制。",
+    "control_config": "面板无法读取控制代理令牌。",
+    "control_unreachable": "无法连接控制代理。",
+    "control_timeout": "控制代理未及时响应。",
+    "control_rejected": "控制代理拒绝了面板的令牌。",
+    "control_target_missing": "Factorio 容器不存在。",
+    "control_target_ambiguous": "有多个容器匹配 Factorio 服务，拒绝猜测。",
+    "control_busy": "控制代理正在执行另一项操作。",
+    "control_rate_limited": "服务器操作过多，请一分钟后重试。",
+    "control_docker": "Docker 拒绝或未能完成该操作。",
+    "control_protocol": "控制代理返回了意外的响应。",
+    "operation_in_progress": "另一项服务器操作正在进行中。",
+    "server_already_running": "服务器已在运行。",
+    "server_not_running": "服务器未运行。",
+    "players_online": "在线玩家：{count}。他们将被断开连接。",
+    "rcon_unavailable_force_required": "RCON 无响应：无法先保存地图，只有在宽限期内退出时 Factorio 才会自行保存。",
+    "save_timeout": "保存未及时完成；服务器保持运行。",
+    "rcon_not_back": "服务器已启动，但 RCON 未及时响应。",
+    "server_crashed": "服务器在加载时停止了（退出码 {exitCode}）：请查看其日志。",
+    "invalid_body": "请求体无效。",
+    "invalid_tail": "行数无效（1 到 {max}）。",
+
+    "data_disabled": "此面板已禁用存档功能。",
+    "data_config": "面板无法读取数据代理令牌。",
+    "data_unreachable": "无法连接数据代理。",
+    "data_timeout": "数据代理未及时响应。",
+    "data_rejected": "数据代理拒绝了面板的令牌。",
+    "data_busy": "数据代理正在执行另一项操作。",
+    "data_rate_limited": "文件操作过多，请一分钟后重试。",
+    "data_protocol": "数据代理返回了意外的响应。",
+    "data_io": "数据代理无法读写文件。",
+    "backup_not_found": "该归档不存在。",
+    "no_save": "服务器尚无存档。",
+    "invalid_archive": "该文件不是有效的 Factorio 存档。",
+    "checksum_mismatch": "该归档自创建以来已被修改，不会被恢复。",
+    "restore_incompatible": "该归档来自不同的游戏：{gaps}。",
+    "restore_rolled_back": "恢复失败（{reason}），已回退到之前的状态。",
+    "restore_rollback_failed": "恢复失败（{reason}），且无法回退到之前的状态：请检查存档文件夹和最近的“恢复前”归档。",
+    "mods_disabled": "此面板已禁用模组功能。",
+    "mods_conflict": "这些变更存在冲突：请预览以查看详情。",
+    "plan_changed": "预览之后情况有变（门户上有新版本？）：请重新预览。",
+    "mods_nothing_to_do": "这些变更不会改变任何内容。",
+    "tx_not_found": "此模组变更已不可用。",
+    "tx_already_committed": "此模组变更已应用过。",
+    "mods_unavailable": "模组文件夹尚不存在：请先启动一次服务器。",
+    "invalid_mod_archive": "下载的模组不是预期版本的有效压缩包。",
+    "mod_not_found": "模组门户上没有此模组。",
+    "portal_credentials_missing": "未配置模组门户凭据（secrets/factorio-portal）。",
+    "portal_rejected": "模组门户拒绝了凭据：请检查 secrets/factorio-portal。",
+    "portal_unreachable": "无法连接模组门户。",
+    "download_too_large": "某个模组超过允许的大小（MODS_MAX_DOWNLOAD_MB）。",
+    "download_checksum": "下载的模组与门户的校验值不符。",
+    "factorio_version_unknown": "尚不知道游戏版本：请先启动一次服务器。",
+    "mods_rolled_back": "模组变更失败（{reason}）；已恢复之前的模组。",
+    "mods_rollback_failed": "模组变更失败（{reason}），且无法恢复之前的模组：请检查模组文件夹和最近的“模组变更前”归档。",
+    "upload_not_found": "该上传已不存在：请重新开始。",
+    "upload_busy": "另一个上传正在进行。",
+    "upload_offset": "上传进度与服务器不一致；将从服务器记录的位置继续。",
+    "upload_too_large": "该存档超过允许的大小（SAVES_MAX_UPLOAD_MB）。",
+    "upload_incomplete": "上传尚未完成。",
+    "uploads_disabled": "上传功能已关闭。",
+    "chunk_too_large": "上传的某个分块超过允许的大小。",
+    "server_settings_unavailable": "数据代理未挂载 Factorio 的配置目录（./data/config）：请在 docker-compose.yml 中添加。",
+    "server_settings_missing": "服务器尚未创建 server-settings.json：请先启动一次。",
+    "server_settings_unreadable": "server-settings.json 不是有效的 JSON；请先手动修复。",
+    "invalid_setting": "某个设置的值无效。",
+    "settings_changed": "server-settings.json 在加载后已被修改：请刷新后重试。",
+    "settings_tx_not_found": "找不到之前的设置。",
+    "public_needs_credentials": "公开游戏需要 factorio.com 用户名以及令牌或密码。",
+    "settings_rolled_back": "服务器未能以这些设置重启（{reason}）；已还原之前的设置。",
+    "settings_rollback_failed": "服务器未能重启（{reason}），还原之前的设置也失败了：请检查服务器。"
   }
 }

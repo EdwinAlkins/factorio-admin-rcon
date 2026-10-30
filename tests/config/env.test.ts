@@ -58,7 +58,19 @@ describe("parseEnv", () => {
     expect(env.METRICS_UPS).toBe(true);
     expect(env.METRICS_INTERVAL_MS).toBe(15_000);
     expect(env.METRICS_RETENTION_DAYS).toBe(7);
-    expect(env.DOCKER_API_URL).toBe("http://docker-proxy:2375");
+  });
+
+  it("enables server control by default, through the control agent", () => {
+    const env = parseEnv(source());
+    expect(env.CONTROL_ENABLED).toBe(true);
+    expect(env.CONTROL_AGENT_URL).toBe("http://control-agent:8080");
+    expect(env.CONTROL_AGENT_TOKEN_FILE).toBe("/run/secrets/control_agent_token");
+    expect(env.CONTROL_AGENT_TIMEOUT_MS).toBe(10_000);
+    expect(env.CONTROL_SAVE_TIMEOUT_MS).toBe(120_000);
+  });
+
+  it("refuses a control agent token too short to resist guessing", () => {
+    expect(() => parseEnv(source({ CONTROL_AGENT_TOKEN: "short" }))).toThrow(ConfigError);
   });
 
   it("tells the master switch from the Docker source", () => {
@@ -79,8 +91,8 @@ describe("parseEnv", () => {
     ).toThrow(ConfigError);
   });
 
-  it("refuses a malformed Docker daemon URL", () => {
-    expect(() => parseEnv(source({ DOCKER_API_URL: "docker-proxy:2375" }))).toThrow(ConfigError);
+  it("refuses a malformed control agent URL", () => {
+    expect(() => parseEnv(source({ CONTROL_AGENT_URL: "control-agent:8080" }))).toThrow(ConfigError);
   });
 
   it("refuses too short a sampling interval", () => {
