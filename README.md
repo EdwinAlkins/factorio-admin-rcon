@@ -76,7 +76,7 @@ model](#security-model)).
 ## Quick start (without cloning)
 
 Two ways in. This one is the **minimal** stack — the game server and the panel, no agent: roles,
-actions, console, audit log and the players/UPS graphs, but no Server, Saves or Mods tab. For every
+actions, console, audit log and the players/UPS graphs, but no Server, Saves, Mods or Worlds tab. For every
 feature, see [Full install](#full-install-every-feature).
 
 Nothing to clone: one directory, a `docker-compose.yml` pasted as-is, a `.env` you generate. The
@@ -107,7 +107,7 @@ services:
     # `latest` moves under you on the next release; in production, pin the exact
     # version instead. `-distroless` is the hardened variant (no shell, no
     # package manager) — the full tag list is on Docker Hub.
-    image: williamnauroy/factorio-admin-rcon:1.5-distroless
+    image: williamnauroy/factorio-admin-rcon:2.0-distroless
     restart: unless-stopped
     depends_on:
       - factorio
@@ -136,13 +136,14 @@ services:
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
       - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
-      # This stack has no agents: no Server, Saves or Mods tab, and no CPU and
+      # This stack has no agents: no Server, Saves, Mods or Worlds tab, and no CPU and
       # memory graphs. Players and UPS keep working. The full install, from the
       # repository, brings all of them.
       - CONTROL_ENABLED=false
       - METRICS_DOCKER=false
       - SAVES_ENABLED=false
       - MODS_ENABLED=false
+      - WORLDS_ENABLED=false
 
 volumes:
   factorio-admin-data:
@@ -277,10 +278,10 @@ control agent. With `CONTAINERS=1`, that proxy answered `GET /containers/{id}/js
 container on the host — environment variables included, so the panel's own `ADMIN_PASSWORD` and
 `SESSION_SECRET` were one request away from anything that reached it.
 
-1. Take the new `docker-compose.yml` (or port its `control-agent` and `data-agent` services, its
+1. Take the new `docker-compose.yml` (or port its `control-agent`, `data-agent` and `world-agent` services, its
    `networks:` and `secrets:` blocks into yours) and delete the `docker-proxy` service.
 2. Run `./setup-admin.sh` once: existing passwords are kept; it adds the agents' tokens, an empty
-   `secrets/factorio-portal`, `./backups` and `DOCKER_GID`.
+   `secrets/factorio-portal`, `./backups`, `./worlds` and `DOCKER_GID`.
 3. Drop `DOCKER_API_URL`, `METRICS_CONTAINER` and `DOCKER_TIMEOUT_MS` from your environment: the
    panel no longer reads them (`CONTROL_AGENT_URL` and `CONTROL_AGENT_TIMEOUT_MS` replace them).
 4. Set `UPDATE_MODS_ON_START=false` on the `factorio` service, as the new `docker-compose.yml`
@@ -288,17 +289,25 @@ container on the host — environment variables included, so the panel's own `AD
    at every start. Keep it `true`, with `MODS_ENABLED=false`, if you manage mods outside the panel.
 5. `docker compose up -d --build --remove-orphans`.
 
+Running the minimal stack, with no agent? 2.0 turns the new tabs on by default, and the panel then
+waits for agents that are not there (`/api/ready` answers `503`). Add `CONTROL_ENABLED=false`,
+`SAVES_ENABLED=false`, `MODS_ENABLED=false` and `WORLDS_ENABLED=false` next to `METRICS_DOCKER=false`
+before moving the image tag to `2.0`. A tag pinned to `1.5` or `1` never moves to 2.0 on its own;
+`latest` does.
+
 Not using server control or container metrics? Set `CONTROL_ENABLED=false` and
 `METRICS_DOCKER=false`, and leave the control agent out: nothing in the stack then touches the
 Docker socket. Not using saves or mods? `SAVES_ENABLED=false` and `MODS_ENABLED=false`, and leave
 the data agent out. Not using worlds? `WORLDS_ENABLED=false`, and leave the world agent out.
 
 Images are published on every release (`linux/amd64` and `linux/arm64`): the panel to
-`williamnauroy/factorio-admin-rcon`, the agents to `williamnauroy/factorio-control-agent` and
-`williamnauroy/factorio-data-agent`. To skip the local build, swap each `build:` block in the compose
-file for an `image:` line, and keep the three on the same version — they speak a private API. The
-world agent is the exception: it is never published, because it embeds the very Factorio your
-server runs (`FACTORIO_IMAGE`), so keep its `build:` block. Pin an exact version in production:
+`williamnauroy/factorio-admin-rcon`, the agents to `williamnauroy/factorio-control-agent`,
+`williamnauroy/factorio-data-agent` and `williamnauroy/factorio-world-agent`. To skip the local
+build, swap each `build:` block in the compose file for an `image:` line, and keep the four on the
+same version — they speak a private API. The world agent embeds the Factorio it was built on:
+the published one is `factoriotools/factorio:stable` as of the release. If your server runs another
+version (`FACTORIO_IMAGE`), keep its `build:` block so the two match. Pin an exact version in
+production:
 
 ```bash
 # Replace <version> with the exact release you are deploying — the published
@@ -308,6 +317,7 @@ docker pull williamnauroy/factorio-admin-rcon:<version>
 docker pull williamnauroy/factorio-admin-rcon:<version>-distroless   # hardened, see below
 docker pull williamnauroy/factorio-control-agent:<version>
 docker pull williamnauroy/factorio-data-agent:<version>
+docker pull williamnauroy/factorio-world-agent:<version>
 ```
 
 Versioning and publishing are automated — see [CI.md](CI.md).
