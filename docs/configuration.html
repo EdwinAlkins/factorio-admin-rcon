@@ -7,7 +7,7 @@
 <meta name="description" content="ADMIN_PASSWORD, moderator and viewer roles, RCON host, metrics and custom commands. Defaults and what each Factorio Admin RCON variable changes.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/configuration.html">
 <link rel="stylesheet" href="./assets/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<link rel="icon" type="image/png" href="./assets/brand/logo-64.png">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Environment variables &mdash; Factorio Admin RCON">
 <meta property="og:description" content="ADMIN_PASSWORD, moderator and viewer roles, RCON host, metrics and custom commands. Defaults and what each Factorio Admin RCON variable changes.">
@@ -27,7 +27,7 @@
 <a class="skip" href="#content">Skip to content</a>
 
 <div class="topbar">
-  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="brand" href="./index.html"><img src="./assets/brand/logo-64.png" alt="" width="28" height="28">Factorio <span>Admin RCON</span></a>
   <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
 </div>
 
@@ -74,7 +74,10 @@ used at all: delete its service. See <a href="./services.html#mods">Mods tab</a>
   Not a panel variable, but it decides whether the Mods tab means anything. Left
   <code>true</code>, <code>factoriotools/factorio</code> replaces every mod with
   its newest release at each start, undoing the versions the panel installed.
-</div><h2 id="logs">Logging<a class="anchor" href="#logs" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>LOG_LEVEL</code></td><td><code>info</code></td><td><code>debug</code>, <code>info</code>, <code>warn</code> or <code>error</code>. Logs are JSON on standard output, readable by any collector.</td></tr></tbody></table></div><h2 id="dev">Development only<a class="anchor" href="#dev" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>NEXT_DEV_ORIGINS</code></td><td>&mdash;</td><td>Hosts allowed to load <code>next dev</code> resources, hot reload included. Needed to open the panel from another machine on the network: <code>NEXT_DEV_ORIGINS=192.168.1.17</code>. No effect in production.</td></tr></tbody></table></div>
+</div><h2 id="worlds">Worlds<a class="anchor" href="#worlds" aria-label="Link to this section">#</a></h2><p>Seed previews, world creation and the library go through the world agent,
+which runs the game's own binary beside the server. Putting a world in play is
+a restore, through the data agent. See <a href="./services.html#worlds">Worlds tab</a>.</p>
+<div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>WORLDS_ENABLED</code></td><td><code>true</code></td><td>At <code>false</code>: no Worlds tab, and <code>/api/worlds/*</code> answers <code>404 world_disabled</code>.</td></tr><tr><td><code>WORLD_AGENT_URL</code></td><td><code>http://world-agent:8080</code></td><td>The world agent, on the private <code>control</code> network.</td></tr><tr><td><code>WORLD_AGENT_TOKEN_FILE</code></td><td><code>/run/secrets/world_agent_token</code></td><td>Token shared with the world agent, distinct from the other two. <code>./setup-admin.sh</code> generates it. <code>WORLD_AGENT_TOKEN</code> takes it inline instead.</td></tr><tr><td><code>WORLD_AGENT_TIMEOUT_MS</code></td><td><code>10000</code></td><td>Deadline of a listing. Previews and new maps have their own, longer one: they run the game.</td></tr><tr><td><code>FACTORIO_IMAGE</code></td><td><code>factoriotools/factorio:stable</code></td><td>Read by Compose: the game server's image, and the base the world agent is built on, so both run the same version. Pin one to update them together, then rebuild the world agent.</td></tr><tr><td><code>WORLD_RUN_TIMEOUT_SECONDS</code></td><td><code>180</code></td><td>Read by the world agent: bound on one run of the game (a preview, a new map), killed past it.</td></tr></tbody></table></div><h2 id="logs">Logging<a class="anchor" href="#logs" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>LOG_LEVEL</code></td><td><code>info</code></td><td><code>debug</code>, <code>info</code>, <code>warn</code> or <code>error</code>. Logs are JSON on standard output, readable by any collector.</td></tr></tbody></table></div><h2 id="dev">Development only<a class="anchor" href="#dev" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Variable</th><th>Default</th><th>Effect</th></tr></thead><tbody><tr><td><code>NEXT_DEV_ORIGINS</code></td><td>&mdash;</td><td>Hosts allowed to load <code>next dev</code> resources, hot reload included. Needed to open the panel from another machine on the network: <code>NEXT_DEV_ORIGINS=192.168.1.17</code>. No effect in production.</td></tr></tbody></table></div>
 <nav class="pager"><a href="./deployment.html">&larr; Deployment</a><a href="./commands.html">Custom commands &rarr;</a></nav>
 </main>
 </div>

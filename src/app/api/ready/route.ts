@@ -5,6 +5,7 @@ import { loadCustomCatalog } from "@/server/actions/custom";
 import { hasAnyAccount } from "@/server/auth/users";
 import { agentHealthy } from "@/server/control/client";
 import { dataHealthy } from "@/server/data/client";
+import { worldHealthy } from "@/server/worlds/client";
 import { errorFields, logger } from "@/server/log";
 
 export const runtime = "nodejs";
@@ -14,7 +15,7 @@ type Check = { name: string; ok: boolean };
 
 /**
  * Readiness: valid configuration, reachable database, reachable Factorio
- * server and both agents. Kept distinct from /api/health so a Factorio outage does not restart
+ * server and the agents in use. Kept distinct from /api/health so a Factorio outage does not restart
  * the panel in a loop.
  */
 export async function GET() {
@@ -68,6 +69,11 @@ export async function GET() {
     const data = await dataHealthy();
     if (!data) logger.warn("readiness: data agent unavailable", { url: config.DATA_AGENT_URL });
     checks.push({ name: "data", ok: data });
+  }
+  if (config.WORLDS_ENABLED) {
+    const world = await worldHealthy();
+    if (!world) logger.warn("readiness: world agent unavailable", { url: config.WORLD_AGENT_URL });
+    checks.push({ name: "world", ok: world });
   }
 
   const ready = checks.every((check) => check.ok);

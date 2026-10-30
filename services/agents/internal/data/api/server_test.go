@@ -19,6 +19,7 @@ import (
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/mods"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/saves"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/serversettings"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/worlds"
 )
 
 const token = "0123456789abcdef0123456789abcdef-data"
@@ -28,6 +29,7 @@ type harness struct {
 	savesDir, backupsDir, modsDir string
 	configDir                     string
 	portal                        *fakeportal.Portal
+	worlds                        *worlds.Store
 }
 
 func newHarness(t *testing.T) *harness {
@@ -65,9 +67,15 @@ func newHarness(t *testing.T) *harness {
 	if err != nil {
 		t.Fatal(err)
 	}
+	worldsRoot, err := os.OpenRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.worlds = worlds.NewStore(worldsRoot)
 	agent := api.New(api.Options{
 		Store:              store,
 		Settings:           serversettings.New(configRoot, historyRoot),
+		Worlds:             h.worlds,
 		Mods:               mods.NewManager(h.modsDir, workRoot, h.portal.NewClient(t, true), 1<<20),
 		Token:              []byte(token),
 		MutationsPerMinute: 100,
@@ -201,5 +209,46 @@ func TestNoSave(t *testing.T) {
 	h := newHarness(t)
 	if r := h.call(t, "POST", "/v1/backups", `{"source":"manual"}`, true); r.status != http.StatusConflict || code(t, r) != "no_save" {
 		t.Fatalf("%d %s", r.status, r.body)
+	}
+}
+
+func TestArchiveWorld(t *testing.T) {
+	h := newHarness(t)
+	work := t.TempDir()
+	if err := os.WriteFile(filepath.Join(work, "world.zip"), fakesave.Valid(t, "world", "x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	workRoot, err := os.OpenRoot(work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := h.worlds.NewID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.worlds.Publish(workRoot, "world.zip", nil, worlds.Meta{ID: id, Name: "Rail world", FactorioVersion: "2.1.23"}); err != nil {
+		t.Fatal(err)
+	}
+
+	r := h.call(t, "POST", "/v1/worlds/"+id+"/archive", `{"createdBy":"admin"}`, true)
+	if r.status != http.StatusCreated {
+		t.Fatalf("archive: %d %s", r.status, r.body)
+	}
+	var created struct {
+		Backup saves.Meta `json:"backup"`
+	}
+	if err := json.Unmarshal(r.body, &created); err != nil {
+		t.Fatal(err)
+	}
+	if created.Backup.Source != saves.SourceWorld || created.Backup.Label != "Rail world" || created.Backup.SaveName != "rail-world.zip" {
+		t.Fatalf("backup = %+v", created.Backup)
+	}
+
+	if r := h.call(t, "POST", "/v1/worlds/20990101-000000/archive", `{}`, true); r.status != http.StatusNotFound || code(t, r) != "world_not_found" {
+		t.Fatalf("unknown world: %d %s", r.status, r.body)
+	}
+	// A world archive comes from the library only.
+	if r := h.call(t, "POST", "/v1/backups", `{"source":"world"}`, true); r.status != http.StatusBadRequest {
+		t.Fatalf("world from the saves folder: %d", r.status)
 	}
 }

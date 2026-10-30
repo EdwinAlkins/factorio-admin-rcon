@@ -7,7 +7,7 @@
 <meta name="description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, server control, saves and mods, amd64 and arm64.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/">
 <link rel="stylesheet" href="./assets/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<link rel="icon" type="image/png" href="./assets/brand/logo-64.png">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Factorio Admin RCON &mdash; kick and ban without sharing the RCON password">
 <meta property="og:description" content="Docker web console for Factorio 2. Moderators kick, ban and mute from a browser; only the administrator gets raw RCON. Roles, audit log, server control, saves and mods, amd64 and arm64.">
@@ -24,7 +24,7 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
   {"@type":"SoftwareApplication","name":"Factorio Admin RCON","description":"A hardened web console for Factorio servers: roles, bounded commands and an audit log, without handing out full RCON.","url":"https://edwinalkins.github.io/factorio-admin-rcon/","applicationCategory":"DeveloperApplication","operatingSystem":"Linux","license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/EdwinAlkins/factorio-admin-rcon","image":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
-  {"@type":"VideoObject","name":"Factorio Admin RCON panel walkthrough","description":"Signing in, running quick actions, typing a command, the Lua guard, and reading the audit log.","thumbnailUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","contentUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/demo.mp4","uploadDate":"2026-08-28","duration":"PT48S"},
+  {"@type":"VideoObject","name":"Factorio Admin RCON panel walkthrough","description":"Signing in, a quick action, a typed command, a Kick stopped at its confirmation, the audit log, statistics, then the Server and Saves tabs, the Pyanodons modpack planned in one operation, and previewing worlds.","thumbnailUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/console.png","contentUrl":"https://edwinalkins.github.io/factorio-admin-rcon/assets/media/demo.mp4","uploadDate":"2026-10-28","duration":"PT83S"},
   {"@type":"FAQPage","mainEntity":[
     {"@type":"Question","name":"Does it replace Factorio Server Manager?","acceptedAnswer":{"@type":"Answer","text":"Mostly, for a Docker server. It starts, stops and restarts the server, archives and restores saves, and installs mods from the official portal, each through a narrow agent. It does not update the server binary: that stays the image tag in your compose file."}},
     {"@type":"Question","name":"Does it start my server, or manage mods and saves?","acceptedAnswer":{"@type":"Answer","text":"Yes, all three, in the full stack. A control agent alone holds the Docker socket; a data agent alone holds the game's files and reaches the mod portal. The minimal stack, pasted without cloning, has neither."}},
@@ -42,7 +42,7 @@
 <a class="skip" href="#content">Skip to content</a>
 
 <div class="topbar">
-  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="brand" href="./index.html"><img src="./assets/brand/logo-64.png" alt="" width="28" height="28">Factorio <span>Admin RCON</span></a>
   <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
 </div>
 
@@ -59,11 +59,11 @@
 </header>
 
 <video class="shot" autoplay muted loop playsinline controls poster="./assets/media/console.png"
-       aria-label="Signing in, running quick actions, typing a command, and reading the audit log.">
+       aria-label="Signing in, a quick action, a typed command, a Kick confirmation, the audit log, then the Server, Saves, Mods and Worlds tabs.">
   <source src="./assets/media/demo.mp4" type="video/mp4">
   <img class="shot" src="./assets/media/demo.gif" alt="The panel: quick actions, RCON console and audit log.">
 </video>
-<p class="shot-caption">Signing in, quick actions, a manual command, the Lua guard, and the audit log &mdash; 48&nbsp;seconds.</p>
+<p class="shot-caption">Signing in, a quick action, a typed command, a Kick stopped at its confirmation, the audit log, then the Server, Saves, Mods (the Pyanodons modpack, planned in one operation) and Worlds tabs &mdash; 83&nbsp;seconds.</p>
 
 <h2 id="why">Why this exists<a class="anchor" href="#why" aria-label="Link to this section">#</a></h2>
 
@@ -207,7 +207,7 @@ Server, Saves or Mods tab and no CPU/memory graphs. For those, the
 <div class="snippet" data-lang="bash"><pre><code>git clone https://github.com/EdwinAlkins/factorio-admin-rcon.git
 cd factorio-admin-rcon
 ./setup-admin.sh
-docker compose up -d --build control-agent data-agent factorio-admin</code></pre></div>
+docker compose up -d --build control-agent data-agent world-agent factorio-admin</code></pre></div>
 
 <div class="note">
   <strong>The panel is not published on the network</strong>
@@ -231,6 +231,12 @@ docker compose up -d --build control-agent data-agent factorio-admin</code></pre
   A stop saves the map first. The control agent alone holds the Docker socket;
   the data agent alone holds the game's files and reaches the mod portal. The
   minimal stack, pasted without cloning, has neither.</dd>
+
+  <dt>Can I pick a seed, or start a new world?</dt>
+  <dd>Yes, in the full stack's Worlds tab: preview seeds and every map generator
+  setting, per planet with Space Age, while the server keeps running; keep the
+  worlds you like in a library; put one in play when you choose, with the
+  current map archived first. See <a href="./services.html#worlds">Worlds tab</a>.</dd>
 
   <dt>What happens if a mod breaks the server?</dt>
   <dd>Mod changes are applied as one operation, with a single restart, after an
@@ -264,7 +270,7 @@ docker compose up -d --build control-agent data-agent factorio-admin</code></pre
   agent you delete its service: <code>CONTROL_ENABLED=false</code> with
   <code>METRICS_DOCKER=false</code> for the control agent,
   <code>SAVES_ENABLED=false</code> with <code>MODS_ENABLED=false</code> for the data
-  agent. See <a href="./services.html#switches">Turning features off</a>.</dd>
+  agent, <code>WORLDS_ENABLED=false</code> for the world agent. See <a href="./services.html#switches">Turning features off</a>.</dd>
 </dl>
 
 <div class="closing">

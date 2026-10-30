@@ -20,13 +20,15 @@ func TestParseVersion(t *testing.T) {
 
 func TestParseDependency(t *testing.T) {
 	cases := map[string]Dependency{
-		"base >= 2.1.0":           {Kind: Required, Name: "base", Op: ">=", Version: Version{2, 1, 0}},
-		"? bobplates":             {Kind: Optional, Name: "bobplates"},
-		"(?) hidden-mod < 1.0":    {Kind: Hidden, Name: "hidden-mod", Op: "<", Version: Version{1, 0, 0}},
-		"! bad_mod":               {Kind: Incompatible, Name: "bad_mod"},
-		"~ flib = 0.15.2":         {Kind: Unordered, Name: "flib", Op: "=", Version: Version{0, 15, 2}},
-		"Mod With Spaces > 1.0.0": {Kind: Required, Name: "Mod With Spaces", Op: ">", Version: Version{1, 0, 0}},
-		"?flib":                   {Kind: Optional, Name: "flib"},
+		"base >= 2.1.0":              {Kind: Required, Name: "base", Op: ">=", Version: Version{2, 1, 0}},
+		"? bobplates":                {Kind: Optional, Name: "bobplates"},
+		"(?) hidden-mod < 1.0":       {Kind: Hidden, Name: "hidden-mod", Op: "<", Version: Version{1, 0, 0}},
+		"! bad_mod":                  {Kind: Incompatible, Name: "bad_mod"},
+		"~ flib = 0.15.2":            {Kind: Unordered, Name: "flib", Op: "=", Version: Version{0, 15, 2}},
+		"Mod With Spaces > 1.0.0":    {Kind: Required, Name: "Mod With Spaces", Op: ">", Version: Version{1, 0, 0}},
+		"?flib":                      {Kind: Optional, Name: "flib"},
+		"+ enable-all-feature-flags": {Kind: Recommended, Name: "enable-all-feature-flags"},
+		"+cargo-bays >= 1.0":         {Kind: Recommended, Name: "cargo-bays", Op: ">=", Version: Version{1, 0, 0}},
 	}
 	for raw, want := range cases {
 		got, err := ParseDependency(raw)

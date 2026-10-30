@@ -7,7 +7,7 @@
 <meta name="description" content="Run Factorio Admin RCON beside factoriotools/factorio: a minimal stack without cloning, or the full one with server control, saves and mods.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/installation.html">
 <link rel="stylesheet" href="./assets/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<link rel="icon" type="image/png" href="./assets/brand/logo-64.png">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Install with Docker Compose &mdash; Factorio Admin RCON">
 <meta property="og:description" content="Run Factorio Admin RCON beside factoriotools/factorio: a minimal stack without cloning, or the full one with server control, saves and mods.">
@@ -27,7 +27,7 @@
 <a class="skip" href="#content">Skip to content</a>
 
 <div class="topbar">
-  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="brand" href="./index.html"><img src="./assets/brand/logo-64.png" alt="" width="28" height="28">Factorio <span>Admin RCON</span></a>
   <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
 </div>
 
@@ -48,7 +48,7 @@
 <tr><td>Server tab: start, stop, restart, logs</td><td>&mdash;</td><td>Yes</td></tr>
 <tr><td>Saves tab: archives, schedule, download, restore</td><td>&mdash;</td><td>Yes</td></tr>
 <tr><td>Mods tab: portal search, install, update, enable, remove</td><td>&mdash;</td><td>Yes</td></tr>
-<tr><td>Containers</td><td>2: Factorio, the panel</td><td>4: + <a href="./services.html#control-agent">control agent</a>, <a href="./services.html#data-agent">data agent</a></td></tr>
+<tr><td>Containers</td><td>2: Factorio, the panel</td><td>5: + <a href="./services.html#control-agent">control agent</a>, <a href="./services.html#data-agent">data agent</a>, <a href="./services.html#world-agent">world agent</a></td></tr>
 <tr><td>Docker socket mounted</td><td>Nowhere</td><td>In the control agent only</td></tr>
 <tr><td>Needs</td><td>A <code>docker-compose.yml</code> and a <code>.env</code></td><td>A clone of the repository</td></tr>
 </tbody></table></div>
@@ -121,12 +121,13 @@ the <code>docker-compose.yml</code> below pasted as it stands, and a generated
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
       - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
-      # No agents in this stack: no Server, Saves or Mods tab, no CPU and
+      # No agents in this stack: no Server, Saves, Mods or Worlds tab, no CPU and
       # memory graphs. Players and UPS keep working.
       - CONTROL_ENABLED=false
       - METRICS_DOCKER=false
       - SAVES_ENABLED=false
       - MODS_ENABLED=false
+      - WORLDS_ENABLED=false
 
 volumes:
   factorio-admin-data:</code></pre></div>
@@ -161,18 +162,19 @@ prepares everything they need on the host.</p>
 cd factorio-admin-rcon
 
 ./setup-admin.sh
-docker compose up -d --build control-agent data-agent factorio-admin
+docker compose up -d --build control-agent data-agent world-agent factorio-admin
 # &rarr; http://127.0.0.1:3010</code></pre></div>
 <p>Compose starts the <code>factorio</code> service along with them. What
 <code>./setup-admin.sh</code> does, all of it safe to run again:</p>
 <ul>
   <li>writes <code>.env</code>: the administrator password and
       <code>SESSION_SECRET</code>, kept if already there;</li>
-  <li>generates the two agent tokens, <code>secrets/control-agent-token</code> and
-      <code>secrets/data-agent-token</code>;</li>
+  <li>generates the three agent tokens, <code>secrets/control-agent-token</code>,
+      <code>secrets/data-agent-token</code> and <code>secrets/world-agent-token</code>;</li>
   <li>creates an empty <code>secrets/factorio-portal</code> (<code>{}</code>), which
       it never overwrites;</li>
-  <li>creates <code>backups/</code> and hands it to uid 845, the data agent's;</li>
+  <li>creates <code>backups/</code> and <code>worlds/</code> and hands them to uid 845,
+      the data and world agents';</li>
   <li>records <code>DOCKER_GID</code>, the group owning the Docker socket on this
       host, for the control agent.</li>
 </ul>
@@ -196,25 +198,34 @@ tab still lists, enables, disables and removes mods.</p>
 <tr><td><code>/var/run/docker.sock</code></td><td>control agent</td><td>The panel calls the agent's closed, token-protected API and never receives the socket. <code>DOCKER_SOCKET</code> overrides the path (rootless Docker).</td></tr>
 <tr><td><code>./data/saves</code>, <code>./data/mods</code></td><td>data agent</td><td>Read-write: restores write saves, the Mods tab installs and removes mods.</td></tr>
 <tr><td><code>./backups</code></td><td>data agent</td><td>Archives, outside <code>./data</code> so they can be replicated on their own. Must belong to uid 845.</td></tr>
+<tr><td><code>./worlds</code></td><td>world agent; data agent, read-only</td><td>Generated worlds, kept until deleted. Must belong to uid 845.</td></tr>
+<tr><td><code>./data/mods:ro</code></td><td>world agent</td><td>The server's mods, so previews and new maps match the server's mod set. Never written.</td></tr>
 <tr><td><code>secrets/*-agent-token</code></td><td>panel, one agent each</td><td>Compose secrets, one per agent.</td></tr>
 <tr><td><code>secrets/factorio-portal</code></td><td>data agent</td><td>factorio.com credentials, or <code>{}</code>.</td></tr>
 </tbody></table></div>
-<p>The panel and both agents run with a read-only root filesystem,
+<p>The panel and the three agents run with a read-only root filesystem,
 <code>cap_drop: [ALL]</code>, <code>no-new-privileges</code>, and memory and PID
-caps (256 MB for the panel, 32 MB and 128 MB for the agents). None of them runs
-as root: the panel as uid 1000, the control agent as 65532 plus the socket's
-group, the data agent as 845. The <a href="./services.html">Services</a> page
+caps (256 MB for the panel, 32 MB, 128 MB and 1 GB for the agents &mdash; the
+world agent runs the game). None of them runs as root: the panel as uid 1000,
+the control agent as 65532 plus the socket's group, the data and world agents
+as 845. The world agent is built on the server's image
+(<code>FACTORIO_IMAGE</code>): it must embed the very version your server
+runs. The <a href="./services.html">Services</a> page
 explains who holds what, and how to remove an agent you do not need.</p>
 <h3 id="images">Published images instead of a local build<a class="anchor" href="#images" aria-label="Link to this section">#</a></h3>
-<p>The compose file builds the three images from the clone. Releases also
+<p>The compose file builds the four images from the clone. Releases also
 publish them, for <code>amd64</code> and <code>arm64</code>, with an SBOM and
 build provenance: swap each <code>build:</code> block for an <code>image:</code>
-line. Keep the three on the <strong>same version</strong> &mdash; the panel and its
-agents speak a private API, versioned together.</p>
+line. Keep the four on the <strong>same version</strong> &mdash; the panel and its
+agents speak a private API, versioned together. The published world agent is
+built on <code>factoriotools/factorio:stable</code> as of the release: if your
+server runs another version, keep its <code>build:</code> block.</p>
 <div class="snippet" data-lang="yaml"><pre><code>  control-agent:
     image: williamnauroy/factorio-control-agent:&lt;version&gt;
   data-agent:
     image: williamnauroy/factorio-data-agent:&lt;version&gt;
+  world-agent:
+    image: williamnauroy/factorio-world-agent:&lt;version&gt;
   factorio-admin:
     image: williamnauroy/factorio-admin-rcon:&lt;version&gt;-distroless</code></pre></div>
 <h3 id="distroless">Hardened image (optional)<a class="anchor" href="#distroless" aria-label="Link to this section">#</a></h3>
@@ -227,18 +238,18 @@ binary and nothing else.</p>
 <h3 id="upgrading">Upgrading from 1.x<a class="anchor" href="#upgrading" aria-label="Link to this section">#</a></h3>
 <p>2.0 replaces the <code>docker-proxy</code> service
 (<code>tecnativa/docker-socket-proxy</code>) with the project's own control agent,
-and adds the data agent. With <code>CONTAINERS=1</code>, that proxy answered for
+and adds the data and world agents. With <code>CONTAINERS=1</code>, that proxy answered for
 every container on the host, environment variables included &mdash; so the
 panel's own <code>ADMIN_PASSWORD</code> and <code>SESSION_SECRET</code> were one
 request away from anything that reached it.</p>
 <ol>
   <li>take the new <code>docker-compose.yml</code> (or port its
-      <code>control-agent</code> and <code>data-agent</code> services, its
+      <code>control-agent</code>, <code>data-agent</code> and <code>world-agent</code> services, its
       <code>networks:</code> and <code>secrets:</code> blocks into yours) and delete
       the <code>docker-proxy</code> service;</li>
   <li>run <code>./setup-admin.sh</code> once: existing passwords are kept; it adds
       the agents' tokens, an empty <code>secrets/factorio-portal</code>,
-      <code>backups/</code> and <code>DOCKER_GID</code>;</li>
+      <code>backups/</code>, <code>worlds/</code> and <code>DOCKER_GID</code>;</li>
   <li>drop <code>DOCKER_API_URL</code>, <code>METRICS_CONTAINER</code> and
       <code>DOCKER_TIMEOUT_MS</code> from your environment: the panel no longer
       reads them;</li>
@@ -249,6 +260,14 @@ request away from anything that reached it.</p>
       outside the panel;</li>
   <li><code>docker compose up -d --build --remove-orphans</code>.</li>
 </ol>
+<p>Running the minimal stack, with no agent? 2.0 turns the new tabs on by
+default, and the panel then waits for agents that are not there
+(<code>/api/ready</code> answers <code>503</code>). Add
+<code>CONTROL_ENABLED=false</code>, <code>SAVES_ENABLED=false</code>,
+<code>MODS_ENABLED=false</code> and <code>WORLDS_ENABLED=false</code> next to
+<code>METRICS_DOCKER=false</code> before moving the image tag to
+<code>2.0</code>. A tag pinned to <code>1.5</code> or <code>1</code> never moves
+to 2.0 on its own; <code>latest</code> does.</p>
 <h2 id="proxy">Behind a reverse proxy<a class="anchor" href="#proxy" aria-label="Link to this section">#</a></h2>
 <p>The panel only listens on the loopback interface. To expose it, put a TLS
 reverse proxy in front and enable <code>TRUST_PROXY</code>:</p>
@@ -263,7 +282,7 @@ reverse proxy in front and enable <code>TRUST_PROXY</code>:</p>
 <p>The session cookie turns <code>secure</code> on its own as soon as the request
 arrives over HTTPS (<code>COOKIE_SECURE=auto</code>, the default). Recipes for
 Caddy, Nginx, Traefik and Tailscale are in <a href="./deployment.html">Deployment</a>.</p>
-<h2 id="probes">Health probes<a class="anchor" href="#probes" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Route</th><th>Answers</th><th>Use it for</th></tr></thead><tbody><tr><td><code>/api/health</code></td><td>200 as long as the process is alive</td><td>Docker's <em>liveness</em> probe. It does not depend on Factorio.</td></tr><tr><td><code>/api/ready</code></td><td>200 when configuration, command catalogue, database and RCON answer, plus the control agent when server control or Docker metrics use it, and the data agent when saves or mods do; 503 otherwise</td><td>The <em>readiness</em> probe. Kept separate from the above so a Factorio outage does not restart the panel in a loop.</td></tr></tbody></table></div>
+<h2 id="probes">Health probes<a class="anchor" href="#probes" aria-label="Link to this section">#</a></h2><div class="table-wrap"><table><thead><tr><th>Route</th><th>Answers</th><th>Use it for</th></tr></thead><tbody><tr><td><code>/api/health</code></td><td>200 as long as the process is alive</td><td>Docker's <em>liveness</em> probe. It does not depend on Factorio.</td></tr><tr><td><code>/api/ready</code></td><td>200 when configuration, command catalogue, database and RCON answer, plus the control agent when server control or Docker metrics use it, the data agent when saves or mods do, and the world agent when worlds are on; 503 otherwise</td><td>The <em>readiness</em> probe. Kept separate from the above so a Factorio outage does not restart the panel in a loop.</td></tr></tbody></table></div>
 <p>Each agent image carries its own Docker healthcheck (the binary run with
 <code>-healthcheck</code>), so <code>docker compose ps</code> shows them
 <code>healthy</code> or not.</p>
@@ -273,7 +292,7 @@ docker compose pull &amp;&amp; docker compose up -d
 
 # Full stack, built from the clone
 git pull
-docker compose up -d --build control-agent data-agent factorio-admin</code></pre></div>
+docker compose up -d --build control-agent data-agent world-agent factorio-admin</code></pre></div>
 <p>Published images follow the versions semantic-release cuts. The database
 schema is upgraded at startup: columns added after the fact are caught up by an
 idempotent <code>ALTER TABLE</code>, so there is nothing to do by hand.</p>

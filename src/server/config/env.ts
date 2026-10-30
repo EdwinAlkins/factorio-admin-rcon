@@ -114,6 +114,18 @@ const EnvSchema = z.object({
   // agent is not used at all.
   MODS_ENABLED: booleanish.default(true),
 
+  // Worlds: seed previews, world creation, a library of worlds, through the
+  // world agent — which runs the game's binary and never touches the
+  // server's saves. Activating a world is a restore through the data agent.
+  // WORLDS_ENABLED=false removes the Worlds tab and its endpoints.
+  WORLDS_ENABLED: booleanish.default(true),
+  WORLD_AGENT_URL: z.url({ protocol: /^https?$/ }).default("http://world-agent:8080"),
+  WORLD_AGENT_TOKEN: z.string().min(32).optional(),
+  WORLD_AGENT_TOKEN_FILE: z.string().min(1).default("/run/secrets/world_agent_token"),
+  // Deadline of a listing. Previews and new maps get their own, longer one:
+  // they run the game.
+  WORLD_AGENT_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+
   // Metrics, in three levels: one master switch and two sources.
   //
   // METRICS_ENABLED=false turns the whole feature off — no collector, no tab,

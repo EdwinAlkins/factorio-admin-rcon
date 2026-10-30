@@ -5,7 +5,8 @@
   },
   "app": {
     "brand": "Factorio",
-    "brandSuffix": "— admin panel"
+    "brandSuffix": "— admin panel",
+    "source": "Source code on GitHub"
   },
   "login": {
     "subtitle": "Password required.",
@@ -175,7 +176,8 @@
     "metrics": "Statistics",
     "server": "Server",
     "saves": "Saves",
-    "mods": "Mods"
+    "mods": "Mods",
+    "worlds": "Worlds"
   },
 
   "metrics": {
@@ -257,7 +259,8 @@
       "restore": "Restore",
       "mods_apply": "Mods",
       "import": "Import",
-      "server_settings_apply": "Server settings"
+      "server_settings_apply": "Server settings",
+      "world_activate": "World"
     },
     "status": {
       "running": "in progress",
@@ -299,7 +302,8 @@
       "scheduled": "scheduled",
       "pre-restore": "before restore",
       "pre-mods": "before mod change",
-      "upload": "imported"
+      "upload": "imported",
+      "world": "world"
     },
     "modsCount": "{count, plural, =0 {no mod} one {# mod} other {# mods}}",
     "download": "Download",
@@ -511,6 +515,219 @@
       "forceLabel": "Restart anyway"
     }
   },
+  "worlds": {
+    "title": "Worlds",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "operation": "In progress: {step}",
+    "versionMismatch": "The world agent generates with Factorio {agent}, the server runs {server}: a world may differ from its preview, or need migrating. Set the same FACTORIO_IMAGE for both and rebuild the world agent.",
+    "creator": "Create a world",
+    "creatorHint": "seed, resources, terrain, enemies, rules — with a preview",
+    "catalogLoading": "Reading the map generator from the game (a few seconds the first time)…",
+    "library": "Library",
+    "libraryEmpty": "No world yet. Create one above: the server keeps running meanwhile.",
+    "columns": {
+      "created": "Created",
+      "version": "Game",
+      "mods": "Mods"
+    },
+    "activate": "Put in play",
+    "reuse": "Reuse settings",
+    "download": "Download",
+    "delete": "Delete",
+    "confirm": {
+      "activateTitle": "Put this world in play?",
+      "activateMessage": "The server is saved and stopped, the current map is archived, then “{name}” becomes the save and the server restarts. Players will be disconnected.",
+      "activateDetails": "Nothing is lost: the current map stays in the Saves tab (“before restore”), and this world stays in the library. If the server does not come back, the previous map is restored automatically.",
+      "forceTitle": "Put it in play anyway?",
+      "forceLabel": "Put in play anyway",
+      "deleteTitle": "Delete this world?",
+      "deleteMessage": "“{name}” will be deleted from the library for good. A map already in play is not affected."
+    },
+    "sections": {
+      "general": "General",
+      "resources": "Resources",
+      "terrain": "Terrain",
+      "enemies": "Enemies",
+      "pollution": "Pollution",
+      "evolution": "Evolution",
+      "expansion": "Expansion",
+      "difficulty": "Difficulty",
+      "advanced": "Advanced (JSON)",
+      "exchange": "Map exchange string"
+    },
+    "seed": "Seed",
+    "seedRandom": "random",
+    "seedInvalid": "The seed must be a whole number from 0 to 4294967295.",
+    "newSeed": "New seed",
+    "preset": "Preset",
+    "presetCustom": "Custom",
+    "planet": "Planet",
+    "none": "Nothing to set on this planet.",
+    "frequency": "Frequency",
+    "size": "Size",
+    "richness": "Richness",
+    "reset": "Back to default",
+    "resourcesHint": "Frequency: how many deposits. Size: how large each one is (0 % removes it). Richness: how much each tile holds.",
+    "rulesHint": "Rules change how the world plays once created, not its terrain: the preview does not show them.",
+    "mapGen": {
+      "width": "Map width (tiles, 0 = infinite)",
+      "height": "Map height (tiles, 0 = infinite)",
+      "sizeHint": "A preset or the fields below start from the game's defaults; a dot marks what you changed.",
+      "starting_area": "Starting area (%)",
+      "peaceful_mode": "Peaceful mode (enemies only fight back)",
+      "no_enemies_mode": "No enemies"
+    },
+    "advanced": {
+      "hint": "The form's changes as JSON, with Factorio's own names (map-gen-settings.json under mapGen, map-settings.json under mapSettings). Only the members the form knows are accepted.",
+      "load": "Load from the form",
+      "apply": "Apply to the form",
+      "invalid": "Not valid JSON, or a member other than mapGen and mapSettings."
+    },
+    "exchange": {
+      "hint": "Paste a string from the game's “Map exchange string” dialog to recreate that map exactly. It replaces the form; the seed field, left empty, keeps the string's own.",
+      "active": "The exchange string is used: the form is ignored."
+    },
+    "name": "Name",
+    "namePlaceholder": "World name",
+    "create": "Create the world",
+    "createHint": "Generated beside the server, which keeps running.",
+    "created": "World “{name}” created (seed {seed}). Find it in the library below.",
+    "area": "Area shown",
+    "areaTiles": "{size} tiles",
+    "previewButton": "Preview",
+    "rendering": "Generating…",
+    "compare": "Compare {count} seeds",
+    "compareHint": "Click a map to keep its seed.",
+    "previewAlt": "Map preview, seed {seed}",
+    "previewCaption": "Seed {seed} · {planet} · {size} × {size} tiles centred on {x}, {y}",
+    "previewEmpty": "Choose settings, then Preview: the game draws the terrain without creating anything.",
+    "previewHint": "Starting area at the centre. Previews never change the server's map.",
+    "pan": "Move the preview",
+    "panNorth": "North",
+    "panSouth": "South",
+    "panEast": "East",
+    "panWest": "West",
+    "panCentre": "Back to the spawn",
+    "quantities": {
+      "resource": "Resource",
+      "tiles": "Tiles",
+      "amount": "Amount"
+    },
+    "controls": {
+      "iron-ore": "Iron ore",
+      "copper-ore": "Copper ore",
+      "stone": "Stone",
+      "coal": "Coal",
+      "crude-oil": "Crude oil",
+      "uranium-ore": "Uranium ore",
+      "water": "Water",
+      "trees": "Trees",
+      "rocks": "Rocks",
+      "starting_area_moisture": "Starting area moisture",
+      "nauvis_cliff": "Cliffs",
+      "enemy-base": "Enemy bases",
+      "vulcanus_coal": "Coal",
+      "tungsten_ore": "Tungsten ore",
+      "calcite": "Calcite",
+      "sulfuric_acid_geyser": "Sulfuric acid geysers",
+      "vulcanus_volcanism": "Volcanism",
+      "gleba_stone": "Stone",
+      "gleba_plants": "Plants",
+      "gleba_water": "Water",
+      "gleba_cliff": "Cliffs",
+      "gleba_enemy_base": "Enemy bases",
+      "scrap": "Scrap",
+      "fulgora_islands": "Islands",
+      "fulgora_cliff": "Cliffs",
+      "lithium_brine": "Lithium brine",
+      "fluorine_vent": "Fluorine vents",
+      "aquilo_crude_oil": "Crude oil"
+    },
+    "resources": {
+      "iron-ore": "Iron ore",
+      "copper-ore": "Copper ore",
+      "stone": "Stone",
+      "coal": "Coal",
+      "crude-oil": "Crude oil",
+      "uranium-ore": "Uranium ore",
+      "tungsten-ore": "Tungsten ore",
+      "calcite": "Calcite",
+      "sulfuric-acid-geyser": "Sulfuric acid geyser",
+      "scrap": "Scrap",
+      "lithium-brine": "Lithium brine",
+      "fluorine-vent": "Fluorine vent"
+    },
+    "planets": {
+      "nauvis": "Nauvis",
+      "vulcanus": "Vulcanus",
+      "gleba": "Gleba",
+      "fulgora": "Fulgora",
+      "aquilo": "Aquilo"
+    },
+    "presets": {
+      "default": "Default",
+      "rich-resources": "Rich resources",
+      "marathon": "Marathon",
+      "death-world": "Death world",
+      "death-world-marathon": "Death world marathon",
+      "rail-world": "Rail world",
+      "ribbon-world": "Ribbon world",
+      "lakes": "Lakes",
+      "island": "Island"
+    },
+    "rules": {
+      "pollution": {
+        "enabled": "Pollution",
+        "diffusion_ratio": "Diffusion ratio",
+        "min_to_diffuse": "Minimum to diffuse",
+        "ageing": "Absorption modifier",
+        "enemy_attack_pollution_consumption_modifier": "Attack cost modifier",
+        "min_pollution_to_damage_trees": "Minimum to damage trees",
+        "pollution_restored_per_tree_damage": "Absorbed per damaged tree"
+      },
+      "enemy_evolution": {
+        "enabled": "Enemy evolution",
+        "time_factor": "Time factor",
+        "destroy_factor": "Destroy factor",
+        "pollution_factor": "Pollution factor"
+      },
+      "enemy_expansion": {
+        "enabled": "Enemy expansion",
+        "max_expansion_distance": "Maximum expansion distance",
+        "settler_group_min_size": "Minimum group size",
+        "settler_group_max_size": "Maximum group size",
+        "min_expansion_cooldown": "Minimum cooldown",
+        "max_expansion_cooldown": "Maximum cooldown"
+      },
+      "difficulty_settings": {
+        "technology_price_multiplier": "Technology price multiplier",
+        "spoil_time_modifier": "Spoil time modifier"
+      },
+      "units": {
+        "pollution": {
+          "diffusion_ratio": "%"
+        },
+        "enemy_evolution": {
+          "time_factor": "× 10⁻⁷",
+          "destroy_factor": "× 10⁻⁵",
+          "pollution_factor": "× 10⁻⁷"
+        },
+        "enemy_expansion": {
+          "max_expansion_distance": "chunks",
+          "min_expansion_cooldown": "min",
+          "max_expansion_cooldown": "min"
+        }
+      }
+    },
+    "climate": {
+      "control_moisture_frequency": "Moisture scale",
+      "control_moisture_bias": "Moisture bias",
+      "control_aux_frequency": "Terrain type scale",
+      "control_aux_bias": "Terrain type bias"
+    }
+  },
   "errors": {
     "metrics_disabled": "Metrics are disabled on this panel.",
     "unknown": "Unexpected error.",
@@ -634,6 +851,21 @@
     "settings_tx_not_found": "The previous settings could not be found.",
     "public_needs_credentials": "A public game needs a factorio.com username and a token or password.",
     "settings_rolled_back": "The server did not restart with these settings ({reason}); the previous ones were put back.",
-    "settings_rollback_failed": "The server did not restart ({reason}), and putting the previous settings back failed too: check the server."
+    "settings_rollback_failed": "The server did not restart ({reason}), and putting the previous settings back failed too: check the server.",
+    "world_disabled": "Worlds are disabled on this panel.",
+    "world_config": "World agent token unavailable on the panel.",
+    "world_unreachable": "The world agent is unreachable.",
+    "world_timeout": "The world agent did not respond in time.",
+    "world_rejected": "The world agent refused the panel's token.",
+    "world_busy": "The game is already generating a preview or a world. Try again in a moment.",
+    "world_rate_limited": "Too many previews. Try again in a minute.",
+    "world_protocol": "Unexpected response from the world agent.",
+    "world_io": "The world agent could not read or write its files.",
+    "world_not_found": "This world does not exist.",
+    "worlds_unavailable": "The data agent cannot see the worlds folder: mount ./worlds into it.",
+    "factorio_refused": "Factorio refused these settings: {reason}",
+    "factorio_timeout": "Factorio did not finish in time.",
+    "invalid_world_settings": "Invalid world settings: {reason}",
+    "preview_not_found": "This preview has expired. Generate it again."
   }
 }

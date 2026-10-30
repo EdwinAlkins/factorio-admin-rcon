@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/brand/logo-256.png" alt="" width="128" height="128"></p>
+
 # Factorio Admin RCON
 
 **Not a server manager: a hardened RCON admin console.** Give moderators the server actions they
@@ -74,7 +76,7 @@ model](#security-model)).
 ## Quick start (without cloning)
 
 Two ways in. This one is the **minimal** stack — the game server and the panel, no agent: roles,
-actions, console, audit log and the players/UPS graphs, but no Server, Saves or Mods tab. For every
+actions, console, audit log and the players/UPS graphs, but no Server, Saves, Mods or Worlds tab. For every
 feature, see [Full install](#full-install-every-feature).
 
 Nothing to clone: one directory, a `docker-compose.yml` pasted as-is, a `.env` you generate. The
@@ -134,13 +136,14 @@ services:
       - RCON_PASSWORD_FILE=/factorio-config/rconpw
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?set it in .env}
       - SESSION_SECRET=${SESSION_SECRET:?set it in .env, 32 chars minimum}
-      # This stack has no agents: no Server, Saves or Mods tab, and no CPU and
+      # This stack has no agents: no Server, Saves, Mods or Worlds tab, and no CPU and
       # memory graphs. Players and UPS keep working. The full install, from the
       # repository, brings all of them.
       - CONTROL_ENABLED=false
       - METRICS_DOCKER=false
       - SAVES_ENABLED=false
       - MODS_ENABLED=false
+      - WORLDS_ENABLED=false
 
 volumes:
   factorio-admin-data:
@@ -236,19 +239,20 @@ PR.
 
 ## Full install (every feature)
 
-The root `docker-compose.yml` runs the four services — the game server, the panel, the control
-agent and the data agent — with their networks and secrets, already confined:
+The root `docker-compose.yml` runs the five services — the game server, the panel, the control
+agent, the data agent and the world agent — with their networks and secrets, already confined:
 
 ```bash
 git clone https://github.com/EdwinAlkins/factorio-admin-rcon.git
 cd factorio-admin-rcon
 ./setup-admin.sh
-docker compose up -d --build control-agent data-agent factorio-admin   # http://127.0.0.1:3010
+docker compose up -d --build control-agent data-agent world-agent factorio-admin   # http://127.0.0.1:3010
 ```
 
-`setup-admin.sh` writes `.env` (administrator password, `SESSION_SECRET`), generates the two agent
-tokens (`./secrets/control-agent-token`, `./secrets/data-agent-token`, Compose secrets), creates an
-empty `./secrets/factorio-portal`, creates `./backups` for uid 845 (the data agent's), and writes
+`setup-admin.sh` writes `.env` (administrator password, `SESSION_SECRET`), generates the three agent
+tokens (`./secrets/control-agent-token`, `./secrets/data-agent-token`,
+`./secrets/world-agent-token`, Compose secrets), creates an empty `./secrets/factorio-portal`,
+creates `./backups` and `./worlds` for uid 845 (the data and world agents'), and writes
 `DOCKER_GID`, the group that owns the Docker socket on this host, to `.env`. `--all` also creates
 the moderator and viewer passwords, `--ask` prompts for them instead of generating them, and
 `--force` rotates every secret (which ends open sessions). Values already present are kept by
@@ -261,7 +265,8 @@ To install mods from the portal, fill in `secrets/factorio-portal` — see [Mods
 | `factorio` | the game, `./data` | everything |
 | `factorio-admin` | sessions, audit, metrics (`factorio-admin-data` volume) | everything |
 | `control-agent` | the Docker socket | Server tab, CPU/memory graphs, applying mods |
-| `data-agent` | `./data/saves`, `./data/mods`, `./backups`, the way to the mod portal | Saves and Mods tabs |
+| `data-agent` | `./data/saves`, `./data/mods`, `./backups`, the way to the mod portal | Saves and Mods tabs, putting a world in play |
+| `world-agent` | the game's binary, `./worlds` (`./data/mods` read-only) | Worlds tab |
 
 The [Services](https://edwinalkins.github.io/factorio-admin-rcon/services.html) page details who
 holds what, the networks, and how to remove an agent you do not need.
@@ -273,10 +278,10 @@ control agent. With `CONTAINERS=1`, that proxy answered `GET /containers/{id}/js
 container on the host — environment variables included, so the panel's own `ADMIN_PASSWORD` and
 `SESSION_SECRET` were one request away from anything that reached it.
 
-1. Take the new `docker-compose.yml` (or port its `control-agent` and `data-agent` services, its
+1. Take the new `docker-compose.yml` (or port its `control-agent`, `data-agent` and `world-agent` services, its
    `networks:` and `secrets:` blocks into yours) and delete the `docker-proxy` service.
 2. Run `./setup-admin.sh` once: existing passwords are kept; it adds the agents' tokens, an empty
-   `secrets/factorio-portal`, `./backups` and `DOCKER_GID`.
+   `secrets/factorio-portal`, `./backups`, `./worlds` and `DOCKER_GID`.
 3. Drop `DOCKER_API_URL`, `METRICS_CONTAINER` and `DOCKER_TIMEOUT_MS` from your environment: the
    panel no longer reads them (`CONTROL_AGENT_URL` and `CONTROL_AGENT_TIMEOUT_MS` replace them).
 4. Set `UPDATE_MODS_ON_START=false` on the `factorio` service, as the new `docker-compose.yml`
@@ -284,16 +289,25 @@ container on the host — environment variables included, so the panel's own `AD
    at every start. Keep it `true`, with `MODS_ENABLED=false`, if you manage mods outside the panel.
 5. `docker compose up -d --build --remove-orphans`.
 
+Running the minimal stack, with no agent? 2.0 turns the new tabs on by default, and the panel then
+waits for agents that are not there (`/api/ready` answers `503`). Add `CONTROL_ENABLED=false`,
+`SAVES_ENABLED=false`, `MODS_ENABLED=false` and `WORLDS_ENABLED=false` next to `METRICS_DOCKER=false`
+before moving the image tag to `2.0`. A tag pinned to `1.5` or `1` never moves to 2.0 on its own;
+`latest` does.
+
 Not using server control or container metrics? Set `CONTROL_ENABLED=false` and
 `METRICS_DOCKER=false`, and leave the control agent out: nothing in the stack then touches the
 Docker socket. Not using saves or mods? `SAVES_ENABLED=false` and `MODS_ENABLED=false`, and leave
-the data agent out.
+the data agent out. Not using worlds? `WORLDS_ENABLED=false`, and leave the world agent out.
 
 Images are published on every release (`linux/amd64` and `linux/arm64`): the panel to
-`williamnauroy/factorio-admin-rcon`, the agents to `williamnauroy/factorio-control-agent` and
-`williamnauroy/factorio-data-agent`. To skip the local build, swap each `build:` block in the compose
-file for an `image:` line, and keep the three on the same version — they speak a private API. Pin
-an exact version in production:
+`williamnauroy/factorio-admin-rcon`, the agents to `williamnauroy/factorio-control-agent`,
+`williamnauroy/factorio-data-agent` and `williamnauroy/factorio-world-agent`. To skip the local
+build, swap each `build:` block in the compose file for an `image:` line, and keep the four on the
+same version — they speak a private API. The world agent embeds the Factorio it was built on:
+the published one is `factoriotools/factorio:stable` as of the release. If your server runs another
+version (`FACTORIO_IMAGE`), keep its `build:` block so the two match. Pin an exact version in
+production:
 
 ```bash
 # Replace <version> with the exact release you are deploying — the published
@@ -303,6 +317,7 @@ docker pull williamnauroy/factorio-admin-rcon:<version>
 docker pull williamnauroy/factorio-admin-rcon:<version>-distroless   # hardened, see below
 docker pull williamnauroy/factorio-control-agent:<version>
 docker pull williamnauroy/factorio-data-agent:<version>
+docker pull williamnauroy/factorio-world-agent:<version>
 ```
 
 Versioning and publishing are automated — see [CI.md](CI.md).
@@ -354,8 +369,8 @@ One password per role; the role is determined by the password used to sign in.
 | Role | Variable | Can do |
 | --- | --- | --- |
 | `viewer` | `VIEWER_PASSWORD` | Status, players, version, seed, evolution, admins, ban list, container/game state, recent operations, installed mods |
-| `moderator` | `MODERATOR_PASSWORD` | + kick, ban/unban, mute/unmute, server message, private message; the saves and archives list |
-| `admin` | `ADMIN_PASSWORD` | + save, promote/demote, custom commands, **raw RCON console**, audit log, server logs, start/stop/restart; archive, download, restore, delete and schedule backups; install, update, enable, disable and remove mods |
+| `moderator` | `MODERATOR_PASSWORD` | + kick, ban/unban, mute/unmute, server message, private message; the saves and archives list; the worlds library |
+| `admin` | `ADMIN_PASSWORD` | + save, promote/demote, custom commands, **raw RCON console**, audit log, server logs, start/stop/restart; archive, download, restore, delete and schedule backups; install, update, enable, disable and remove mods; preview, create, download, delete and put worlds in play |
 
 Permissions are enforced **server-side**: the action catalogue is filtered by role, and
 `/api/actions` re-checks the permission before executing anything.
@@ -493,12 +508,14 @@ src/
     ├── mods/       mod changes: preview, apply with a single restart, rollback
     ├── operations/ long operations: one lock, steps, history
     ├── rcon/       service, queue, parsing, status cache
-    └── saves/      archives, schedule, restore
+    ├── saves/      archives, schedule, restore
+    └── worlds/     world agent client, previews, creation, activation (a restore)
 
 messages/           dictionaries (en.json is the reference)
 services/
 └── agents/         Go module of the agents (control-agent holds the Docker socket, data-agent the
-                    game's files and the way to the mod portal; see its README)
+                    game's files and the way to the mod portal, world-agent the game's binary;
+                    see its README)
 ```
 
 Two distinct execution paths:
@@ -653,6 +670,45 @@ The **data agent** is the only component of the stack that reaches the Internet,
 network, and only the portal and its download host — no URL ever comes from a request. Mod
 settings (`mod-settings.dat`) are not edited by the panel yet.
 
+## Worlds
+
+The **Worlds** tab generates new maps beside the running server, keeps them in a library, and
+puts one in play when you choose. Moderators see the library; previewing, creating, downloading,
+deleting and putting a world in play are for administrators. `WORLDS_ENABLED=false` removes the tab
+and its endpoints.
+
+- **Create a world** opens the game's own map generator: a seed (typed, or 🎲), the game's presets
+  (rich resources, rail world, death world…), map size, and per planet every resource (frequency,
+  size, richness), terrain, cliff and enemy control, the starting area, peaceful and no-enemies
+  modes; then the rules — pollution, enemy evolution and expansion, technology price, spoilage
+  with Space Age. Sections are folded until opened. Values left alone keep the game's defaults,
+  and changed ones are marked. An **advanced** section shows the same settings as JSON, with
+  Factorio's own names; a **map exchange string** pasted from the game replaces the form whole.
+- **The form comes from the game**: the world agent reads the presets, the planets and their
+  resources with `--dump-data`, using the server's mods. A mod adding an ore adds a line; without
+  Space Age, only Nauvis shows.
+- **Preview** draws the terrain a seed gives, 512 to 2048 tiles across, on any planet, with the
+  amount of each resource in that area; the arrows move across the map. **Compare 4 seeds** draws
+  four at once: click one to keep its seed. A preview takes a second or two, and never touches the
+  server or its saves. Rules (pollution, evolution…) change how the world plays, not its terrain:
+  the preview does not show them.
+- **Create the world** generates the map into `./worlds`, with its preview and a sidecar recording
+  its seed, settings, game version and mods. Worlds are kept until deleted: no retention applies.
+  **Reuse settings** loads a world's settings and seed back into the form.
+- **Put in play** is a restore: the data agent copies the world into the archives (source
+  `world`, verified against the checksum recorded at creation), then the usual restore runs —
+  refused if the game version or mods differ or players are online (unless confirmed a second
+  time), save, stop, archive the current map (`before restore`, in the [Saves](#saves) tab),
+  restore, restart, and the previous map put back if the server does not come back. The world
+  stays in the library; the map you left stays in the archives.
+
+The **world agent** (`services/agents`, `cmd/world-agent`) runs the game's binary, from the same
+image as the server: set `FACTORIO_IMAGE` in `.env` (it defaults to
+`factoriotools/factorio:stable`) and both follow it — pin a version to update them together. If
+they ever differ, the tab says so. The agent starts the game only with arguments it builds itself,
+one run at a time and under a deadline; it has no Docker socket, no network out, a read-only root,
+and writes only `./worlds` and a tmpfs. Details: [services/agents/README.md](services/agents/README.md).
+
 ## Endpoints
 
 | Route | Auth | Role |
@@ -683,7 +739,16 @@ settings (`mod-settings.dat`) are not edited by the panel yet.
 | `GET /api/mods/portal/{name}` | `mods:manage` | A mod's releases and dependencies |
 | `POST /api/mods/plan` | `mods:manage` | `{ changes }` → what they would do: steps, dependencies, conflicts, `hash` |
 | `POST /api/mods/apply` | `mods:manage` | `{ changes, planHash }` → `202` + operation; `{ "force": true }` overrides the player / RCON checks |
-| `GET /api/ready` | public | Readiness: config + command catalogue + database + RCON + both agents |
+| `GET /api/worlds` | `worlds:read` | The library, the agent's and the server's game versions, operation in progress |
+| `POST /api/worlds` | `worlds:create` | `{ name, settings, seed? }` → `201` + the new world (generated beside the server) |
+| `GET /api/worlds/catalog` | `worlds:create` | Planets, resources, presets and default rules, read from the game |
+| `POST /api/worlds/previews` | `worlds:create` | `{ settings, seed?, size, planet, offset }` → a preview's `id`, seed and resource amounts |
+| `GET /api/worlds/previews/{id}` | `worlds:create` | The preview image (PNG); the latest few are kept |
+| `GET /api/worlds/{id}/preview` | `worlds:read` | A world's own preview |
+| `GET /api/worlds/{id}/download` | `worlds:create` | The world's save, streamed |
+| `POST /api/worlds/{id}/activate` | `worlds:activate` | `202` + operation: archive the world, then restore it; `{ "force": true }` overrides the version / mods / players checks |
+| `DELETE /api/worlds/{id}` | `worlds:delete` | Deletes a world from the library |
+| `GET /api/ready` | public | Readiness: config + command catalogue + database + RCON + the agents in use |
 
 ## Security model
 
@@ -699,13 +764,17 @@ This panel assumes:
   it only if you drive RCON yourself, and bind it to loopback when you do: the protocol offers a
   single password, no rate limiting, and full server control to whoever gets through.
 
-The panel and both agents run confined in `docker-compose.yml`: `read_only` root filesystem,
+The panel and the three agents run confined in `docker-compose.yml`: `read_only` root filesystem,
 `cap_drop: [ALL]`, `no-new-privileges`, plus memory and PID caps. The panel writes only to the
 `/data` volume, so nothing needs a writable root. The control agent writes nothing at all and runs
 as a non-root uid, reaching the socket through the group that owns it (`DOCKER_GID`). The data
 agent runs as the Factorio image's uid (845) and writes only to the saves, mods and backups
 folders, which it reaches through `os.Root`; it is also the only container with a route to the
-Internet, alone on the `egress` network, and only to the mod portal.
+Internet, alone on the `egress` network, and only to the mod portal. The world agent runs the
+game's binary as the same uid, on the server's own image rather than a distroless one — so it does
+have a shell — and makes up for it with no route out, no socket, mods mounted read-only, and only
+`./worlds` and a tmpfs writable; the game runs one job at a time, under a deadline, with arguments
+the agent builds itself.
 
 The `factorio` service is deliberately left alone — it writes saves, mods and config to
 `/factorio`, so a read-only root would break it. If you want the memory graph to show a real
@@ -807,7 +876,8 @@ gets your "Kill all enemies" button without getting arbitrary Lua. See
 **Can I run it without the metrics?**
 Yes. `METRICS_ENABLED=false` turns the feature off end to end. With `CONTROL_ENABLED=false` as well,
 you can then delete the `control-agent` service — it is the only component that touches the Docker
-socket. Likewise `SAVES_ENABLED=false` and `MODS_ENABLED=false` let you delete the `data-agent`.
+socket. Likewise `SAVES_ENABLED=false` and `MODS_ENABLED=false` let you delete the `data-agent`,
+and `WORLDS_ENABLED=false` the `world-agent` (and the `./worlds` line of the data agent).
 
 **Do I need a factorio.com account?**
 Only to search the mod portal and download mods, as the game itself does. Without one, the Mods tab
@@ -829,7 +899,7 @@ metrics is roughly 2 MB. Archives take what your saves take, times the retention
 
 **How do I update?**
 Minimal stack: bump the tag and `docker compose pull && docker compose up -d`. Full stack:
-`git pull && docker compose up -d --build control-agent data-agent factorio-admin`. The
+`git pull && docker compose up -d --build control-agent data-agent world-agent factorio-admin`. The
 `factorio-admin-data` volume survives either way — including a switch between the standard and
 distroless images.
 

@@ -1,7 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import Brand from "@/components/Brand";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import SourceLink from "@/components/SourceLink";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type { ServerState, SessionInfo } from "@/lib/api-types";
 import type { ServerStatus } from "@/lib/types";
@@ -45,9 +47,7 @@ export default function ServerStatusBar({
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3">
       <div>
-        <h1 className="text-base font-semibold">
-          {t("app.brand")} <span className="text-accent">{t("app.brandSuffix")}</span>
-        </h1>
+        <Brand />
         <p className="text-xs text-muted">
           {session.username} · {t(`roles.${session.role}`)}
           {status.state === "ok" &&
@@ -79,6 +79,7 @@ export default function ServerStatusBar({
         </p>
         <LocaleSwitcher />
         <ThemeSwitcher />
+        <SourceLink compact />
         <button type="button" className="btn" onClick={onRefresh}>
           {t("statusBar.refresh")}
         </button>

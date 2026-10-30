@@ -1,0 +1,22 @@
+# Images and videos live in Git LFS: the repository keeps a small pointer, the
+# binaries are fetched on checkout. GitHub renders them in the README as usual;
+# the Pages workflow checks them out with `lfs: true`, and the documentation
+# site and Docker Hub page load them from there.
+#
+# Not here, on purpose:
+# - SVG is text: it stays in git, diffable.
+# - Images under src/ (favicon, icons, logo) are build inputs of the panel's
+#   image: in LFS, a clone without git-lfs would build it from pointer files.
+#   The last rule below takes them back out.
+*.png  filter=lfs diff=lfs merge=lfs -text
+*.jpg  filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.gif  filter=lfs diff=lfs merge=lfs -text
+*.webp filter=lfs diff=lfs merge=lfs -text
+*.avif filter=lfs diff=lfs merge=lfs -text
+*.mp4  filter=lfs diff=lfs merge=lfs -text
+*.webm filter=lfs diff=lfs merge=lfs -text
+*.mov  filter=lfs diff=lfs merge=lfs -text
+
+# Build inputs stay in git (see above).
+src/** !filter !diff !merge

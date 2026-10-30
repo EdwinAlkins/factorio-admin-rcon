@@ -125,3 +125,16 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha,scope=data-agent
           cache-to: type=gha,mode=max,scope=data-agent
+
+      # The world agent's image, built on the game server's. Released on
+      # factorio:stable; a server on another version builds its own
+      # (FACTORIO_IMAGE), since it must embed the very Factorio the server runs.
+      - uses: docker/build-push-action@v7
+        with:
+          context: services/agents
+          target: world-agent
+          build-args: AGENT=world-agent
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=world-agent
+          cache-to: type=gha,mode=max,scope=world-agent

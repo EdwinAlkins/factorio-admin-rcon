@@ -5,7 +5,8 @@
   },
   "app": {
     "brand": "Factorio",
-    "brandSuffix": "— panneau d’admin"
+    "brandSuffix": "— panneau d’admin",
+    "source": "Code source sur GitHub"
   },
   "login": {
     "subtitle": "Mot de passe requis.",
@@ -175,7 +176,8 @@
     "metrics": "Statistiques",
     "server": "Serveur",
     "saves": "Sauvegardes",
-    "mods": "Mods"
+    "mods": "Mods",
+    "worlds": "Mondes"
   },
 
   "metrics": {
@@ -257,7 +259,8 @@
       "restore": "Restauration",
       "mods_apply": "Mods",
       "import": "Import",
-      "server_settings_apply": "Paramètres du serveur"
+      "server_settings_apply": "Paramètres du serveur",
+      "world_activate": "Monde"
     },
     "status": {
       "running": "en cours",
@@ -299,7 +302,8 @@
       "scheduled": "planifiée",
       "pre-restore": "avant restauration",
       "pre-mods": "avant changement de mods",
-      "upload": "importée"
+      "upload": "importée",
+      "world": "monde"
     },
     "modsCount": "{count, plural, =0 {aucun mod} one {# mod} other {# mods}}",
     "download": "Télécharger",
@@ -511,6 +515,219 @@
       "forceLabel": "Redémarrer quand même"
     }
   },
+  "worlds": {
+    "title": "Mondes",
+    "refresh": "Actualiser",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "operation": "En cours : {step}",
+    "versionMismatch": "L'agent de mondes génère avec Factorio {agent}, le serveur tourne en {server} : un monde peut différer de son aperçu ou devoir être migré. Utilisez la même FACTORIO_IMAGE pour les deux et reconstruisez l'agent de mondes.",
+    "creator": "Créer un monde",
+    "creatorHint": "seed, ressources, terrain, ennemis, règles — avec aperçu",
+    "catalogLoading": "Lecture du générateur de cartes depuis le jeu (quelques secondes la première fois)…",
+    "library": "Bibliothèque",
+    "libraryEmpty": "Aucun monde pour l'instant. Créez-en un ci-dessus : le serveur continue de tourner pendant ce temps.",
+    "columns": {
+      "created": "Créé",
+      "version": "Jeu",
+      "mods": "Mods"
+    },
+    "activate": "Mettre en jeu",
+    "reuse": "Reprendre les réglages",
+    "download": "Télécharger",
+    "delete": "Supprimer",
+    "confirm": {
+      "activateTitle": "Mettre ce monde en jeu ?",
+      "activateMessage": "Le serveur est sauvegardé puis arrêté, la carte actuelle est archivée, puis « {name} » devient la sauvegarde et le serveur redémarre. Les joueurs seront déconnectés.",
+      "activateDetails": "Rien n'est perdu : la carte actuelle reste dans l'onglet Sauvegardes (« avant restauration ») et ce monde reste dans la bibliothèque. Si le serveur ne redémarre pas, la carte précédente est restaurée automatiquement.",
+      "forceTitle": "Mettre en jeu quand même ?",
+      "forceLabel": "Mettre en jeu quand même",
+      "deleteTitle": "Supprimer ce monde ?",
+      "deleteMessage": "« {name} » sera supprimé définitivement de la bibliothèque. Une carte déjà en jeu n'est pas affectée."
+    },
+    "sections": {
+      "general": "Général",
+      "resources": "Ressources",
+      "terrain": "Terrain",
+      "enemies": "Ennemis",
+      "pollution": "Pollution",
+      "evolution": "Évolution",
+      "expansion": "Expansion",
+      "difficulty": "Difficulté",
+      "advanced": "Avancé (JSON)",
+      "exchange": "Chaîne d'échange de carte"
+    },
+    "seed": "Seed",
+    "seedRandom": "aléatoire",
+    "seedInvalid": "La seed doit être un entier entre 0 et 4294967295.",
+    "newSeed": "Nouvelle seed",
+    "preset": "Preset",
+    "presetCustom": "Personnalisé",
+    "planet": "Planète",
+    "none": "Rien à régler sur cette planète.",
+    "frequency": "Fréquence",
+    "size": "Taille",
+    "richness": "Richesse",
+    "reset": "Valeur par défaut",
+    "resourcesHint": "Fréquence : nombre de gisements. Taille : superficie de chacun (0 % le supprime). Richesse : quantité par case.",
+    "rulesHint": "Les règles changent le déroulement de la partie, pas le terrain : l'aperçu ne les montre pas.",
+    "mapGen": {
+      "width": "Largeur de la carte (cases, 0 = infinie)",
+      "height": "Hauteur de la carte (cases, 0 = infinie)",
+      "sizeHint": "Un preset ou les champs ci-dessous partent des valeurs du jeu ; un point signale ce que vous avez modifié.",
+      "starting_area": "Zone de départ (%)",
+      "peaceful_mode": "Mode pacifique (les ennemis ne font que riposter)",
+      "no_enemies_mode": "Aucun ennemi"
+    },
+    "advanced": {
+      "hint": "Les modifications du formulaire en JSON, avec les noms de Factorio (map-gen-settings.json sous mapGen, map-settings.json sous mapSettings). Seuls les membres connus du formulaire sont acceptés.",
+      "load": "Charger depuis le formulaire",
+      "apply": "Appliquer au formulaire",
+      "invalid": "JSON invalide, ou membre autre que mapGen et mapSettings."
+    },
+    "exchange": {
+      "hint": "Collez une chaîne de la fenêtre « Chaîne d'échange de carte » du jeu pour recréer exactement cette carte. Elle remplace le formulaire ; laissé vide, le champ seed garde celle de la chaîne.",
+      "active": "La chaîne d'échange est utilisée : le formulaire est ignoré."
+    },
+    "name": "Nom",
+    "namePlaceholder": "Nom du monde",
+    "create": "Créer le monde",
+    "createHint": "Généré à côté du serveur, qui continue de tourner.",
+    "created": "Monde « {name} » créé (seed {seed}). Retrouvez-le dans la bibliothèque ci-dessous.",
+    "area": "Zone affichée",
+    "areaTiles": "{size} cases",
+    "previewButton": "Aperçu",
+    "rendering": "Génération…",
+    "compare": "Comparer {count} seeds",
+    "compareHint": "Cliquez sur une carte pour garder sa seed.",
+    "previewAlt": "Aperçu de la carte, seed {seed}",
+    "previewCaption": "Seed {seed} · {planet} · {size} × {size} cases centrées sur {x}, {y}",
+    "previewEmpty": "Choisissez les réglages, puis Aperçu : le jeu dessine le terrain sans rien créer.",
+    "previewHint": "Zone de départ au centre. Un aperçu ne modifie jamais la carte du serveur.",
+    "pan": "Déplacer l'aperçu",
+    "panNorth": "Nord",
+    "panSouth": "Sud",
+    "panEast": "Est",
+    "panWest": "Ouest",
+    "panCentre": "Revenir au point de départ",
+    "quantities": {
+      "resource": "Ressource",
+      "tiles": "Cases",
+      "amount": "Quantité"
+    },
+    "controls": {
+      "iron-ore": "Minerai de fer",
+      "copper-ore": "Minerai de cuivre",
+      "stone": "Pierre",
+      "coal": "Charbon",
+      "crude-oil": "Pétrole brut",
+      "uranium-ore": "Minerai d'uranium",
+      "water": "Eau",
+      "trees": "Arbres",
+      "rocks": "Rochers",
+      "starting_area_moisture": "Humidité de la zone de départ",
+      "nauvis_cliff": "Falaises",
+      "enemy-base": "Bases ennemies",
+      "vulcanus_coal": "Charbon",
+      "tungsten_ore": "Minerai de tungstène",
+      "calcite": "Calcite",
+      "sulfuric_acid_geyser": "Geysers d'acide sulfurique",
+      "vulcanus_volcanism": "Volcanisme",
+      "gleba_stone": "Pierre",
+      "gleba_plants": "Plantes",
+      "gleba_water": "Eau",
+      "gleba_cliff": "Falaises",
+      "gleba_enemy_base": "Bases ennemies",
+      "scrap": "Débris",
+      "fulgora_islands": "Îles",
+      "fulgora_cliff": "Falaises",
+      "lithium_brine": "Saumure de lithium",
+      "fluorine_vent": "Évents de fluor",
+      "aquilo_crude_oil": "Pétrole brut"
+    },
+    "resources": {
+      "iron-ore": "Minerai de fer",
+      "copper-ore": "Minerai de cuivre",
+      "stone": "Pierre",
+      "coal": "Charbon",
+      "crude-oil": "Pétrole brut",
+      "uranium-ore": "Minerai d'uranium",
+      "tungsten-ore": "Minerai de tungstène",
+      "calcite": "Calcite",
+      "sulfuric-acid-geyser": "Geyser d'acide sulfurique",
+      "scrap": "Débris",
+      "lithium-brine": "Saumure de lithium",
+      "fluorine-vent": "Évent de fluor"
+    },
+    "planets": {
+      "nauvis": "Nauvis",
+      "vulcanus": "Vulcanus",
+      "gleba": "Gleba",
+      "fulgora": "Fulgora",
+      "aquilo": "Aquilo"
+    },
+    "presets": {
+      "default": "Par défaut",
+      "rich-resources": "Ressources abondantes",
+      "marathon": "Marathon",
+      "death-world": "Monde mortel",
+      "death-world-marathon": "Monde mortel marathon",
+      "rail-world": "Monde ferroviaire",
+      "ribbon-world": "Monde ruban",
+      "lakes": "Lacs",
+      "island": "Île"
+    },
+    "rules": {
+      "pollution": {
+        "enabled": "Pollution",
+        "diffusion_ratio": "Taux de diffusion",
+        "min_to_diffuse": "Seuil minimal de diffusion",
+        "ageing": "Modificateur d'absorption",
+        "enemy_attack_pollution_consumption_modifier": "Coût en pollution des attaques",
+        "min_pollution_to_damage_trees": "Seuil de dégâts aux arbres",
+        "pollution_restored_per_tree_damage": "Absorbée par arbre endommagé"
+      },
+      "enemy_evolution": {
+        "enabled": "Évolution des ennemis",
+        "time_factor": "Facteur temps",
+        "destroy_factor": "Facteur de destruction",
+        "pollution_factor": "Facteur de pollution"
+      },
+      "enemy_expansion": {
+        "enabled": "Expansion des ennemis",
+        "max_expansion_distance": "Distance maximale d'expansion",
+        "settler_group_min_size": "Taille minimale des groupes",
+        "settler_group_max_size": "Taille maximale des groupes",
+        "min_expansion_cooldown": "Délai minimal",
+        "max_expansion_cooldown": "Délai maximal"
+      },
+      "difficulty_settings": {
+        "technology_price_multiplier": "Multiplicateur du coût des technologies",
+        "spoil_time_modifier": "Modificateur de durée de péremption"
+      },
+      "units": {
+        "pollution": {
+          "diffusion_ratio": "%"
+        },
+        "enemy_evolution": {
+          "time_factor": "× 10⁻⁷",
+          "destroy_factor": "× 10⁻⁵",
+          "pollution_factor": "× 10⁻⁷"
+        },
+        "enemy_expansion": {
+          "max_expansion_distance": "chunks",
+          "min_expansion_cooldown": "min",
+          "max_expansion_cooldown": "min"
+        }
+      }
+    },
+    "climate": {
+      "control_moisture_frequency": "Échelle d'humidité",
+      "control_moisture_bias": "Biais d'humidité",
+      "control_aux_frequency": "Échelle du type de terrain",
+      "control_aux_bias": "Biais du type de terrain"
+    }
+  },
   "errors": {
     "metrics_disabled": "Les métriques sont désactivées sur ce panneau.",
     "unknown": "Erreur inattendue.",
@@ -634,6 +851,21 @@
     "settings_tx_not_found": "Les paramètres précédents sont introuvables.",
     "public_needs_credentials": "Une partie publique demande un identifiant factorio.com et un jeton ou un mot de passe.",
     "settings_rolled_back": "Le serveur n'a pas redémarré avec ces paramètres ({reason}) ; les précédents ont été remis.",
-    "settings_rollback_failed": "Le serveur n'a pas redémarré ({reason}), et la remise des paramètres précédents a échoué aussi : vérifiez le serveur."
+    "settings_rollback_failed": "Le serveur n'a pas redémarré ({reason}), et la remise des paramètres précédents a échoué aussi : vérifiez le serveur.",
+    "world_disabled": "Les mondes sont désactivés sur ce panel.",
+    "world_config": "Jeton de l'agent de mondes indisponible côté panel.",
+    "world_unreachable": "L'agent de mondes est injoignable.",
+    "world_timeout": "L'agent de mondes n'a pas répondu à temps.",
+    "world_rejected": "L'agent de mondes a refusé le jeton du panel.",
+    "world_busy": "Le jeu génère déjà un aperçu ou un monde. Réessayez dans un instant.",
+    "world_rate_limited": "Trop d'aperçus. Réessayez dans une minute.",
+    "world_protocol": "Réponse inattendue de l'agent de mondes.",
+    "world_io": "L'agent de mondes n'a pas pu lire ou écrire ses fichiers.",
+    "world_not_found": "Ce monde n'existe pas.",
+    "worlds_unavailable": "L'agent de données ne voit pas le dossier des mondes : montez-y ./worlds.",
+    "factorio_refused": "Factorio a refusé ces réglages : {reason}",
+    "factorio_timeout": "Factorio n'a pas terminé à temps.",
+    "invalid_world_settings": "Réglages du monde invalides : {reason}",
+    "preview_not_found": "Cet aperçu a expiré. Générez-le à nouveau."
   }
 }

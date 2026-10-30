@@ -7,7 +7,7 @@
 <meta name="description" content="The four containers of the stack, what each one holds, and how the panel starts and stops the server, archives and restores saves, and installs mods from the official portal.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/services.html">
 <link rel="stylesheet" href="./assets/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<link rel="icon" type="image/png" href="./assets/brand/logo-64.png">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Services: server, saves and mods &mdash; Factorio Admin RCON">
 <meta property="og:description" content="The four containers of the stack, what each one holds, and how the panel starts and stops the server, archives and restores saves, and installs mods from the official portal.">
@@ -27,7 +27,7 @@
 <a class="skip" href="#content">Skip to content</a>
 
 <div class="topbar">
-  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="brand" href="./index.html"><img src="./assets/brand/logo-64.png" alt="" width="28" height="28">Factorio <span>Admin RCON</span></a>
   <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
 </div>
 
@@ -53,8 +53,8 @@ write a file of its choosing.</p>
 <h2 id="stack">The stack at a glance<a class="anchor" href="#stack" aria-label="Link to this section">#</a></h2>
 
 <div class="diagram">
-<svg viewBox="0 0 940 300" role="img" xmlns="http://www.w3.org/2000/svg"
-     aria-label="The panel reaches the Factorio server over RCON on the game network, and the two agents over the internal control network. The control agent alone holds the Docker socket. The data agent alone holds the saves, mods and backups folders, and alone reaches the mod portal, over the egress network.">
+<svg viewBox="0 0 940 400" role="img" xmlns="http://www.w3.org/2000/svg"
+     aria-label="The panel reaches the Factorio server over RCON on the game network, and the three agents over the internal control network. The control agent alone holds the Docker socket. The data agent alone holds the saves, mods and backups folders, and alone reaches the mod portal, over the egress network. The world agent runs the game's binary and alone writes the worlds folder, which the data agent reads.">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
       <path d="M0 0 L10 5 L0 10 z" fill="var(--muted)"/>
@@ -70,6 +70,8 @@ write a file of its choosing.</p>
       <rect x="700" y="114" width="236" height="72" rx="7"/>
       <rect x="700" y="214" width="236" height="72" rx="7"/>
       <rect x="700" y="14"  width="236" height="72" rx="7"/>
+      <rect x="430" y="314" width="190" height="72" rx="7"/>
+      <rect x="700" y="314" width="236" height="72" rx="7"/>
     </g>
     <g fill="var(--ink)" font-size="14" font-weight="600" text-anchor="middle">
       <text x="69"  y="146">Browser</text>
@@ -80,6 +82,8 @@ write a file of its choosing.</p>
       <text x="818" y="144">Docker socket</text>
       <text x="818" y="244">Saves, mods, backups</text>
       <text x="818" y="44">mods.factorio.com</text>
+      <text x="525" y="344">World agent</text>
+      <text x="818" y="344">Game binary, worlds</text>
     </g>
     <g fill="var(--muted)" font-size="11.5" text-anchor="middle">
       <text x="69"  y="166">127.0.0.1:3010</text>
@@ -91,6 +95,8 @@ write a file of its choosing.</p>
       <text x="818" y="164">one container, closed API</text>
       <text x="818" y="264">uid 845, verified archives</text>
       <text x="818" y="64">egress network, HTTPS only</text>
+      <text x="525" y="364">token, control network</text>
+      <text x="818" y="364">uid 845, no route out</text>
     </g>
     <g stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#arrow)">
       <line x1="138" y1="150" x2="182" y2="150"/>
@@ -100,6 +106,11 @@ write a file of its choosing.</p>
       <line x1="624" y1="150" x2="692" y2="150"/>
       <line x1="624" y1="250" x2="692" y2="250"/>
       <path d="M624 230 L660 230 L660 50 L692 50"/>
+      <path d="M364 182 L380 182 L380 350 L422 350"/>
+      <line x1="624" y1="350" x2="692" y2="350"/>
+    </g>
+    <g stroke="var(--muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow)">
+      <path d="M624 270 L676 270 L676 330 L692 330"/>
     </g>
   </g>
 </svg>
@@ -109,13 +120,14 @@ write a file of its choosing.</p>
 <tr><td><code>factorio</code></td><td>The game: <code>./data</code> mounted on <code>/factorio</code>. Left unconfined on purpose: it writes its saves, mods and config.</td><td><code>game</code></td><td>Everything</td></tr>
 <tr><td><code>factorio-admin</code></td><td>Sessions, audit log, metric series and the operation history, in the <code>factorio-admin-data</code> volume. Read-only access to <code>./data/config</code> for the RCON password.</td><td><code>game</code>, <code>control</code></td><td>Everything</td></tr>
 <tr><td><code>control-agent</code></td><td>The Docker socket, and nothing else.</td><td><code>control</code></td><td>Server tab, CPU and memory graphs, applying mods</td></tr>
-<tr><td><code>data-agent</code></td><td><code>./data/saves</code>, <code>./data/mods</code>, <code>./data/config</code> (for <code>server-settings.json</code>), <code>./backups</code>, and the factorio.com credentials.</td><td><code>control</code>, <code>egress</code></td><td>Saves tab, Mods tab</td></tr>
+<tr><td><code>data-agent</code></td><td><code>./data/saves</code>, <code>./data/mods</code>, <code>./data/config</code> (for <code>server-settings.json</code>), <code>./backups</code>, and the factorio.com credentials.</td><td><code>control</code>, <code>egress</code></td><td>Saves tab, Mods tab, putting a world in play</td></tr>
+<tr><td><code>world-agent</code></td><td>The game's binary (built on the server's image, <code>FACTORIO_IMAGE</code>), <code>./worlds</code>, <code>./data/mods</code> read-only, a tmpfs.</td><td><code>control</code></td><td>Worlds tab</td></tr>
 </tbody></table></div>
 
 <h3 id="networks">Networks<a class="anchor" href="#networks" aria-label="Link to this section">#</a></h3>
 <div class="table-wrap"><table><thead><tr><th>Network</th><th>Who is on it</th><th>Why</th></tr></thead><tbody>
 <tr><td><code>game</code></td><td>Factorio, the panel</td><td>RCON, and the published game port. The game server is <em>not</em> on <code>control</code>: a malicious mod runs Lua with file access, and must not even resolve an agent's name.</td></tr>
-<tr><td><code>control</code></td><td>The panel, both agents</td><td><code>internal: true</code>: no route out, nothing published. Each agent requires its own token, as a Compose secret shared with the panel only.</td></tr>
+<tr><td><code>control</code></td><td>The panel, the three agents</td><td><code>internal: true</code>: no route out, nothing published. Each agent requires its own token, as a Compose secret shared with the panel only.</td></tr>
 <tr><td><code>egress</code></td><td>The data agent, alone</td><td>Its way out to the mod portal. The panel and the control agent keep no route to the Internet.</td></tr>
 </tbody></table></div>
 
@@ -123,9 +135,11 @@ write a file of its choosing.</p>
 <div class="table-wrap"><table><thead><tr><th>Path</th><th>What</th><th>Who reads it</th></tr></thead><tbody>
 <tr><td><code>secrets/control-agent-token</code></td><td>Token shared by the panel and the control agent. Generated by <code>./setup-admin.sh</code>.</td><td>Panel, control agent</td></tr>
 <tr><td><code>secrets/data-agent-token</code></td><td>Token shared by the panel and the data agent, distinct from the other one. Generated too.</td><td>Panel, data agent</td></tr>
+<tr><td><code>secrets/world-agent-token</code></td><td>Token shared by the panel and the world agent, distinct from the other two. Generated too.</td><td>Panel, world agent</td></tr>
 <tr><td><code>secrets/factorio-portal</code></td><td>Your factorio.com credentials, <code>{"username": "...", "token": "..."}</code>, or <code>{}</code> for none. Created empty, never overwritten, even by <code>--force</code>.</td><td>Data agent only</td></tr>
 <tr><td><code>data/</code></td><td>The game's folder: <code>saves/</code>, <code>mods/</code>, <code>config/rconpw</code>, and your optional <code>config/commands.json</code>.</td><td>Factorio; the panel reads <code>config/</code>; the data agent writes <code>saves/</code> and <code>mods/</code></td></tr>
 <tr><td><code>backups/</code></td><td>Archives, outside <code>data/</code> so they can be copied elsewhere on their own. Must belong to uid 845; <code>./setup-admin.sh</code> sees to it.</td><td>Data agent only</td></tr>
+<tr><td><code>worlds/</code></td><td>Generated worlds: each a save, its preview and a sidecar. Kept until deleted. Must belong to uid 845; <code>./setup-admin.sh</code> sees to it.</td><td>World agent; the data agent reads it to put a world in play</td></tr>
 </tbody></table></div>
 
 <h3 id="switches">Turning features off<a class="anchor" href="#switches" aria-label="Link to this section">#</a></h3>
@@ -137,6 +151,7 @@ container kept running for a disabled feature is all cost and no benefit.</p>
 <tr><td>CPU and memory graphs</td><td><code>METRICS_DOCKER=false</code></td><td>(same)</td></tr>
 <tr><td>Saves tab and scheduler</td><td><code>SAVES_ENABLED=false</code></td><td><code>data-agent</code>, together with <code>MODS_ENABLED=false</code></td></tr>
 <tr><td>Mods tab</td><td><code>MODS_ENABLED=false</code></td><td>(same)</td></tr>
+<tr><td>Worlds tab</td><td><code>WORLDS_ENABLED=false</code></td><td><code>world-agent</code>, and the <code>./worlds</code> line of the data agent</td></tr>
 </tbody></table></div>
 <div class="note">
   <strong>Some features lean on both agents</strong>
@@ -179,6 +194,33 @@ through the control agent.</p>
       <code>dl-mod.factorio.com</code>, over HTTPS. No request carries a URL:
       they are built from a fixed base and validated mod names, and every
       redirect is checked against those two hosts.</li>
+</ul>
+
+<h2 id="world-agent">The world agent<a class="anchor" href="#world-agent" aria-label="Link to this section">#</a></h2>
+<p>Generates worlds beside the running server: terrain previews, new maps, and
+the catalogue the Worlds tab's form is built from. It runs the game's own
+binary, so it is built on the server's image &mdash; set
+<code>FACTORIO_IMAGE</code> once in <code>.env</code> and both follow it, which
+keeps previews true to the server's version. It holds neither the Docker socket
+nor the server's saves.</p>
+<ul>
+  <li>The game is started through <code>exec</code>, never a shell, with
+      options the agent chooses (<code>--generate-map-preview</code>,
+      <code>--create</code>, <code>--dump-data</code>), numbers, its own file
+      names and validated prototype names. Settings are decoded into fixed
+      structures and written back out by the agent: no request carries a
+      command line or a path.</li>
+  <li>One run at a time, under a deadline (<code>WORLD_RUN_TIMEOUT_SECONDS</code>,
+      180 by default), killed past it. A preview takes a second or two.</li>
+  <li>It runs as <strong>uid 845</strong> with a read-only root, no capability
+      and no route out. It writes only <code>./worlds</code> and a tmpfs; the
+      server's mods are mounted read-only and seen through links. Its image is
+      Debian with the game, not distroless: it has a shell, which the
+      confinement makes up for.</li>
+  <li>A world is published like an archive: copied atomically, its checksum
+      recorded, its sidecar written last. Putting it in play goes through the
+      data agent, which copies it into the archives, checks that checksum again,
+      then restores it like any other.</li>
 </ul>
 
 <h2 id="server">Server tab<a class="anchor" href="#server" aria-label="Link to this section">#</a></h2>
@@ -394,6 +436,39 @@ docker compose up -d --force-recreate data-agent</code></pre></div>
 <p>The tab needs to know the game's version to pick releases. It reads it over
 RCON, and remembers the last one seen: start the server once before installing
 your first mod.</p>
+
+<h2 id="worlds">Worlds tab<a class="anchor" href="#worlds" aria-label="Link to this section">#</a></h2>
+<p>Generates new maps without stopping the server, keeps them in a library, and
+puts one in play when you choose. Moderators see the library; previewing,
+creating, downloading, deleting and putting a world in play are for
+administrators.</p>
+<ul>
+  <li><strong>Create a world</strong> opens the game's own map generator, read
+      from the game with the server's mods: seed, presets, map size, every
+      resource, terrain, cliff and enemy control per planet, then pollution,
+      evolution, expansion and difficulty. Values left alone keep the game's.
+      An advanced section shows the same settings as JSON, and a map exchange
+      string pasted from the game replaces the form whole.</li>
+  <li><strong>Preview</strong> draws the terrain a seed gives on any planet,
+      512 to 2048 tiles across, with the amount of each resource in that area;
+      <strong>Compare 4 seeds</strong> draws four at once. Rules change how the
+      world plays, not its terrain, so the preview does not show them.</li>
+  <li><strong>Create the world</strong> generates it into
+      <code>./worlds</code>, with its seed, settings, game version and mods.
+      Worlds are kept until deleted.</li>
+  <li><strong>Put in play</strong> is a restore: the world is copied into the
+      archives (source <code>world</code>), then the server is saved and
+      stopped, the current map archived, the world restored and the server
+      started again &mdash; with the previous map put back if it does not come
+      back. Refused, unless confirmed a second time, when players are online or
+      when the world was made with another game version or mod set.</li>
+</ul>
+<div class="note">
+  <strong>Keep the server and the world agent on the same version</strong>
+  Both use <code>FACTORIO_IMAGE</code>. After changing it, rebuild the world
+  agent too: <code>docker compose build world-agent &amp;&amp; docker compose up -d</code>.
+  The tab warns when the two differ.
+</div>
 
 <nav class="pager"><a href="./installation.html">&larr; Installation</a><a href="./deployment.html">Deployment &rarr;</a></nav>
 </main>

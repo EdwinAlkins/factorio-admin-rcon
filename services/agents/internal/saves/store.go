@@ -43,12 +43,15 @@ const (
 	// Sent from the operator's computer: see uploads.go. Never archived from
 	// the saves folder.
 	SourceUpload = "upload"
+	// A world of the world agent's library: see worlds.go. Never archived
+	// from the saves folder either.
+	SourceWorld = "world"
 )
 
-var sources = []string{SourceManual, SourceScheduled, SourcePreRestore, SourcePreMods, SourceUpload}
+var sources = []string{SourceManual, SourceScheduled, SourcePreRestore, SourcePreMods, SourceUpload, SourceWorld}
 
 // IDs are generated here, never taken from a caller as-is: `20261027-143000-manual`.
-var idPattern = regexp.MustCompile(`^[0-9]{8}-[0-9]{6}-(manual|scheduled|pre-restore|pre-mods|upload)(-[0-9]{1,3})?$`)
+var idPattern = regexp.MustCompile(`^[0-9]{8}-[0-9]{6}-(manual|scheduled|pre-restore|pre-mods|upload|world)(-[0-9]{1,3})?$`)
 
 // ValidID reports whether id has the shape of an archive id.
 func ValidID(id string) bool { return idPattern.MatchString(id) }
@@ -206,7 +209,7 @@ type CreateRequest struct {
 // copied: the copy is verified before being published, and retried a few
 // times if it does not check out.
 func (s *Store) Create(request CreateRequest) (Meta, error) {
-	if request.Source == SourceUpload {
+	if request.Source == SourceUpload || request.Source == SourceWorld {
 		return Meta{}, fmt.Errorf("source %q is not archived from the saves folder", request.Source)
 	}
 	saves, err := s.ListSaves()

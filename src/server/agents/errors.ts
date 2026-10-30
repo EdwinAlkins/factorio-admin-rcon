@@ -7,11 +7,13 @@ import type { ErrorParams } from "@/lib/api-types";
  * "control agent unreachable", the operator sees
  * `url=http://control-agent:8080 error=ECONNREFUSED`.
  *
- * Two agents, one class: `control_*` keys come from the control agent (Docker
- * socket), `data_*` and the save-specific ones from the data agent (files).
+ * Three agents, one class: `control_*` keys come from the control agent
+ * (Docker socket), `data_*` and the save-specific ones from the data agent
+ * (files), `world_*` and the world-specific ones from the world agent (the
+ * game's binary).
  */
 
-export type AgentName = "control" | "data";
+export type AgentName = "control" | "data" | "world";
 
 /** Failures any agent call can meet, per agent. */
 type TransportKey = "disabled" | "config" | "unreachable" | "timeout" | "rejected" | "busy" | "rate_limited" | "protocol";
@@ -57,7 +59,16 @@ export type AgentErrorKey =
   | "portal_rejected"
   | "portal_unreachable"
   | "download_too_large"
-  | "download_checksum";
+  | "download_checksum"
+  // Data agent, worlds.
+  | "world_not_found"
+  | "worlds_unavailable"
+  // World agent.
+  | "world_io"
+  | "factorio_refused"
+  | "factorio_timeout"
+  | "invalid_world_settings"
+  | "preview_not_found";
 
 const TRANSPORT_STATUS: Record<TransportKey, number> = {
   disabled: 404,
@@ -107,6 +118,13 @@ const SPECIFIC_STATUS: Partial<Record<AgentErrorKey, number>> = {
   portal_unreachable: 502,
   download_too_large: 422,
   download_checksum: 422,
+  world_not_found: 404,
+  worlds_unavailable: 404,
+  world_io: 500,
+  factorio_refused: 422,
+  factorio_timeout: 504,
+  invalid_world_settings: 400,
+  preview_not_found: 404,
 };
 
 /** Codes the data agent answers for uploads and mods, passed through as they are. */
@@ -138,7 +156,29 @@ const PASSTHROUGH_CODES = new Set<AgentErrorKey>([
   "portal_unreachable",
   "download_too_large",
   "download_checksum",
+  "world_not_found",
+  "worlds_unavailable",
 ]);
+
+/** World agent codes passed through as they are. */
+const WORLD_CODES = new Set<AgentErrorKey>([
+  "world_not_found",
+  "factorio_refused",
+  "factorio_timeout",
+  "invalid_world_settings",
+  "preview_not_found",
+]);
+
+/**
+ * Refusals whose agent message is meant for the operator: the game's own
+ * ("\"nope\" is not a valid autoplace control name.") or the member a
+ * setting is wrong in. Shown as `{reason}`.
+ */
+const REASONED = new Set<AgentErrorKey>(["factorio_refused", "invalid_world_settings"]);
+
+export function agentErrorParams(key: AgentErrorKey, message: string | undefined): ErrorParams | undefined {
+  return REASONED.has(key) && message ? { reason: message.slice(0, 500) } : undefined;
+}
 
 export function agentHttpStatus(key: AgentErrorKey): number {
   const specific = SPECIFIC_STATUS[key];
@@ -194,6 +234,12 @@ export function fromAgentCode(agent: AgentName, code: string | undefined, status
         return "control_docker";
     }
     return status >= 500 ? "control_docker" : "control_protocol";
+  }
+
+  if (agent === "world") {
+    if (code === "io_error") return "world_io";
+    if (code && WORLD_CODES.has(code as AgentErrorKey)) return code as AgentErrorKey;
+    return status >= 500 ? "world_io" : "world_protocol";
   }
 
   switch (code) {

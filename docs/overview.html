@@ -7,7 +7,7 @@
 <meta name="description" content="What Factorio Admin RCON is: a web RCON console for Factorio 2 with kick, ban and roles &mdash; not a server manager for mods or saves.">
 <link rel="canonical" href="https://edwinalkins.github.io/factorio-admin-rcon/overview.html">
 <link rel="stylesheet" href="./assets/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#9881;</text></svg>">
+<link rel="icon" type="image/png" href="./assets/brand/logo-64.png">
 <meta property="og:site_name" content="Factorio Admin RCON">
 <meta property="og:title" content="Overview &mdash; Factorio Admin RCON">
 <meta property="og:description" content="What Factorio Admin RCON is: a web RCON console for Factorio 2 with kick, ban and roles &mdash; not a server manager for mods or saves.">
@@ -27,7 +27,7 @@
 <a class="skip" href="#content">Skip to content</a>
 
 <div class="topbar">
-  <a class="brand" href="./index.html">Factorio <span>Admin RCON</span></a>
+  <a class="brand" href="./index.html"><img src="./assets/brand/logo-64.png" alt="" width="28" height="28">Factorio <span>Admin RCON</span></a>
   <a class="repo" href="https://github.com/EdwinAlkins/factorio-admin-rcon">Source code</a>
 </div>
 
@@ -92,7 +92,7 @@ cd factorio-admin-rcon
 # ./secrets/, and creates ./backups
 ./setup-admin.sh
 
-docker compose up -d --build control-agent data-agent factorio-admin
+docker compose up -d --build control-agent data-agent world-agent factorio-admin
 # → http://127.0.0.1:3010</code></pre></div>
 <div class="note">
   <strong>The panel is not published on the network</strong>

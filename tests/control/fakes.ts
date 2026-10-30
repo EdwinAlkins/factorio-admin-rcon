@@ -127,6 +127,10 @@ export function createFakes() {
     modsStage: vi.fn(async (): Promise<string> => "20261027-120000-abcdef"),
     modsCommit: vi.fn(async (tx: string): Promise<void> => void tx),
     modsRollback: vi.fn(async (tx: string): Promise<void> => void tx),
+    // Worlds.
+    archiveWorld: vi.fn(async (id: string): Promise<BackupDto> =>
+      backup(`20261027-120000-world`, { source: "world", label: id, saveName: "world.zip" }),
+    ),
   };
 
   function reset() {
@@ -153,6 +157,10 @@ export function createFakes() {
     data.settingsUpdate.mockImplementation(async (change: { hash: string }) => ({ ...settingsView(), tx: `tx-${change.hash.slice(0, 4)}` }));
     data.settingsRollback.mockReset();
     data.settingsRollback.mockImplementation(async () => undefined);
+    data.archiveWorld.mockReset();
+    data.archiveWorld.mockImplementation(async (id: string) =>
+      backup(`20261027-120000-world`, { source: "world", label: id, saveName: "world.zip" }),
+    );
     for (const fn of [...Object.values(agent), rcon.execute, rcon.healthCheck, rcon.disconnect]) {
       fn.mockClear();
     }
@@ -224,6 +232,7 @@ export function createFakes() {
     dataModsStage: track("data.modsStage", () => data.modsStage()),
     dataModsCommit: track("data.modsCommit", (tx: string) => data.modsCommit(tx)),
     dataModsRollback: track("data.modsRollback", (tx: string) => data.modsRollback(tx)),
+    dataArchiveWorld: track("data.archiveWorld", (id: string) => data.archiveWorld(id)),
     dataHealthy: async () => true,
   };
 

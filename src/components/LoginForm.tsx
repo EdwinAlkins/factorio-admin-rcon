@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { fetchJson } from "@/lib/fetch-json";
 import { useErrorMessage } from "@/hooks/useErrorMessage";
+import Brand from "@/components/Brand";
+import SourceLink from "@/components/SourceLink";
 import type { LoginResult } from "@/lib/api-types";
 
 export default function LoginForm() {
@@ -46,9 +48,7 @@ export default function LoginForm() {
       className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-6"
     >
       <div>
-        <h1 className="text-base font-semibold">
-          {t("app.brand")} <span className="text-accent">{t("app.brandSuffix")}</span>
-        </h1>
+        <Brand />
         <p className="mt-1 text-xs text-muted">{t("login.subtitle")}</p>
       </div>
 
@@ -77,6 +77,8 @@ export default function LoginForm() {
       <button type="submit" className="btn-primary w-full" disabled={busy}>
         {busy ? t("login.submitting") : t("login.submit")}
       </button>
+
+      <SourceLink />
     </form>
   );
 }

@@ -233,7 +233,8 @@ export type ServerOperationType =
   | "restore"
   | "mods_apply"
   | "import"
-  | "server_settings_apply";
+  | "server_settings_apply"
+  | "world_activate";
 export type ServerOperationStatus = "running" | "success" | "error" | "interrupted";
 /** Where a running operation stands, for the progress display. */
 export type ServerOperationStep =
@@ -345,7 +346,7 @@ export type SaveFileDto = {
 };
 
 /** `upload`: sent from the operator's computer; its version and mod set are unknown. */
-export type BackupSource = "manual" | "scheduled" | "pre-restore" | "pre-mods" | "upload";
+export type BackupSource = "manual" | "scheduled" | "pre-restore" | "pre-mods" | "upload" | "world";
 
 /** One archive kept by the panel, as described by its sidecar. */
 export type BackupDto = {
@@ -506,6 +507,131 @@ export type ModDetailsDto = {
 };
 
 export type ModDetailsResult = { ok: true; mod: ModDetailsDto };
+
+// --- Worlds ---------------------------------------------------------------
+
+/**
+ * A world's settings, as the world agent takes them. Members mirror
+ * Factorio's own map-gen-settings.json and map-settings.json (snake_case), so
+ * the advanced editor shows what the game's documentation describes. A member
+ * left out keeps the game's default.
+ */
+export type WorldControlValue = { frequency?: number; size?: number; richness?: number };
+
+export type WorldMapGen = {
+  width?: number;
+  height?: number;
+  starting_area?: number;
+  peaceful_mode?: boolean;
+  no_enemies_mode?: boolean;
+  autoplace_controls?: Record<string, WorldControlValue>;
+  cliff_settings?: {
+    cliff_elevation_0?: number;
+    cliff_elevation_interval?: number;
+    richness?: number;
+    cliff_smoothing?: number;
+  };
+  property_expression_names?: Record<string, string | number>;
+};
+
+export type WorldMapSettings = {
+  difficulty_settings?: { technology_price_multiplier?: number; spoil_time_modifier?: number };
+  pollution?: {
+    enabled?: boolean;
+    diffusion_ratio?: number;
+    min_to_diffuse?: number;
+    ageing?: number;
+    enemy_attack_pollution_consumption_modifier?: number;
+    min_pollution_to_damage_trees?: number;
+    pollution_restored_per_tree_damage?: number;
+  };
+  enemy_evolution?: { enabled?: boolean; time_factor?: number; destroy_factor?: number; pollution_factor?: number };
+  enemy_expansion?: {
+    enabled?: boolean;
+    max_expansion_distance?: number;
+    settler_group_min_size?: number;
+    settler_group_max_size?: number;
+    /** In ticks (60 per second). */
+    min_expansion_cooldown?: number;
+    max_expansion_cooldown?: number;
+  };
+};
+
+export type WorldSettings = {
+  mapGen?: WorldMapGen;
+  mapSettings?: WorldMapSettings;
+  /** `>>>…<<<`, from the game's dialog. Exclusive with the two above. */
+  exchangeString?: string;
+};
+
+export type WorldControlDto = {
+  name: string;
+  /** resource, terrain, cliff or enemy (a mod may add others). */
+  category: string;
+  order: string;
+  richness: boolean;
+  canBeDisabled: boolean;
+};
+
+export type WorldPlanetDto = {
+  name: string;
+  controls: string[];
+  /** Resource entities placed on it, counted under a preview. */
+  resources: string[];
+  /** Moisture and terrain-type sliders (Nauvis). */
+  climateControls: boolean;
+};
+
+export type WorldPresetDto = { name: string; order: string; default: boolean; settings: WorldSettings };
+
+/** Read from the game, with the server's mods: what the creation form shows. */
+export type WorldCatalogDto = {
+  factorioVersion: string;
+  planets: WorldPlanetDto[];
+  controls: WorldControlDto[];
+  presets: WorldPresetDto[];
+  mapSettings: WorldMapSettings;
+};
+
+export type WorldQuantityDto = { name: string; count: number; richness: number };
+
+export type WorldPreviewDto = {
+  id: string;
+  seed: number;
+  size: number;
+  planet: string;
+  quantities: WorldQuantityDto[];
+};
+
+/** One world of the library, as described by its sidecar. */
+export type WorldDto = {
+  id: string;
+  name: string;
+  seed: number;
+  createdAt: string;
+  createdBy?: string;
+  size: number;
+  sha256: string;
+  settings: WorldSettings;
+  factorioVersion: string;
+  /** As the game loaded them; no version for the game's own. */
+  mods: { name: string; version?: string }[];
+  preview: boolean;
+};
+
+export type WorldsResult = {
+  ok: true;
+  worlds: WorldDto[];
+  /** The game the world agent generates with. */
+  agentVersion: string;
+  /** The game the server runs (RCON), when it answers: they should match. */
+  serverVersion: string | null;
+  operation: ServerOperationDto | null;
+};
+
+export type WorldCatalogResult = { ok: true; catalog: WorldCatalogDto };
+export type WorldPreviewResult = { ok: true; preview: WorldPreviewDto };
+export type WorldResult = { ok: true; world: WorldDto };
 
 export type SessionInfo = {
   username: string;

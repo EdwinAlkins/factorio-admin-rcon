@@ -1,5 +1,6 @@
 // Command data-agent is the only component of the stack that writes the
-// game's files: it archives saves, restores them and manages mods. It never
+// game's files: it archives saves, restores them and manages mods, and turns
+// the world agent's worlds into archives (reading them only). It never
 // sees the Docker socket — stopping the server around a restore or a mod
 // change is the panel's job, through the control agent. It is also the only
 // one that reaches the Internet, and only the official mod portal.
@@ -25,6 +26,7 @@ import (
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/portal"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/saves"
 	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/serversettings"
+	"github.com/EdwinAlkins/factorio-admin-rcon/services/agents/internal/worlds"
 )
 
 func main() {
@@ -115,10 +117,20 @@ func run() error {
 		logger.Warn("config folder unavailable; server settings cannot be edited", "error", err)
 	}
 
+	// Read-only, and only when the world agent is deployed: without it, no
+	// world can be put in play, and nothing else changes.
+	var library *worlds.Store
+	if worldsRoot, err := os.OpenRoot(cfg.WorldsDir); err != nil {
+		logger.Info("worlds folder unavailable; worlds cannot be put in play", "error", err)
+	} else {
+		library = worlds.NewStore(worldsRoot)
+	}
+
 	handler := api.New(api.Options{
 		Store:              store,
 		Mods:               mods.NewManager(cfg.ModsDir, workRoot, portalClient, cfg.ModsMaxDownloadBytes),
 		Settings:           settings,
+		Worlds:             library,
 		Token:              cfg.Token,
 		TargetSaveName:     cfg.TargetSaveName,
 		MutationsPerMinute: cfg.MutationsPerMinute,
