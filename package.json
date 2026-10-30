@@ -34,7 +34,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "next": "16.4.2",
+    "next": "16.4.3",
     "next-intl": "^4.14.8",
     "rcon-client": "^4.2.5",
     "react": "19.3.1",
@@ -49,7 +49,7 @@
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^5.0.5",
     "eslint": "^10.13.0",
-    "eslint-config-next": "16.4.2",
+    "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript7": "npm:typescript@^7.0.2",
