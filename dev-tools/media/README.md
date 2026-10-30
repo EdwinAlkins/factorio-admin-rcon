@@ -66,13 +66,14 @@ with ffmpeg:
 cd out/fr-video
 ffmpeg -i demo.webm -c:v libx264 -crf 23 -preset slow -pix_fmt yuv420p -movflags +faststart demo-fr.mp4
 ffmpeg -ss 12 -i demo-fr.mp4 -frames:v 1 poster-fr.png
-ffmpeg -ss 8 -t 40 -i demo-fr.mp4 -vf 'fps=10,scale=900:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle' demo-fr-readme.gif
+ffmpeg -ss 8 -i demo-fr.mp4 -vf 'setpts=PTS/2,fps=6,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=48:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle' demo-fr-readme.gif
 ```
 
-Rough targets for the 83 s walkthrough: MP4 ~3 MB, WebM ~15 MB (not published), GIF ~4.4 MB
-at 900×563 / 10 fps / 40 s (the GIF skips the sign-in typing, hence the `-ss 8`). Playwright
-names the recording after the page (`page@….webm`): rename it `demo.webm` first. The published
-set is English, like the documentation site: `demo.mp4` and `demo.gif` in `docs/assets/media/`.
+Rough targets for the 83 s walkthrough: MP4 ~3 MB, WebM ~15 MB (not published), GIF
+~1.8 MB at 720×450 / 6 fps / 48 colours / 38 s: the GIF skips the sign-in typing (`-ss 8`) and
+plays the rest at 2× (`setpts=PTS/2`), so it reaches the Worlds tab. No `-t`: cutting it short
+drops the last tabs. Narrower or fewer colours and the console text stops being legible. Playwright names the recording after the page (`page@….webm`): rename it `demo.webm`
+first. The published set is English, like the documentation site: `demo.mp4` and `demo.gif` in `docs/assets/media/`.
 
 ## What the walkthrough does
 
