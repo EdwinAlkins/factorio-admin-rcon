@@ -57,7 +57,7 @@ services:
     container_name: factorio-admin-panel
     # A minor tag: patches arrive, a major never lands on you by surprise.
     # In production, pin the exact version instead.
-    image: williamnauroy/factorio-admin-rcon:2.0-distroless
+    image: williamnauroy/factorio-admin-rcon:1.5-distroless
     restart: unless-stopped
     depends_on:
       - factorio
