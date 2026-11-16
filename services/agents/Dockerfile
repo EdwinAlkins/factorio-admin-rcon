@@ -22,7 +22,7 @@
 
 ARG FACTORIO_IMAGE=factoriotools/factorio:stable
 
-FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine AS builder
 WORKDIR /src
 # The toolchain in the image is the one go.mod asks for: never download another.
 ENV GOTOOLCHAIN=local CGO_ENABLED=0
