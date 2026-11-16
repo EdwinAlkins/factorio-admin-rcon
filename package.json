@@ -34,7 +34,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "next": "16.4.5",
+    "next": "16.4.6",
     "next-intl": "^4.14.8",
     "rcon-client": "^4.2.5",
     "react": "19.3.1",
