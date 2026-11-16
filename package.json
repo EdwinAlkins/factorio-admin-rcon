@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "next": "16.4.5",
-    "next-intl": "^4.14.8",
+    "next-intl": "^4.15.1",
     "rcon-client": "^4.2.5",
     "react": "19.3.1",
     "react-dom": "19.3.1",
